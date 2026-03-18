@@ -24,7 +24,7 @@ services:
     image: postgis/postgis:15-3.3-alpine
     container_name: locolive-postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password

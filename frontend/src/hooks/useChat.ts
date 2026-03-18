@@ -39,8 +39,10 @@ export const useChat = (targetUserId?: string) => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    // Connect to WebSocket
-    const wsUrl = `ws://localhost:8080/ws/chat?token=${token}`;
+    // Connect to WebSocket using the environment API_URL or fallback to 8088
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    const wsBaseUrl = baseUrl.replace('http://', 'ws://').replace('https://', 'wss://');
+    const wsUrl = `${wsBaseUrl}/ws/chat?token=${token}`;
     const ws = new WebSocket(wsUrl);
     socketRef.current = ws;
 

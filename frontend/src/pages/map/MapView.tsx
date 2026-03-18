@@ -7,14 +7,23 @@ import api from '../../lib/api';
 // Fix for default marker icons in React-Leaflet
 import 'leaflet/dist/leaflet.css';
 
-// Custom Marker Icon for Stories
-const storyIcon = new L.DivIcon({
-  html: `<div class="w-8 h-8 bg-purple-600 rounded-full border-2 border-white shadow-lg flex items-center justify-center animate-pulse">
-          <div class="w-2 h-2 bg-white rounded-full"></div>
+// Custom Avatar Marker for Snap Map Style
+const createAvatarIcon = (username: string, avatarUrl?: string) => new L.DivIcon({
+  html: `<div class="group relative flex items-center justify-center">
+          <div class="absolute -inset-1 bg-gradient-to-tr from-yellow-400 to-yellow-600 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity animate-pulse"></div>
+          <div class="relative w-12 h-12 rounded-2xl bg-white border-2 border-white shadow-xl overflow-hidden transform rotate-3 hover:rotate-0 transition-transform duration-300">
+            ${avatarUrl 
+              ? `<img src="${avatarUrl}" class="w-full h-full object-cover" />`
+              : `<div class="w-full h-full bg-purple-600 flex items-center justify-center text-white font-black text-lg">${username.charAt(0).toUpperCase()}</div>`
+            }
+          </div>
+          <div class="absolute -bottom-6 bg-black/80 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/20 whitespace-nowrap hidden group-hover:block">
+            <span class="text-[10px] font-bold text-white">@${username}</span>
+          </div>
          </div>`,
   className: 'custom-div-icon',
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
+  iconSize: [48, 48],
+  iconAnchor: [24, 24],
 });
 
 // Component to handle map events like moves/zooms
@@ -59,11 +68,17 @@ function MapEvents({ onBoundsChange }: { onBoundsChange: (bounds: any) => void }
   return null;
 }
 
-const MapView = () => {
+interface MapViewProps {
+  onStorySelect?: (id: string) => void;
+}
+
+const MapView = ({ onStorySelect }: MapViewProps) => {
   const [stories, setStories] = useState<any[]>([]);
   const [heatmap, setHeatmap] = useState<any[]>([]);
   const [center, setCenter] = useState<[number, number]>([28.6139, 77.2090]); // Default to Delhi
   const [loading, setLoading] = useState(true);
+  const [isGhostMode, setIsGhostMode] = useState(false);
+  const [showHeatmap, setShowHeatmap] = useState(true);
 
   const fetchMapData = useCallback(async (bounds: any) => {
     try {
@@ -115,19 +130,45 @@ const MapView = () => {
 
   return (
     <div className="h-[calc(100vh-80px)] w-full relative bg-[#0a0a0c]">
-      {/* Map Controls Overlay */}
-      <div className="absolute top-4 left-4 z-[1000] space-y-2">
-        <div className="bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl shadow-xl max-w-xs">
-          <div className="flex items-center space-x-2 text-purple-400 mb-2">
-            <Navigation className="w-4 h-4" />
-            <span className="text-sm font-semibold uppercase tracking-wider">Live Discovery</span>
+      {/* Map Controls Overlay - Snap Style */}
+      <div className="absolute top-6 left-6 z-[1000] space-y-4 pointer-events-none">
+        <div className="bg-black/40 backdrop-blur-2xl border border-white/10 p-5 rounded-3xl shadow-2xl max-w-xs pointer-events-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2 text-yellow-400">
+              <Navigation className="w-5 h-5 fill-current" />
+              <span className="text-xs font-black uppercase tracking-[0.2em]">Snap Map</span>
+            </div>
           </div>
-          <p className="text-xs text-gray-300">Discover active stories and hotspots around you in real-time.</p>
-        </div>
-        
-        <div className="flex bg-white/10 backdrop-blur-md border border-white/20 p-1 rounded-xl shadow-lg w-fit">
-          <button className="px-3 py-1.5 rounded-lg bg-purple-600 text-[10px] font-bold uppercase transition-all">Stories</button>
-          <button className="px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase text-gray-400 hover:text-white transition-all">Heatmap</button>
+          
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-gray-300">Ghost Mode</span>
+              <button 
+                onClick={async () => {
+                  try {
+                    const newStatus = !isGhostMode;
+                    await api.put('/location/ghost-mode', { enabled: newStatus, duration: 0 });
+                    setIsGhostMode(newStatus);
+                  } catch (err) {
+                    console.error("Failed to toggle ghost mode:", err);
+                  }
+                }}
+                className={`w-10 h-6 rounded-full transition-colors relative ${isGhostMode ? 'bg-purple-600' : 'bg-gray-700'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isGhostMode ? 'left-5' : 'left-1'}`} />
+              </button>
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-gray-300">Heatmap</span>
+              <button 
+                onClick={() => setShowHeatmap(!showHeatmap)}
+                className={`w-10 h-6 rounded-full transition-colors relative ${showHeatmap ? 'bg-yellow-500' : 'bg-gray-700'}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${showHeatmap ? 'left-5' : 'left-1'}`} />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -157,28 +198,41 @@ const MapView = () => {
           <Marker 
             key={story.id} 
             position={[story.latitude, story.longitude]} 
-            icon={storyIcon}
+            icon={createAvatarIcon(story.username, story.avatar_url ? `http://localhost:8080${story.avatar_url}` : undefined)}
           >
             <Popup className="custom-popup">
-              <div className="bg-[#1a1a1c] text-white p-2 rounded-lg border border-white/10 min-w-[150px]">
-                <div className="aspect-square rounded-md overflow-hidden mb-2 bg-white/5">
+              <div className="bg-[#1a1a1c] text-white p-2 rounded-lg border border-white/10 min-w-[200px]">
+                <div className="aspect-[9/16] rounded-xl overflow-hidden mb-2 bg-white/5 relative shadow-2xl">
                    <img src={`http://localhost:8080${story.media_url}`} alt="Story" className="w-full h-full object-cover" />
+                   <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+                      <p className="text-[10px] font-black uppercase text-yellow-400">Live Story</p>
+                   </div>
                 </div>
-                <p className="text-xs font-medium">@{story.username}</p>
-                <p className="text-[10px] text-gray-400">{new Date(story.created_at).toLocaleTimeString()}</p>
+                <div className="flex items-center justify-between px-1">
+                  <div>
+                    <p className="text-xs font-bold">@{story.username}</p>
+                    <p className="text-[10px] text-gray-400">{new Date(story.created_at).toLocaleTimeString()}</p>
+                  </div>
+                  <div 
+                    onClick={() => onStorySelect?.(story.id)}
+                    className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-transform"
+                  >
+                    <Navigation className="w-4 h-4 fill-current text-white" />
+                  </div>
+                </div>
               </div>
             </Popup>
           </Marker>
         ))}
 
-        {heatmap.filter(p => (p.latitude !== undefined || p.lat !== undefined) && (p.longitude !== undefined || p.lng !== undefined)).map((point: any, idx: number) => (
+        {showHeatmap && heatmap.filter(p => (p.latitude !== undefined || p.lat !== undefined) && (p.longitude !== undefined || p.lng !== undefined)).map((point: any, idx: number) => (
           <Marker 
             key={`heat-${idx}`}
             position={[point.latitude || point.lat, point.longitude || point.lng]}
             icon={new L.DivIcon({
-              html: `<div class="w-12 h-12 bg-indigo-500/20 rounded-full blur-xl border border-indigo-500/30"></div>`,
+              html: `<div class="w-24 h-24 bg-gradient-to-tr from-yellow-400/30 to-orange-500/30 rounded-full blur-2xl animate-pulse"></div>`,
               className: 'heatmap-icon',
-              iconSize: [48, 48],
+              iconSize: [96, 96],
             })}
           />
         ))}

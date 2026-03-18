@@ -51,15 +51,13 @@ const CreateStoryModal = ({ isOpen, onClose, onSuccess }: CreateStoryModalProps)
     try {
       // 1. Get current location
       const position: any = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject);
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
       }).catch(() => ({ coords: { latitude: 28.6139, longitude: 77.2090 } })); // Default Delhi
 
       // 2. Upload file
       const formData = new FormData();
       formData.append('file', file);
-      const uploadRes = await api.post('/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const uploadRes = await api.post('/upload', formData);
 
       const mediaUrl = uploadRes.data.url;
 

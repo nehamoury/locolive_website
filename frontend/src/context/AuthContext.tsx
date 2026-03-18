@@ -5,6 +5,9 @@ interface User {
   username: string;
   full_name: string;
   phone: string;
+  bio?: string;
+  avatar_url?: string;
+  connections_count?: number;
 }
 
 interface AuthContextType {
