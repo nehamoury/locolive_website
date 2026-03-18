@@ -1,0 +1,113 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import api from '../lib/api';
+
+interface Message {
+  id: string;
+  sender_id: string;
+  receiver_id?: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+  media_url?: string;
+  media_type?: string;
+}
+
+export const useChat = (targetUserId?: string) => {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [online, setOnline] = useState(false);
+  const socketRef = useRef<WebSocket | null>(null);
+  const typingTimeoutRef = useRef<any>(null);
+
+  const fetchHistory = useCallback(async () => {
+    if (!targetUserId) return;
+    try {
+      const response = await api.get('/messages', {
+        params: { user_id: targetUserId }
+      });
+      setMessages(response.data || []);
+    } catch (err) {
+      console.error('Failed to fetch chat history:', err);
+    }
+  }, [targetUserId]);
+
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    // Connect to WebSocket
+    const wsUrl = `ws://localhost:8080/ws/chat?token=${token}`;
+    const ws = new WebSocket(wsUrl);
+    socketRef.current = ws;
+
+    ws.onopen = () => {
+      console.log('WS Connected');
+      setOnline(true);
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      console.log('WS Message received:', data);
+
+      switch (data.type) {
+        case 'new_message':
+          // Add to messages if current conversation matches
+          const msg = data.payload;
+          if (msg.sender_id === targetUserId || msg.receiver_id === targetUserId) {
+             setMessages(prev => [...prev, msg]);
+          }
+          break;
+        case 'typing':
+          if (data.payload.user_id === targetUserId) {
+            setIsTyping(true);
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+            typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 3000);
+          }
+          break;
+      }
+    };
+
+    ws.onclose = () => {
+      console.log('WS Disconnected');
+      setOnline(false);
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [targetUserId]);
+
+  const sendMessage = async (content: string) => {
+    if (!targetUserId) return;
+    try {
+      await api.post('/messages', {
+        receiver_id: targetUserId,
+        content: content
+      });
+      // Logic handled via WS echo in backend
+    } catch (err) {
+      console.error('Failed to send message:', err);
+    }
+  };
+
+  const sendTyping = () => {
+    if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN || !targetUserId) return;
+    socketRef.current.send(JSON.stringify({
+      type: 'typing',
+      receiver_id: targetUserId
+    }));
+  };
+
+  return {
+    messages,
+    sendMessage,
+    sendTyping,
+    isTyping,
+    online,
+    refreshHistory: fetchHistory
+  };
+};
