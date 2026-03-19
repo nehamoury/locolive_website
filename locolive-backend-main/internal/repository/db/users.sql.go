@@ -140,24 +140,27 @@ func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (
   phone,
+  email,
   password_hash,
   username,
   full_name
 ) VALUES (
-  $1, $2, $3, $4
+  $1, $2, $3, $4, $5
 ) RETURNING id, phone, password_hash, username, full_name, avatar_url, bio, role, trust_level, is_verified, is_shadow_banned, last_active_at, created_at, is_ghost_mode, activity_streak, streak_updated_at, is_premium, streak_freezes_remaining, boost_expires_at, banner_url, theme, profile_visibility, email, website_url, links, google_id, password_reset_token, password_reset_expires_at, ghost_mode_expires_at
 `
 
 type CreateUserParams struct {
-	Phone        string `json:"phone"`
-	PasswordHash string `json:"password_hash"`
-	Username     string `json:"username"`
-	FullName     string `json:"full_name"`
+	Phone        string         `json:"phone"`
+	Email        sql.NullString `json:"email"`
+	PasswordHash string         `json:"password_hash"`
+	Username     string         `json:"username"`
+	FullName     string         `json:"full_name"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRowContext(ctx, createUser,
 		arg.Phone,
+		arg.Email,
 		arg.PasswordHash,
 		arg.Username,
 		arg.FullName,

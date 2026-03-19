@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { LogOut, Home, Map as MapIcon, MessageSquare, User, Bell, Plus, Heart, Share2, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
-import MapView from '../map/MapView';
-import CreateStoryModal from '../../components/stories/CreateStoryModal';
-import api from '../../lib/api';
+import MapView from '../../components/map/MapView';
+import StoryViewer from '../../components/story/StoryViewer';
+import { StoryBar } from '../../components/story/StoryBar';
+import CreateStoryModal from '../../components/story/CreateStoryModal';
+import { Profile } from './Profile';
+import api from '../../services/api';
 import ChatList from '../../components/chat/ChatList';
 import ChatWindow from '../../components/chat/ChatWindow';
-import StoryViewer from '../../components/stories/StoryViewer';
-import ProfileView from './ProfileView';
 import NotificationsView from './NotificationsView';
 import ConnectionsView from './ConnectionsView';
 import SettingsView from './SettingsView';
@@ -202,14 +203,11 @@ const Dashboard = () => {
         )}
 
         {activeTab === 'profile' ? (
-          <ProfileView onLogout={logout} />
+          <Profile onLogout={logout} />
         ) : activeTab === 'notifications' ? (
           <NotificationsView />
         ) : activeTab === 'explore' ? (
-          <MapView onStorySelect={(storyId: string) => {
-            const index = stories.findIndex((s: any) => s.id === storyId);
-            if (index !== -1) setViewingStoryIndex(index);
-          }} />
+          <MapView />
         ) : activeTab === 'connections' ? (
           <ConnectionsView />
         ) : activeTab === 'settings' ? (
@@ -249,8 +247,14 @@ const Dashboard = () => {
           </div>
         ) : (
           <>
+            <StoryBar 
+              stories={stories} 
+              user={user} 
+              onCreateStory={() => setIsCreateModalOpen(true)}
+              onStoryClick={setViewingStoryIndex}
+            />
             {/* TikTok-style Vertical Feed */}
-            <div className="h-full snap-y snap-mandatory overflow-y-auto no-scrollbar">
+            <div className="h-full snap-y snap-mandatory overflow-y-auto no-scrollbar scroll-smooth">
               {loadingStories ? (
                 <div className="h-full flex items-center justify-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
@@ -275,44 +279,47 @@ const Dashboard = () => {
                     />
                     
                     {/* Interaction Buttons (Instagram/Snapchat Style) */}
-                    <div className="absolute right-3 bottom-24 md:bottom-20 flex flex-col items-center space-y-5 z-30">
+                    <div className="absolute right-4 bottom-24 md:bottom-20 flex flex-col items-center space-y-6 z-30">
                       
                       <div className="group cursor-pointer flex flex-col items-center">
-                        <div className="w-10 h-10 bg-black/20 backdrop-blur-sm rounded-full flex items-center justify-center transition-all hover:bg-black/40 active:scale-95">
-                          <Heart className="w-6 h-6 text-white" />
+                        <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center transition-all hover:bg-white/20 active:scale-90 border border-white/20 shadow-lg">
+                          <Heart className="w-6 h-6 text-white group-hover:text-pink-500 transition-colors" />
                         </div>
-                        <span className="text-[10px] mt-1 font-semibold drop-shadow-md">42.1K</span>
+                        <span className="text-[10px] mt-1.5 font-bold drop-shadow-md text-white/90">42.1K</span>
                       </div>
 
                       <div className="group cursor-pointer flex flex-col items-center">
-                        <div className="w-10 h-10 bg-black/20 backdrop-blur-sm rounded-full flex items-center justify-center transition-all hover:bg-black/40 active:scale-95">
-                          <MessageSquare className="w-6 h-6 text-white" />
+                        <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center transition-all hover:bg-white/20 active:scale-90 border border-white/20 shadow-lg">
+                          <MessageSquare className="w-6 h-6 text-white group-hover:text-purple-400 transition-colors" />
                         </div>
-                        <span className="text-[10px] mt-1 font-semibold drop-shadow-md">452</span>
+                        <span className="text-[10px] mt-1.5 font-bold drop-shadow-md text-white/90">452</span>
                       </div>
 
                       <div className="group cursor-pointer flex flex-col items-center">
-                        <div className="w-10 h-10 bg-black/20 backdrop-blur-sm rounded-full flex items-center justify-center transition-all hover:bg-black/40 active:scale-95">
-                          <Share2 className="w-6 h-6 text-white" />
+                        <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center transition-all hover:bg-white/20 active:scale-90 border border-white/20 shadow-lg">
+                          <Share2 className="w-6 h-6 text-white group-hover:text-blue-400 transition-colors" />
                         </div>
-                        <span className="text-[10px] mt-1 font-semibold drop-shadow-md">Share</span>
+                        <span className="text-[10px] mt-1.5 font-bold drop-shadow-md text-white/90">Share</span>
                       </div>
                     </div>
 
                     {/* Content Info */}
-                    <div className="absolute bottom-6 md:bottom-6 left-3 right-16 md:left-4 md:right-20 z-30">
-                      <div className="flex items-center space-x-2 mb-2">
-                         <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-yellow-400 to-pink-500 flex items-center justify-center font-bold text-xs border border-white/50 text-white shadow-sm">
-                           {story.username.charAt(0).toUpperCase()}
+                    <div className="absolute bottom-6 left-4 right-20 z-30">
+                      <div className="flex items-center space-x-3 mb-3">
+                         <div className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 shadow-lg">
+                           <div className="w-full h-full rounded-full bg-black flex items-center justify-center font-bold text-sm text-white">
+                             {story.username.charAt(0).toUpperCase()}
+                           </div>
                          </div>
                          <div className="flex flex-col drop-shadow-md">
-                           <p className="font-semibold text-sm leading-tight text-white">@{story.username}</p>
+                           <p className="font-bold text-base leading-tight text-white tracking-tight">@{story.username}</p>
+                           <p className="text-[10px] text-white/60 font-medium">Original Audio</p>
                          </div>
                       </div>
-                      <p className="text-xs md:text-sm text-gray-100 line-clamp-2 drop-shadow-md mb-2">{story.caption}</p>
-                      <div className="flex items-center space-x-1.5 text-white/90 text-[10px] font-medium bg-black/30 backdrop-blur-sm self-start inline-flex px-2 py-1 rounded-sm cursor-pointer hover:bg-black/50 transition-colors">
-                         <MapIcon className="w-3 h-3 text-white" />
-                         <span>Nearby</span>
+                      <p className="text-sm md:text-base text-gray-100 line-clamp-2 drop-shadow-md mb-4 font-medium leading-relaxed">{story.caption}</p>
+                      <div className="flex items-center space-x-2 text-white text-xs font-bold bg-white/10 backdrop-blur-md self-start inline-flex px-3 py-1.5 rounded-full cursor-pointer hover:bg-white/20 transition-all border border-white/20 shadow-xl group">
+                         <MapIcon className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
+                         <span>Nearby • Mumbai</span>
                       </div>
                     </div>
                   </div>

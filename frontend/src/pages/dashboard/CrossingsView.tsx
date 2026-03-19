@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Footprints, MapPin, Clock, UserPlus } from 'lucide-react';
-import api from '../../lib/api';
+import api from '../../services/api';
 
 const CrossingsView: React.FC = () => {
   const [crossings, setCrossings] = useState<any[]>([]);

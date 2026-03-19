@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, UserPlus, Star, MapPin, Bell, Check } from 'lucide-react';
-import api from '../../lib/api';
+import api from '../../services/api';
 
 const getIcon = (type: string) => {
   switch(type) {

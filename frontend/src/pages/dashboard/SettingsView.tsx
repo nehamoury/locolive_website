@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Shield, Bell, User, Lock, Trash2, Ghost, EyeOff, MapPin } from 'lucide-react';
-import api from '../../lib/api';
+import { ArrowLeft, User, Lock, Trash2, EyeOff, MapPin } from 'lucide-react';
+import api from '../../services/api';
 
 interface SettingsViewProps {
   onBack: () => void;
@@ -8,11 +8,11 @@ interface SettingsViewProps {
 
 const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
   const [privacy, setPrivacy] = useState({
-    ghost_mode: false,
-    show_online_status: true,
-    share_location_with_friends: true,
+    who_can_message: 'everyone',
+    who_can_see_stories: 'everyone',
+    show_location: true,
   });
-  const [loading, setLoading] = useState(false);
+
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -20,9 +20,9 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
         const res = await api.get('/privacy');
         // Map backend naming to frontend state if different
         setPrivacy({
-          ghost_mode: res.data.ghost_mode || false,
-          show_online_status: res.data.show_online_status ?? true,
-          share_location_with_friends: res.data.share_location_with_friends ?? true,
+          who_can_message: res.data.who_can_message || 'everyone',
+          who_can_see_stories: res.data.who_can_see_stories || 'everyone',
+          show_location: res.data.show_location ?? true,
         });
       } catch (err) {
         console.error('Failed to fetch privacy settings:', err);
@@ -31,22 +31,29 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
     fetchSettings();
   }, []);
 
-  const toggleSetting = async (key: keyof typeof privacy) => {
-    const newVal = !privacy[key];
-    const updated = { ...privacy, [key]: newVal };
+  const updateSetting = async (key: keyof typeof privacy, value: string | boolean) => {
+    const updated = { ...privacy, [key]: value };
+    const previous = { ...privacy };
     setPrivacy(updated);
     
     try {
       await api.put('/privacy', {
-        ghost_mode: updated.ghost_mode,
-        show_online_status: updated.show_online_status,
-        share_location_with_friends: updated.share_location_with_friends
+        who_can_message: updated.who_can_message,
+        who_can_see_stories: updated.who_can_see_stories,
+        show_location: updated.show_location
       });
     } catch (err) {
       console.error('Failed to update settings:', err);
       // Revert on failure
-      setPrivacy(privacy);
+      setPrivacy(previous);
     }
+  };
+
+  const cycleEnum = (key: 'who_can_message' | 'who_can_see_stories') => {
+    const options = ['everyone', 'connections', 'nobody'];
+    const currentIndex = options.indexOf(privacy[key]);
+    const nextIndex = (currentIndex + 1) % options.length;
+    updateSetting(key, options[nextIndex]);
   };
 
   return (
@@ -67,25 +74,23 @@ const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
             <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4 ml-1">Privacy & Safety</h2>
             <div className="space-y-1 bg-white/5 rounded-2xl overflow-hidden border border-white/5">
               <SettingItem 
-                icon={<Ghost className="w-4 h-4 text-purple-400" />} 
-                title="Ghost Mode" 
-                description="Hide your location from everyone on the map"
-                active={privacy.ghost_mode}
-                onToggle={() => toggleSetting('ghost_mode')}
-              />
-              <SettingItem 
-                icon={<EyeOff className="w-4 h-4 text-blue-400" />} 
-                title="Online Status" 
-                description="Show when you're active in the app"
-                active={privacy.show_online_status}
-                onToggle={() => toggleSetting('show_online_status')}
-              />
-              <SettingItem 
                 icon={<MapPin className="w-4 h-4 text-green-400" />} 
-                title="Location Sharing" 
-                description="Automatically share location with friends"
-                active={privacy.share_location_with_friends}
-                onToggle={() => toggleSetting('share_location_with_friends')}
+                title="Show Location" 
+                description="Allow others to see your location on the map"
+                active={privacy.show_location}
+                onToggle={() => updateSetting('show_location', !privacy.show_location)}
+              />
+              <EnumSettingItem 
+                icon={<Lock className="w-4 h-4 text-purple-400" />}
+                title="Who Can Message You"
+                value={privacy.who_can_message}
+                onCycle={() => cycleEnum('who_can_message')}
+              />
+              <EnumSettingItem 
+                icon={<EyeOff className="w-4 h-4 text-blue-400" />}
+                title="Who Can See Your Stories"
+                value={privacy.who_can_see_stories}
+                onCycle={() => cycleEnum('who_can_see_stories')}
               />
             </div>
           </section>
@@ -149,6 +154,26 @@ const SettingItem = ({ icon, title, description, active, onToggle }: SettingItem
     >
       <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${active ? 'right-1' : 'left-1'}`} />
     </button>
+  </div>
+);
+
+interface EnumSettingItemProps {
+  icon: React.ReactNode;
+  title: string;
+  value: string;
+  onCycle: () => void;
+}
+
+const EnumSettingItem = ({ icon, title, value, onCycle }: EnumSettingItemProps) => (
+  <div onClick={onCycle} className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors border-b border-white/[0.03] last:border-0 cursor-pointer group">
+    <div className="flex items-center space-x-3">
+      <div className="p-2 bg-black/40 rounded-xl">{icon}</div>
+      <div>
+        <h4 className="text-sm font-bold">{title}</h4>
+        <p className="text-[10px] text-purple-400 uppercase font-bold tracking-widest">{value}</p>
+      </div>
+    </div>
+    <div className="text-[10px] text-gray-500 group-hover:text-purple-400 transition-colors uppercase font-bold tracking-tighter">Tap to change</div>
   </div>
 );
 

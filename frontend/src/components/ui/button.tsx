@@ -1,5 +1,5 @@
 import * as React from "react"
-import { cn } from "../../lib/utils"
+import { cn } from "../../utils/helpers"
 
 const Button = React.forwardRef<HTMLButtonElement, React.ComponentProps<"button"> & { variant?: 'primary' | 'secondary' | 'ghost' }>(
   ({ className, variant = 'primary', ...props }, ref) => {

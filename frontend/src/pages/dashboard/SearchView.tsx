@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, UserPlus, X } from 'lucide-react';
-import api from '../../lib/api';
+import api from '../../services/api';
 
 interface SearchViewProps {
   onUserSelect?: (userId: string) => void;

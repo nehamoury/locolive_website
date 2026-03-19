@@ -16,13 +16,14 @@ import (
 
 type CreateUserParams struct {
 	Phone    string
+	Email    string
 	Username string
 	FullName string
 	Password string
 }
 
 type LoginUserParams struct {
-	Phone     string
+	Email     string
 	Password  string
 	UserAgent string
 	ClientIP  string
@@ -78,6 +79,7 @@ func (s *ServiceImpl) CreateUser(ctx context.Context, req CreateUserParams) (db.
 
 	arg := db.CreateUserParams{
 		Phone:        req.Phone,
+		Email:        sql.NullString{String: req.Email, Valid: req.Email != ""},
 		Username:     req.Username,
 		FullName:     req.FullName,
 		PasswordHash: hashedPassword,
@@ -92,7 +94,7 @@ func (s *ServiceImpl) CreateUser(ctx context.Context, req CreateUserParams) (db.
 }
 
 func (s *ServiceImpl) LoginUser(ctx context.Context, req LoginUserParams) (*LoginUserResult, error) {
-	user, err := s.store.GetUserByPhone(ctx, req.Phone)
+	user, err := s.store.GetUserByEmail(ctx, sql.NullString{String: req.Email, Valid: true})
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, errors.New("user not found")

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserPlus, UserCheck, X, Search, Users } from 'lucide-react';
-import api from '../../lib/api';
+import api from '../../services/api';
 
 const ConnectionsView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'suggestions' | 'requests' | 'my-connections'>('suggestions');

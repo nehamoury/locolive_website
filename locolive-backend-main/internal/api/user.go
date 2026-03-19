@@ -15,6 +15,7 @@ import (
 
 type createUserRequest struct {
 	Phone    string `json:"phone" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
 	Username string `json:"username" binding:"required,alphanum"`
 	FullName string `json:"full_name" binding:"required"`
 	Password string `json:"password" binding:"required,min=6"`
@@ -61,6 +62,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 
 	user, err := server.user.CreateUser(ctx, user.CreateUserParams{
 		Phone:    req.Phone,
+		Email:    req.Email,
 		Username: req.Username,
 		FullName: req.FullName,
 		Password: req.Password,
@@ -117,7 +119,7 @@ func (server *Server) createUser(ctx *gin.Context) {
 }
 
 type loginUserRequest struct {
-	Phone    string `json:"phone" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 }
 
@@ -138,7 +140,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 	}
 
 	result, err := server.user.LoginUser(ctx, user.LoginUserParams{
-		Phone:     req.Phone,
+		Email:     req.Email,
 		Password:  req.Password,
 		UserAgent: ctx.Request.UserAgent(),
 		ClientIP:  ctx.ClientIP(),

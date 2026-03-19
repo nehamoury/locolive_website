@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, Grid3x3, Heart, Bookmark, Footprints } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../lib/api';
+import api from '../../services/api';
 import EditProfileModal from './EditProfileModal';
 
 interface ProfileViewProps {

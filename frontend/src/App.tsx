@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import LoginPage from './pages/auth/LoginPage'
-import SignupPage from './pages/auth/SignupPage'
+import Login from './pages/auth/Login'
+import Signup from './pages/auth/Signup'
 import Dashboard from './pages/dashboard/Dashboard'
 
 function AppContent() {
@@ -27,26 +27,12 @@ function AppContent() {
   return (
     <div className="antialiased selection:bg-purple-500/30">
       {currentView === 'login' ? (
-        <div onClick={(e) => {
-          const target = e.target as HTMLElement;
-          if (target.innerText === 'Sign up') {
-            toggleView();
-          }
-        }}>
-          <LoginPage />
-        </div>
+        <Login onToggle={toggleView} />
       ) : (
-        <div onClick={(e) => {
-          const target = e.target as HTMLElement;
-          if (target.innerText === 'Login Instead' || target.innerText === 'Login') {
-            toggleView();
-          }
-        }}>
-          <SignupPage />
-        </div>
+        <Signup onToggle={toggleView} />
       )}
     </div>
-  )
+  );
 }
 
 function App() {
