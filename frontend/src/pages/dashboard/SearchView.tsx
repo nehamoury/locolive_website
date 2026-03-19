@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type FC } from 'react';
 import { Search, UserPlus, X } from 'lucide-react';
 import api from '../../services/api';
 
@@ -6,7 +6,7 @@ interface SearchViewProps {
   onUserSelect?: (userId: string) => void;
 }
 
-const SearchView: React.FC<SearchViewProps> = ({ onUserSelect }) => {
+const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);

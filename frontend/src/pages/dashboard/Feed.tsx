@@ -1,11 +1,11 @@
-import React from 'react';
+import { type FC } from 'react';
 import { Heart, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
 import { StoryBar } from '../../components/story/StoryBar';
 
-const Feed: React.FC = () => {
+const Feed: FC = () => {
   return (
     <div className="h-full overflow-y-auto no-scrollbar bg-black text-white p-4 space-y-6">
-      <StoryBar />
+      <StoryBar stories={[]} user={null} onCreateStory={() => {}} onStoryClick={() => {}} />
       
       <div className="max-w-xl mx-auto space-y-6">
         {[1, 2, 3].map((i) => (

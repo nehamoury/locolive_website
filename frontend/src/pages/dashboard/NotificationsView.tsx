@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { Heart, UserPlus, Star, MapPin, Bell, Check } from 'lucide-react';
 import api from '../../services/api';
 
@@ -23,7 +23,7 @@ const timeAgo = (dateStr: string) => {
   return `${days}d ago`;
 };
 
-const NotificationsView: React.FC = () => {
+const NotificationsView: FC = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

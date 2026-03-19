@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { UserPlus, UserCheck, X, Search, Users } from 'lucide-react';
 import api from '../../services/api';
 
-const ConnectionsView: React.FC = () => {
+const ConnectionsView: FC = () => {
   const [activeTab, setActiveTab] = useState<'suggestions' | 'requests' | 'my-connections'>('suggestions');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
@@ -37,11 +37,14 @@ const ConnectionsView: React.FC = () => {
   };
 
   useEffect(() => {
-    setLoading(true);
-    if (activeTab === 'suggestions') fetchSuggestions();
-    if (activeTab === 'requests') fetchRequests();
-    if (activeTab === 'my-connections') fetchConnections();
-    setLoading(false);
+    const loadData = async () => {
+      setLoading(true);
+      if (activeTab === 'suggestions') await fetchSuggestions();
+      else if (activeTab === 'requests') await fetchRequests();
+      else if (activeTab === 'my-connections') await fetchConnections();
+      setLoading(false);
+    };
+    loadData();
   }, [activeTab]);
 
   const handleRequest = async (userId: string, action: 'send' | 'accept' | 'decline') => {

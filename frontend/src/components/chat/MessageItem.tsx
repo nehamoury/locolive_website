@@ -1,4 +1,3 @@
-import React from 'react';
 import { cn } from '../../utils/helpers';
 
 interface MessageItemProps {
@@ -8,7 +7,7 @@ interface MessageItemProps {
   timestamp: string;
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({ message, sender, isMe, timestamp }) => {
+const MessageItem = ({ message, isMe, timestamp }: Omit<MessageItemProps, 'sender'>) => {
   return (
     <div className={cn(
       "flex flex-col max-w-[80%]",

@@ -1,10 +1,10 @@
-import React from 'react';
+import { type FC } from 'react';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
-const MainLayout: React.FC<LayoutProps> = ({ children }) => {
+const MainLayout: FC<LayoutProps> = ({ children }) => {
   return (
     <div className="flex h-screen bg-black overflow-hidden">
       {/* Sidebar could go here */}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { ArrowLeft, User, Lock, Trash2, EyeOff, MapPin } from 'lucide-react';
 import api from '../../services/api';
 
@@ -6,7 +6,7 @@ interface SettingsViewProps {
   onBack: () => void;
 }
 
-const SettingsView: React.FC<SettingsViewProps> = ({ onBack }) => {
+const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
   const [privacy, setPrivacy] = useState({
     who_can_message: 'everyone',
     who_can_see_stories: 'everyone',

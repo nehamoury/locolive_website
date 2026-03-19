@@ -1,9 +1,9 @@
-import React from 'react';
+import { type FC } from 'react';
 import { Send } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 
-const ChatBox: React.FC = () => {
+const ChatBox: FC = () => {
   return (
     <div className="flex flex-col h-full bg-[#121214] border border-white/10 rounded-2xl overflow-hidden">
       <div className="p-4 border-b border-white/5 bg-white/5">

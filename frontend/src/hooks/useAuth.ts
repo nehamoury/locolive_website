@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 export const useAuth = () => {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [user] = useState<any>(null);
+  const [loading] = useState(true);
 
   // Bridging logic could go here
   

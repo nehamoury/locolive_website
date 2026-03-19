@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { Settings, Grid3x3, Heart, Bookmark, Footprints } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api'; // Updated import
@@ -8,11 +8,10 @@ interface ProfileProps {
   onLogout?: () => void;
 }
 
-const Profile: React.FC<ProfileProps> = ({ onLogout }) => {
+const Profile: FC<ProfileProps> = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [myStories, setMyStories] = useState<any[]>([]);
-  const [archivedStories, setArchivedStories] = useState<any[]>([]);
   const [visitors, setVisitors] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'stories' | 'archived' | 'visitors'>('stories');
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -21,16 +20,14 @@ const Profile: React.FC<ProfileProps> = ({ onLogout }) => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const [profileRes, storiesRes, archivedRes, visitorsRes] = await Promise.all([
+        const [profileRes, storiesRes, visitorsRes] = await Promise.all([
           api.get('/profile/me'),
           api.get('/feed', { params: { latitude: 28.6139, longitude: 77.2090 } }),
-          api.get('/stories/archived'),
           api.get('/profile/visitors'),
         ]);
         setProfile(profileRes.data);
         const allStories = storiesRes.data?.stories || storiesRes.data || [];
         setMyStories(allStories.filter((s: any) => s.user_id === user?.id || s.username === user?.username));
-        setArchivedStories(archivedRes.data || []);
         setVisitors(visitorsRes.data || []);
       } catch (err) {
         console.error('Failed to fetch profile:', err);

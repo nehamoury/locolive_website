@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { LogOut, Home, Map as MapIcon, MessageSquare, User, Bell, Plus, Heart, Share2, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
@@ -15,11 +15,12 @@ import ConnectionsView from './ConnectionsView';
 import SettingsView from './SettingsView';
 import SearchView from './SearchView';
 import CrossingsView from './CrossingsView';
-import { Users, Search, Footprints } from 'lucide-react';
+import { Users, Search, Footprints, Sparkles } from 'lucide-react';
+import CastingPage from './CastingPage';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting'>('home');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [stories, setStories] = useState<any[]>([]);
   const [loadingStories, setLoadingStories] = useState(false);
@@ -66,6 +67,25 @@ const Dashboard = () => {
     }
   };
 
+  const handleLike = async (storyId: string) => {
+    try {
+      await api.post(`/stories/${storyId}/react`, { reaction_type: 'like' });
+      // Optionally update local state to show heart feedback
+      setStories(prev => prev.map(s => s.id === storyId ? { ...s, liked: true } : s));
+    } catch (err) {
+      console.error("Failed to like story:", err);
+    }
+  };
+
+  const handleShare = async (storyId: string) => {
+    try {
+      await api.post('/stories/share', { story_id: storyId });
+      alert("Story shared successfully!");
+    } catch (err) {
+      console.error("Failed to share story:", err);
+    }
+  };
+
   useEffect(() => {
     // Keyboard shortcut for Panic Mode
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -97,23 +117,26 @@ const Dashboard = () => {
             } catch (err) {
               console.error("Failed to ping location:", err);
             }
-          },
-          () => {}, // Silently ignore geolocation errors on desktop
-          { timeout: 10000, enableHighAccuracy: true }
+          }
         );
       }
     };
 
     // Initial ping
     pingLocation();
+    fetchStories();
+    fetchUnreadCount();
     // Ping every 30 seconds
-    const interval = setInterval(pingLocation, 30000);
+    const interval = setInterval(() => {
+      pingLocation();
+      fetchUnreadCount();
+    }, 30000); // Pulse every 30s
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       clearInterval(interval);
     };
-  }, []);
+  }, [logout, fetchStories, fetchUnreadCount]);
 
   const handlePanic = async () => {
     try {
@@ -146,6 +169,7 @@ const Dashboard = () => {
           <NavItem icon={<Home className="w-6 h-6" />} label="Home" active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
           <NavItem icon={<Search className="w-6 h-6" />} label="Search" active={activeTab === 'search'} onClick={() => setActiveTab('search')} />
           <NavItem icon={<MapIcon className="w-6 h-6" />} label="Explore" active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} />
+          <NavItem icon={<Sparkles className="w-6 h-6" />} label="Casting" active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} />
           <NavItem icon={<Footprints className="w-6 h-6" />} label="Crossings" active={activeTab === 'crossings'} onClick={() => setActiveTab('crossings')} />
           <NavItem icon={<Bell className="w-6 h-6" />} label="Activity" active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} />
           <NavItem icon={<Users className="w-6 h-6" />} label="Connections" active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} />
@@ -216,6 +240,8 @@ const Dashboard = () => {
           <SearchView />
         ) : activeTab === 'crossings' ? (
           <CrossingsView />
+        ) : activeTab === 'casting' ? (
+          <CastingPage />
         ) : activeTab === 'messages' ? (
           <div className="flex h-full w-full overflow-hidden">
             <div className={`h-full w-full md:w-80 border-r border-white/10 ${selectedChatUser ? 'hidden md:block' : 'block'}`}>
@@ -282,10 +308,13 @@ const Dashboard = () => {
                     <div className="absolute right-4 bottom-24 md:bottom-20 flex flex-col items-center space-y-6 z-30">
                       
                       <div className="group cursor-pointer flex flex-col items-center">
-                        <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center transition-all hover:bg-white/20 active:scale-90 border border-white/20 shadow-lg">
-                          <Heart className="w-6 h-6 text-white group-hover:text-pink-500 transition-colors" />
+                        <div 
+                          onClick={() => handleLike(story.id)}
+                          className={`w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center transition-all hover:bg-white/20 active:scale-90 border border-white/20 shadow-lg ${story.liked ? 'text-pink-500' : 'text-white'}`}
+                        >
+                          <Heart className={`w-6 h-6 ${story.liked ? 'fill-current' : 'group-hover:text-pink-500'} transition-colors`} />
                         </div>
-                        <span className="text-[10px] mt-1.5 font-bold drop-shadow-md text-white/90">42.1K</span>
+                        <span className="text-[10px] mt-1.5 font-bold drop-shadow-md text-white/90">{story.likes_count || '42.1K'}</span>
                       </div>
 
                       <div className="group cursor-pointer flex flex-col items-center">
@@ -296,7 +325,10 @@ const Dashboard = () => {
                       </div>
 
                       <div className="group cursor-pointer flex flex-col items-center">
-                        <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center transition-all hover:bg-white/20 active:scale-90 border border-white/20 shadow-lg">
+                        <div 
+                          onClick={() => handleShare(story.id)}
+                          className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center transition-all hover:bg-white/20 active:scale-90 border border-white/20 shadow-lg"
+                        >
                           <Share2 className="w-6 h-6 text-white group-hover:text-blue-400 transition-colors" />
                         </div>
                         <span className="text-[10px] mt-1.5 font-bold drop-shadow-md text-white/90">Share</span>
@@ -343,6 +375,8 @@ const Dashboard = () => {
         <MobileNavItem icon={<Home className="w-6 h-6" />} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
         <MobileNavItem icon={<MapIcon className="w-6 h-6" />} active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} />
         
+        <MobileNavItem icon={<Sparkles className="w-6 h-6" />} active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} />
+
         <button 
           onClick={() => setIsCreateModalOpen(true)}
           className="w-8 h-8 border border-white/40 rounded-lg flex items-center justify-center transition-transform active:scale-95"

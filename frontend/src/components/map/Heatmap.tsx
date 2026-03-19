@@ -1,6 +1,6 @@
-import React from 'react';
+import { type FC } from 'react';
 
-const Heatmap: React.FC = () => {
+const Heatmap: FC = () => {
   return (
     <div className="hidden">
       {/* Placeholder for Heatmap implementation using leaflet.heat or similar */}

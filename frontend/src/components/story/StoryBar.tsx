@@ -1,4 +1,4 @@
-import React from 'react';
+import { type FC } from 'react';
 import { Plus } from 'lucide-react';
 
 interface StoryBarProps {
@@ -8,7 +8,7 @@ interface StoryBarProps {
   onStoryClick: (index: number) => void;
 }
 
-const StoryBar: React.FC<StoryBarProps> = ({ stories, user, onCreateStory, onStoryClick }) => {
+const StoryBar: FC<StoryBarProps> = ({ stories, user, onCreateStory, onStoryClick }) => {
   // Group stories by username to show one circle per user
   const uniqueStories = Array.from(new Map(stories.map(s => [s.username, s])).values());
 

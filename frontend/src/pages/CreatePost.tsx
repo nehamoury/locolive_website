@@ -1,9 +1,9 @@
-import React from 'react';
-import { Camera, Image as ImageIcon, MapPin, X } from 'lucide-react';
+import { type FC } from 'react';
+import { Camera, MapPin, X } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 
-const CreatePost: React.FC = () => {
+const CreatePost: FC = () => {
   return (
     <div className="min-h-screen bg-black text-white p-6">
       <div className="max-w-xl mx-auto space-y-8">

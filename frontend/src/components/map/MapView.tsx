@@ -122,9 +122,17 @@ const MapView = ({ onStorySelect }: MapViewProps) => {
 
   useEffect(() => {
     if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition((position) => {
-        setCenter([position.coords.latitude, position.coords.longitude]);
+      const watchId = navigator.geolocation.watchPosition(async (position) => {
+        const { latitude, longitude } = position.coords;
+        setCenter([latitude, longitude]);
+        
+        try {
+          await api.post('/location/ping', { latitude, longitude });
+        } catch (err) {
+          console.error("Failed to ping location:", err);
+        }
       });
+      return () => navigator.geolocation.clearWatch(watchId);
     }
   }, []);
 

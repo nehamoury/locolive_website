@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, type FC } from 'react';
 import { X, Camera, Loader2, Save } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -8,7 +8,7 @@ interface EditProfileModalProps {
   onClose: () => void;
 }
 
-const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
+const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [bio, setBio] = useState(user?.bio || '');
