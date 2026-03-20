@@ -1,268 +1,447 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { Navigation, Users } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import api from '../../services/api';
-
-// Fix for default marker icons in React-Leaflet
 import 'leaflet/dist/leaflet.css';
 
-// Custom Avatar Marker for Snap Map Style
-const createAvatarIcon = (username: string, avatarUrl?: string) => new L.DivIcon({
-  html: `<div class="group relative flex items-center justify-center">
-          <div class="absolute -inset-1 bg-gradient-to-tr from-yellow-400 to-yellow-600 rounded-full blur opacity-40 group-hover:opacity-100 transition-opacity animate-pulse"></div>
-          <div class="relative w-12 h-12 rounded-2xl bg-white border-2 border-white shadow-xl overflow-hidden transform rotate-3 hover:rotate-0 transition-transform duration-300">
-            ${avatarUrl 
-              ? `<img src="${avatarUrl}" class="w-full h-full object-cover" />`
-              : `<div class="w-full h-full bg-purple-600 flex items-center justify-center text-white font-black text-lg">${username.charAt(0).toUpperCase()}</div>`
-            }
-          </div>
-          <div class="absolute -bottom-6 bg-black/80 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/20 whitespace-nowrap hidden group-hover:block">
-            <span class="text-[10px] font-bold text-white">@${username}</span>
-          </div>
-         </div>`,
-  className: 'custom-div-icon',
-  iconSize: [48, 48],
-  iconAnchor: [24, 24],
-});
+// ─── Icon Factories ──────────────────────────────────────────────────────────
 
-// Component to handle map events like moves/zooms
-function MapEvents({ onBoundsChange }: { onBoundsChange: (bounds: any) => void }) {
+/** Current user "You" marker */
+const createYouIcon = () =>
+  new L.DivIcon({
+    html: `
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;">
+        <div style="
+          width:52px;height:52px;border-radius:50%;
+          background:linear-gradient(135deg,#6366f1,#8b5cf6);
+          border:3px solid #a78bfa;
+          box-shadow:0 0 0 6px rgba(139,92,246,0.25),0 0 20px rgba(139,92,246,0.5);
+          display:flex;align-items:center;justify-content:center;
+          font-size:22px;
+        ">📍</div>
+        <div style="
+          margin-top:4px;background:rgba(139,92,246,0.9);
+          backdrop-filter:blur(8px);
+          color:#fff;font-size:10px;font-weight:800;
+          padding:2px 8px;border-radius:999px;
+          border:1px solid rgba(255,255,255,0.3);
+          white-space:nowrap;letter-spacing:0.05em;
+          box-shadow:0 2px 10px rgba(139,92,246,0.6);
+        ">You</div>
+      </div>`,
+    className: '',
+    iconSize: [60, 72],
+    iconAnchor: [30, 30],
+  });
+
+/** Story author avatar marker with count badge */
+const createAvatarIcon = (
+  username: string,
+  count: number,
+  avatarUrl?: string,
+  color = '#ec4899'
+) => {
+  const initial = username.charAt(0).toUpperCase();
+  const avatar = avatarUrl
+    ? `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+    : `<div style="width:100%;height:100%;border-radius:50%;background:linear-gradient(135deg,#6366f1,#ec4899);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:900;">${initial}</div>`;
+
+  return new L.DivIcon({
+    html: `
+      <div style="position:relative;display:inline-block;">
+        <div style="
+          width:52px;height:52px;border-radius:50%;
+          border:3px solid ${color};
+          box-shadow:0 0 0 4px ${color}44,0 0 16px ${color}88;
+          overflow:hidden;
+          background:#1a1a2e;
+        ">${avatar}</div>
+        ${count > 0 ? `
+        <div style="
+          position:absolute;top:-4px;right:-4px;
+          background:#ec4899;color:#fff;
+          font-size:10px;font-weight:900;
+          width:20px;height:20px;border-radius:50%;
+          display:flex;align-items:center;justify-content:center;
+          border:2px solid #0a0a1a;
+          box-shadow:0 0 8px #ec489999;
+        ">${count > 99 ? '99+' : count}</div>` : ''}
+      </div>`,
+    className: '',
+    iconSize: [52, 52],
+    iconAnchor: [26, 26],
+  });
+};
+
+/** Heatmap glow bubble (no DOM marker overhead) */
+const createHeatIcon = (intensity: number) => {
+  const size = Math.min(200, 80 + intensity * 12);
+  return new L.DivIcon({
+    html: `<div style="
+      width:${size}px;height:${size}px;border-radius:50%;
+      background:radial-gradient(circle,rgba(236,72,153,0.45) 0%,rgba(168,85,247,0.2) 50%,transparent 70%);
+      filter:blur(18px);
+      animation:heatPulse 3s ease-in-out infinite;
+    "></div>`,
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+};
+
+// ─── Map Event Handler ────────────────────────────────────────────────────────
+
+function MapEvents({ onBoundsChange }: { onBoundsChange: (b: any) => void }) {
   const map = useMap();
-  
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null); // Changed type to be more specific
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
-    const handleEvents = () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      
-      timeoutRef.current = setTimeout(() => {
+    const emit = () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
         const b = map.getBounds();
-        onBoundsChange({
-          north: b.getNorth(),
-          south: b.getSouth(),
-          east: b.getEast(),
-          west: b.getWest()
-        });
-      }, 300); // 300ms debounce
+        onBoundsChange({ north: b.getNorth(), south: b.getSouth(), east: b.getEast(), west: b.getWest() });
+      }, 300);
     };
-
-    map.on('moveend', handleEvents);
-    map.on('zoomend', handleEvents);
-    
-    // Initial load
-    const initialBounds = map.getBounds();
-    onBoundsChange({
-      north: initialBounds.getNorth(),
-      south: initialBounds.getSouth(),
-      east: initialBounds.getEast(),
-      west: initialBounds.getWest()
-    });
-
+    map.on('moveend', emit);
+    map.on('zoomend', emit);
+    emit();
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      map.off('moveend', handleEvents);
-      map.off('zoomend', handleEvents);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      map.off('moveend', emit);
+      map.off('zoomend', emit);
     };
   }, [map, onBoundsChange]);
 
   return null;
 }
 
+// ─── Filter Tabs ──────────────────────────────────────────────────────────────
+
+type FilterMode = 'stories' | 'heatmap' | 'both';
+
+const TABS: { id: FilterMode; label: string; emoji: string }[] = [
+  { id: 'stories', label: 'Stories', emoji: '📷' },
+  { id: 'heatmap', label: 'Heatmap', emoji: '🔥' },
+  { id: 'both',    label: 'Both',    emoji: '✨' },
+];
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
 interface MapViewProps {
   onStorySelect?: (id: string) => void;
 }
 
 const MapView = ({ onStorySelect }: MapViewProps) => {
-  const [stories, setStories] = useState<any[]>([]);
-  const [heatmap, setHeatmap] = useState<any[]>([]);
-  const [center, setCenter] = useState<[number, number]>([28.6139, 77.2090]); // Default to Delhi
-  const [loading, setLoading] = useState(true);
-  const [isGhostMode, setIsGhostMode] = useState(false);
-  const [showHeatmap, setShowHeatmap] = useState(true);
+  const [stories, setStories]   = useState<any[]>([]);
+  const [heatmap, setHeatmap]   = useState<any[]>([]);
+  const [center, setCenter]     = useState<[number, number]>([28.6139, 77.209]);
+  const [loading, setLoading]   = useState(true);
+  const [filter, setFilter]     = useState<FilterMode>('both');
+  const [cityLabel, setCityLabel] = useState('India');
+  const [userPos, setUserPos]   = useState<[number, number] | null>(null);
+
+  // Reverse‑geocode city from coords
+  const fetchCity = useCallback(async (lat: number, lng: number) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+      );
+      const data = await res.json();
+      const city =
+        data.address?.city ||
+        data.address?.town ||
+        data.address?.state_district ||
+        data.address?.state ||
+        'Unknown';
+      setCityLabel(city);
+    } catch {
+      // silently ignore
+    }
+  }, []);
 
   const fetchMapData = useCallback(async (bounds: any) => {
     try {
       const [storiesRes, heatmapRes] = await Promise.all([
         api.get('/stories/map', { params: bounds }),
-        api.get('/location/heatmap')
+        api.get('/location/heatmap'),
       ]);
-      
       const clusters = storiesRes.data.clusters || [];
-      const allStories: any[] = [];
-      clusters.forEach((cluster: any) => {
-         if (cluster.stories) {
-           const normalizedStories = cluster.stories.map((s: any) => ({
-             ...s,
-             latitude: s.lat,
-             longitude: s.lng
-           }));
-           allStories.push(...normalizedStories);
-         } else {
-            allStories.push({
-              id: cluster.geohash,
-              latitude: cluster.latitude,
-              longitude: cluster.longitude,
-              isCluster: true,
-              count: cluster.count
-            });
-          }
-       });
-
-      setStories(allStories);
+      const all: any[] = [];
+      clusters.forEach((c: any) => {
+        if (c.stories) {
+          all.push(
+            ...c.stories.map((s: any) => ({
+              ...s,
+              latitude: s.lat ?? s.latitude,
+              longitude: s.lng ?? s.longitude,
+            }))
+          );
+        } else {
+          all.push({
+            id: c.geohash,
+            latitude: c.latitude,
+            longitude: c.longitude,
+            isCluster: true,
+            count: c.count,
+            username: `${c.count} users`,
+          });
+        }
+      });
+      setStories(all);
       setHeatmap(heatmapRes.data || []);
     } catch (err: any) {
-      console.error("Failed to fetch map data:", err);
-      if (err.response?.status === 401) {
-        window.location.reload();
-      }
+      console.error('Map data fetch failed:', err);
+      if (err.response?.status === 401) window.location.reload();
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Watch user location
   useEffect(() => {
-    if ("geolocation" in navigator) {
-      const watchId = navigator.geolocation.watchPosition(async (position) => {
-        const { latitude, longitude } = position.coords;
-        setCenter([latitude, longitude]);
-        
-        try {
-          await api.post('/location/ping', { latitude, longitude });
-        } catch (err) {
-          console.error("Failed to ping location:", err);
-        }
-      });
-      return () => navigator.geolocation.clearWatch(watchId);
-    }
-  }, []);
+    if (!('geolocation' in navigator)) return;
+    const id = navigator.geolocation.watchPosition(async ({ coords }) => {
+      const { latitude, longitude } = coords;
+      setCenter([latitude, longitude]);
+      setUserPos([latitude, longitude]);
+      fetchCity(latitude, longitude);
+      try {
+        await api.post('/location/ping', { latitude, longitude });
+      } catch {/* ignore */}
+    });
+    return () => navigator.geolocation.clearWatch(id);
+  }, [fetchCity]);
+
+  const showStories = filter === 'stories' || filter === 'both';
+  const showHeatmap = filter === 'heatmap' || filter === 'both';
 
   return (
-    <div className="h-[calc(100vh-80px)] w-full relative bg-[#0a0a0c]">
-      {/* Map Controls Overlay - Snap Style */}
-      <div className="absolute top-6 left-6 z-[1000] space-y-4 pointer-events-none">
-        <div className="bg-black/40 backdrop-blur-2xl border border-white/10 p-5 rounded-3xl shadow-2xl max-w-xs pointer-events-auto">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2 text-yellow-400">
-              <Navigation className="w-5 h-5 fill-current" />
-              <span className="text-xs font-black uppercase tracking-[0.2em]">Snap Map</span>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-300">Ghost Mode</span>
-              <button 
-                onClick={async () => {
-                  try {
-                    const newStatus = !isGhostMode;
-                    await api.put('/location/ghost-mode', { enabled: newStatus, duration: 0 });
-                    setIsGhostMode(newStatus);
-                  } catch (err) {
-                    console.error("Failed to toggle ghost mode:", err);
-                  }
-                }}
-                className={`w-10 h-6 rounded-full transition-colors relative ${isGhostMode ? 'bg-purple-600' : 'bg-gray-700'}`}
-              >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isGhostMode ? 'left-5' : 'left-1'}`} />
-              </button>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-300">Heatmap</span>
-              <button 
-                onClick={() => setShowHeatmap(!showHeatmap)}
-                className={`w-10 h-6 rounded-full transition-colors relative ${showHeatmap ? 'bg-yellow-500' : 'bg-gray-700'}`}
-              >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${showHeatmap ? 'left-5' : 'left-1'}`} />
-              </button>
-            </div>
-          </div>
+    <div className="h-[calc(100vh-80px)] w-full relative" style={{ background: '#050510' }}>
+
+      {/* ── Filter Tabs (top center) ── */}
+      <div style={{
+        position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)',
+        zIndex: 1000, display: 'flex', gap: 6,
+        background: 'rgba(10,10,30,0.75)', backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        padding: '6px 8px', borderRadius: 999,
+        boxShadow: '0 4px 32px rgba(0,0,0,0.5)',
+      }}>
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setFilter(tab.id)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '6px 14px', borderRadius: 999, border: 'none',
+              cursor: 'pointer', fontSize: 12, fontWeight: 700,
+              transition: 'all 0.2s',
+              background: filter === tab.id
+                ? 'linear-gradient(135deg,#ec4899,#8b5cf6)'
+                : 'transparent',
+              color: filter === tab.id ? '#fff' : 'rgba(255,255,255,0.55)',
+              boxShadow: filter === tab.id ? '0 0 16px rgba(236,72,153,0.5)' : 'none',
+            }}
+          >
+            <span>{tab.emoji}</span>
+            <span>{tab.label}</span>
+          </button>
+        ))}
+
+        {/* City pill */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 4,
+          padding: '6px 12px', borderRadius: 999,
+          background: 'rgba(255,255,255,0.06)',
+          color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: 600,
+          borderLeft: '1px solid rgba(255,255,255,0.1)',
+          marginLeft: 2,
+        }}>
+          <MapPin size={11} />
+          <span>{cityLabel}</span>
         </div>
       </div>
 
+      {/* ── Loading Overlay ── */}
       {loading && (
-        <div className="absolute inset-0 z-[2000] bg-[#0a0a0c]/80 flex items-center justify-center backdrop-blur-sm">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm text-gray-400 font-medium">Calibrating Map...</span>
-          </div>
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 2000,
+          background: 'rgba(5,5,16,0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', gap: 16,
+        }}>
+          <div style={{
+            width: 48, height: 48, borderRadius: '50%',
+            border: '4px solid rgba(236,72,153,0.2)',
+            borderTopColor: '#ec4899',
+            animation: 'spin 0.8s linear infinite',
+          }} />
+          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600 }}>
+            Discovering your world…
+          </span>
         </div>
       )}
 
-      <MapContainer 
-        center={center} 
-        zoom={13} 
-        style={{ height: '100%', width: '100%', background: '#0a0a0c' }} 
+      {/* ── Leaflet Map ── */}
+      <MapContainer
+        center={center}
+        zoom={13}
+        style={{ height: '100%', width: '100%', background: '#050510' }}
         zoomControl={false}
       >
         <MapEvents onBoundsChange={fetchMapData} />
-        {/* Dark Mode Map Tiles */}
+
+        {/* Dark neon tile layer */}
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
         />
 
-        {stories.filter(s => s.latitude !== undefined && s.longitude !== undefined).map((story: any) => (
-          <Marker 
-            key={story.id} 
-            position={[story.latitude, story.longitude]} 
-            icon={createAvatarIcon(story.username, story.avatar_url ? `http://localhost:8080${story.avatar_url}` : undefined)}
-          >
-            <Popup className="custom-popup">
-              <div className="bg-[#1a1a1c] text-white p-2 rounded-lg border border-white/10 min-w-[200px]">
-                <div className="aspect-[9/16] rounded-xl overflow-hidden mb-2 bg-white/5 relative shadow-2xl">
-                   <img src={`http://localhost:8080${story.media_url}`} alt="Story" className="w-full h-full object-cover" />
-                   <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                      <p className="text-[10px] font-black uppercase text-yellow-400">Live Story</p>
-                   </div>
-                </div>
-                <div className="flex items-center justify-between px-1">
-                  <div>
-                    <p className="text-xs font-bold">@{story.username}</p>
-                    <p className="text-[10px] text-gray-400">{new Date(story.created_at).toLocaleTimeString()}</p>
-                  </div>
-                  <div 
-                    onClick={() => onStorySelect?.(story.id)}
-                    className="w-8 h-8 rounded-full bg-purple-600 flex items-center justify-center cursor-pointer shadow-lg hover:scale-110 transition-transform"
-                  >
-                    <Navigation className="w-4 h-4 fill-current text-white" />
-                  </div>
-                </div>
-              </div>
+        {/* Current user marker */}
+        {userPos && (
+          <Marker position={userPos} icon={createYouIcon()}>
+            <Popup className="neon-popup">
+              <div style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>📍 You are here</div>
             </Popup>
           </Marker>
-        ))}
+        )}
 
-        {showHeatmap && heatmap.filter(p => (p.latitude !== undefined || p.lat !== undefined) && (p.longitude !== undefined || p.lng !== undefined)).map((point: any, idx: number) => (
-          <Marker 
-            key={`heat-${idx}`}
-            position={[point.latitude || point.lat, point.longitude || point.lng]}
-            icon={new L.DivIcon({
-              html: `<div class="w-24 h-24 bg-gradient-to-tr from-yellow-400/30 to-orange-500/30 rounded-full blur-2xl animate-pulse"></div>`,
-              className: 'heatmap-icon',
-              iconSize: [96, 96],
+        {/* Story markers */}
+        {showStories &&
+          stories
+            .filter(s => s.latitude !== undefined && s.longitude !== undefined)
+            .map((story: any) => {
+              const count = story.count ?? 1;
+              const avatarUrl = story.avatar_url
+                ? `http://localhost:8080${story.avatar_url}`
+                : undefined;
+              // vary ring color by index for visual interest
+              const colors = ['#ec4899', '#06b6d4', '#f59e0b', '#10b981'];
+              const color = colors[Math.abs(story.id?.charCodeAt?.(0) ?? 0) % colors.length];
+
+              return (
+                <Marker
+                  key={story.id}
+                  position={[story.latitude, story.longitude]}
+                  icon={createAvatarIcon(story.username || 'U', count, avatarUrl, color)}
+                >
+                  <Popup className="neon-popup">
+                    <div style={{
+                      background: 'rgba(15,15,30,0.95)',
+                      backdropFilter: 'blur(16px)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 16, padding: 12,
+                      minWidth: 180, color: '#fff',
+                    }}>
+                      {story.media_url && !story.isCluster && (
+                        <div style={{
+                          aspectRatio: '9/16', borderRadius: 12,
+                          overflow: 'hidden', marginBottom: 10,
+                          background: 'rgba(255,255,255,0.05)',
+                          maxHeight: 200,
+                        }}>
+                          <img
+                            src={`http://localhost:8080${story.media_url}`}
+                            alt="Story"
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        </div>
+                      )}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          <p style={{ fontWeight: 800, fontSize: 13, margin: 0 }}>@{story.username}</p>
+                          {story.created_at && (
+                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', margin: '2px 0 0' }}>
+                              {new Date(story.created_at).toLocaleTimeString()}
+                            </p>
+                          )}
+                        </div>
+                        {!story.isCluster && (
+                          <button
+                            onClick={() => onStorySelect?.(story.id)}
+                            style={{
+                              width: 32, height: 32, borderRadius: '50%',
+                              background: 'linear-gradient(135deg,#ec4899,#8b5cf6)',
+                              border: 'none', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 14,
+                            }}
+                          >▶</button>
+                        )}
+                      </div>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
             })}
-          />
-        ))}
+
+        {/* Heatmap glow bubbles */}
+        {showHeatmap &&
+          heatmap
+            .filter(p => (p.latitude ?? p.lat) !== undefined && (p.longitude ?? p.lng) !== undefined)
+            .map((pt: any, idx: number) => (
+              <Marker
+                key={`heat-${idx}`}
+                position={[pt.latitude ?? pt.lat, pt.longitude ?? pt.lng]}
+                icon={createHeatIcon(pt.intensity ?? pt.count ?? 5)}
+                interactive={false}
+              />
+            ))}
       </MapContainer>
 
-      {/* Stats Floating Bar */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000] flex items-center space-x-6 bg-white/5 backdrop-blur-xl border border-white/10 px-6 py-3 rounded-full shadow-2xl">
-        <div className="flex items-center space-x-2">
-          <div className="w-2 h-2 rounded-full bg-purple-500 animate-pulse" />
-          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">{stories.length} Stories</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <div className="w-2 h-2 rounded-full bg-indigo-500" />
-          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">{heatmap.length} Active Hotspots</span>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Users className="w-3 h-3 text-purple-400" />
-          <span className="text-[10px] text-gray-400 uppercase font-bold tracking-widest px-1">Global Discovery</span>
-        </div>
+      {/* ── Bottom Stats Bar ── */}
+      <div style={{
+        position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+        zIndex: 1000, display: 'flex', alignItems: 'center', gap: 20,
+        background: 'rgba(10,10,30,0.75)', backdropFilter: 'blur(16px)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        padding: '10px 24px', borderRadius: 999,
+        boxShadow: '0 4px 32px rgba(0,0,0,0.4)',
+      }}>
+        <Stat dot="#ec4899" label={`${stories.length} Stories`} />
+        <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
+        <Stat dot="#8b5cf6" label={`${heatmap.length} Hotspots`} />
+        <div style={{ width: 1, height: 16, background: 'rgba(255,255,255,0.1)' }} />
+        <Stat dot="#06b6d4" label="Live Discovery" />
       </div>
+
+      {/* Inline keyframes */}
+      <style>{`
+        @keyframes heatPulse {
+          0%,100% { transform: scale(1); opacity: 0.8; }
+          50%      { transform: scale(1.18); opacity: 1; }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .leaflet-popup-content-wrapper {
+          background: transparent !important;
+          box-shadow: none !important;
+          border: none !important;
+          padding: 0 !important;
+        }
+        .leaflet-popup-content { margin: 0 !important; }
+        .leaflet-popup-tip-container { display: none; }
+        .leaflet-container { font-family: inherit; }
+      `}</style>
     </div>
   );
 };
+
+// Small helper
+const Stat = ({ dot, label }: { dot: string; label: string }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div style={{
+      width: 7, height: 7, borderRadius: '50%', background: dot,
+      boxShadow: `0 0 6px ${dot}`,
+      animation: 'heatPulse 2s ease-in-out infinite',
+    }} />
+    <span style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+      {label}
+    </span>
+  </div>
+);
 
 export default MapView;

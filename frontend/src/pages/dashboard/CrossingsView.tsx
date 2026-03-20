@@ -1,16 +1,35 @@
 import { useState, useEffect, type FC } from 'react';
-import { Footprints, MapPin, Clock, UserPlus } from 'lucide-react';
+import { Footprints, MapPin, Clock, UserPlus, Check, Loader2 } from 'lucide-react';
 import api from '../../services/api';
+
+type RequestStatus = 'none' | 'sending' | 'requested' | 'connected';
 
 const CrossingsView: FC = () => {
   const [crossings, setCrossings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [requestStates, setRequestStates] = useState<Record<string, RequestStatus>>({});
 
   useEffect(() => {
     const fetchCrossings = async () => {
       try {
-        const res = await api.get('/crossings');
-        setCrossings(res.data || []);
+        // Fetch crossings + sent requests in parallel
+        const [crossingsRes, sentRes] = await Promise.all([
+          api.get('/crossings'),
+          api.get('/connections/sent-requests').catch(() => ({ data: [] })),
+        ]);
+        setCrossings(crossingsRes.data || []);
+
+        // Mark already-requested users
+        const sent = sentRes.data || [];
+        const states: Record<string, RequestStatus> = {};
+        sent.forEach((r: any) => {
+          states[r.target_id || r.user_id] = 'requested';
+        });
+        // Mark already-connected
+        (crossingsRes.data || []).forEach((c: any) => {
+          if (c.connected) states[c.user_id] = 'connected';
+        });
+        setRequestStates(states);
       } catch (err) {
         console.error('Failed to fetch crossings:', err);
       } finally {
@@ -20,12 +39,56 @@ const CrossingsView: FC = () => {
     fetchCrossings();
   }, []);
 
-  const handleConnect = async (userId: string) => {
+  const handleFollow = async (userId: string) => {
+    setRequestStates(prev => ({ ...prev, [userId]: 'sending' }));
     try {
-      await api.post('/connections/request', { user_id: userId });
-      setCrossings(prev => prev.map(c => c.user_id === userId ? { ...c, connected: true } : c));
-    } catch (err) {
-      console.error('Failed to send connection:', err);
+      await api.post('/connections/request', { target_user_id: userId });
+      setRequestStates(prev => ({ ...prev, [userId]: 'requested' }));
+    } catch (err: any) {
+      console.error('Failed to send follow request:', err);
+      // If already sent, treat as requested
+      if (err.response?.data?.message?.includes('already')) {
+        setRequestStates(prev => ({ ...prev, [userId]: 'requested' }));
+      } else {
+        setRequestStates(prev => ({ ...prev, [userId]: 'none' }));
+      }
+    }
+  };
+
+  const getButtonContent = (userId: string) => {
+    const status = requestStates[userId] || 'none';
+    switch (status) {
+      case 'sending':
+        return (
+          <button disabled className="px-3 py-1.5 bg-white/10 text-white/50 rounded-lg text-xs font-bold flex items-center gap-1.5 shrink-0">
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            <span>Sending…</span>
+          </button>
+        );
+      case 'requested':
+        return (
+          <span className="px-3 py-1.5 bg-amber-500/10 text-amber-400 rounded-lg text-xs font-bold flex items-center gap-1.5 shrink-0 border border-amber-500/20">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Requested</span>
+          </span>
+        );
+      case 'connected':
+        return (
+          <span className="px-3 py-1.5 bg-green-500/10 text-green-400 rounded-lg text-xs font-bold flex items-center gap-1.5 shrink-0 border border-green-500/20">
+            <Check className="w-3.5 h-3.5" />
+            <span>Following</span>
+          </span>
+        );
+      default:
+        return (
+          <button
+            onClick={() => handleFollow(userId)}
+            className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-bold flex items-center gap-1.5 hover:bg-gray-200 transition-colors shrink-0 active:scale-95"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>Follow</span>
+          </button>
+        );
     }
   };
 
@@ -71,17 +134,7 @@ const CrossingsView: FC = () => {
                     </span>
                   </div>
                 </div>
-                {!crossing.connected ? (
-                  <button
-                    onClick={() => handleConnect(crossing.user_id)}
-                    className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-bold flex items-center space-x-1 hover:bg-gray-200 transition-colors shrink-0"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>Follow</span>
-                  </button>
-                ) : (
-                  <span className="text-xs text-green-500 font-bold shrink-0">Following</span>
-                )}
+                {getButtonContent(crossing.user_id)}
               </div>
             ))}
           </div>

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { LogOut, Home, Map as MapIcon, MessageSquare, User, Bell, Plus, Heart, Share2, ShieldAlert } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { LogOut, Home, Map as MapIcon, MessageSquare, User, Bell, Plus, Heart, Share2, ShieldAlert, Trash2, MoreHorizontal, Flag, Clock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../../components/ui/button';
 import MapView from '../../components/map/MapView';
@@ -29,51 +29,63 @@ const Dashboard = () => {
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
   const [, setPanicSequence] = useState('');
   const [showPanicConfirm, setShowPanicConfirm] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  const fetchStories = async () => {
-    if (loadingStories) return;
-    setLoadingStories(true);
+  // Stable fetch functions — wrapped in useCallback so they don't recreate on every render
+  const fetchStories = useCallback(async () => {
+    setLoadingStories(prev => {
+      if (prev) return prev; // Already loading, skip
+      return true;
+    });
     try {
-      // Get current location for feed (silently falls back to Delhi on desktop)
       const position: any = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
       }).catch(() => null);
 
-      // Default to Delhi if geolocation fails
       const defaultCoords = { latitude: 28.6139, longitude: 77.2090 };
-      const params = position ? { latitude: position.coords.latitude, longitude: position.coords.longitude } : defaultCoords;
+      const params = position
+        ? { latitude: position.coords.latitude, longitude: position.coords.longitude }
+        : defaultCoords;
 
       const response = await api.get('/feed', { params });
       setStories(response.data.stories || []);
     } catch (err: any) {
-      const backendError = err.response?.data?.error || err.response?.data?.message || 'Unknown error';
-      console.error('Failed to fetch stories:', backendError, err.response?.data);
-      setStories([]); // Set empty stories on error to prevent infinite loading
+      console.error('Failed to fetch stories:', err.response?.data || err.message);
+      setStories([]);
       if (err.response?.status === 401) {
-        console.warn('Unauthorized! Logging out...');
         logout();
       }
     } finally {
       setLoadingStories(false);
     }
-  };
+  }, [logout]);
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     try {
       const response = await api.get('/messages/unread-count');
       setUnreadCount(response.data.unread_count || 0);
     } catch (err) {
-      console.warn('Failed to fetch unread count:', err);
+      // Silently ignore — not critical
     }
-  };
+  }, []);
 
   const handleLike = async (storyId: string) => {
     try {
       await api.post(`/stories/${storyId}/react`, { reaction_type: 'like' });
-      // Optionally update local state to show heart feedback
       setStories(prev => prev.map(s => s.id === storyId ? { ...s, liked: true } : s));
     } catch (err) {
       console.error("Failed to like story:", err);
+    }
+  };
+
+  const handleDeleteStory = async (storyId: string) => {
+    if (!confirm('Delete this post?')) return;
+    try {
+      await api.delete(`/stories/${storyId}`);
+      setStories(prev => prev.filter(s => s.id !== storyId));
+    } catch (err: any) {
+      console.error('Failed to delete story:', err);
+      alert(err.response?.data?.error || 'Could not delete post.');
     }
   };
 
@@ -86,16 +98,14 @@ const Dashboard = () => {
     }
   };
 
+  // Mount effect: runs ONCE. Keyboard listener + location pinger + polling interval.
   useEffect(() => {
-    // Keyboard shortcut for Panic Mode
     const handleKeyDown = (e: KeyboardEvent) => {
       const char = e.key.toUpperCase();
       if ("DELETE".includes(char)) {
         setPanicSequence((prev: string) => {
           const next = (prev + char).slice(-6);
-          if (next === "DELETE") {
-            setShowPanicConfirm(true);
-          }
+          if (next === "DELETE") setShowPanicConfirm(true);
           return next;
         });
       } else {
@@ -104,58 +114,56 @@ const Dashboard = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
 
-    // Live Location Pinger (Heartbeat)
     const pingLocation = () => {
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            try {
-              await api.post('/location/ping', {
-                latitude: position.coords.latitude,
-                longitude: position.coords.longitude
-              });
-            } catch (err) {
-              console.error("Failed to ping location:", err);
-            }
-          }
-        );
-      }
+      if (!('geolocation' in navigator)) return;
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            await api.post('/location/ping', {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+          } catch { /* ignore */ }
+        },
+        () => { /* ignore denial */ },
+        { timeout: 5000 }
+      );
     };
 
-    // Initial ping
-    pingLocation();
+    // Initial load
     fetchStories();
     fetchUnreadCount();
-    // Ping every 30 seconds
+    pingLocation();
+
+    // Poll every 60s (was 30s but was too aggressive)
     const interval = setInterval(() => {
-      pingLocation();
       fetchUnreadCount();
-    }, 30000); // Pulse every 30s
+      pingLocation();
+    }, 60000);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       clearInterval(interval);
     };
-  }, [logout, fetchStories, fetchUnreadCount]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only on mount — fetchStories/fetchUnreadCount are stable via useCallback
 
   const handlePanic = async () => {
     try {
       await api.post('/location/panic');
       logout();
-      window.location.href = '/login';
+      window.location.href = '/';
     } catch (err) {
       console.error("Panic failed:", err);
     }
   };
 
+  // Tab-change effect: refresh stories only when switching to home tab
   useEffect(() => {
     if (activeTab === 'home') {
       fetchStories();
     }
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, [activeTab]);
+  }, [activeTab, fetchStories]);
 
   return (
     <div className="h-screen w-full bg-black text-white font-sans flex flex-col md:flex-row overflow-hidden relative">
@@ -177,15 +185,8 @@ const Dashboard = () => {
           <NavItem icon={<User className="w-6 h-6" />} label="Profile" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
           <NavItem icon={<ShieldAlert className="w-6 h-6" />} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
 
-          <div className="pt-6">
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              className="w-full h-12 flex items-center justify-center bg-white text-black hover:bg-gray-200 rounded-lg font-bold text-sm transition-all"
-            >
-              <Plus className="w-5 h-5 md:mr-2" />
-              <span className="hidden md:block">Post Story</span>
-            </button>
-          </div>
+
+
         </nav>
 
         <div className="mt-auto">
@@ -297,12 +298,59 @@ const Dashboard = () => {
                     {/* Gradient Overlay for Text Readability */}
                     <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black via-black/50 to-transparent z-10 pointer-events-none" />
 
-                    <img 
-                      src={`http://localhost:8080${story.media_url}`} 
-                      alt="Content" 
-                      className="h-full w-full object-cover md:w-auto md:max-h-full md:object-contain cursor-pointer relative z-20 shadow-[-20px_0_50px_rgba(0,0,0,0.5)]"
-                      onClick={() => setViewingStoryIndex(stories.indexOf(story))}
-                    />
+                    {/* Media — image or video */}
+                    {story.media_type === 'video' ? (
+                      <video
+                        src={`http://localhost:8080${story.media_url}`}
+                        className="h-full w-full object-cover md:w-auto md:max-h-full md:object-contain cursor-pointer relative z-20 shadow-[-20px_0_50px_rgba(0,0,0,0.5)]"
+                        onClick={() => setViewingStoryIndex(stories.indexOf(story))}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                      />
+                    ) : (
+                      <img
+                        src={`http://localhost:8080${story.media_url}`}
+                        alt="Content"
+                        className="h-full w-full object-cover md:w-auto md:max-h-full md:object-contain cursor-pointer relative z-20 shadow-[-20px_0_50px_rgba(0,0,0,0.5)]"
+                        onClick={() => setViewingStoryIndex(stories.indexOf(story))}
+                      />
+                    )}
+
+                    {/* Three-dot menu — top right corner */}
+                    <div
+                      className="absolute top-4 right-4 z-40"
+                      onMouseLeave={() => setOpenMenuId(null)}
+                    >
+                      <button
+                        onClick={() => setOpenMenuId(prev => prev === story.id ? null : story.id)}
+                        className="w-9 h-9 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition-all border border-white/10 active:scale-90"
+                      >
+                        <MoreHorizontal className="w-5 h-5" />
+                      </button>
+
+                      {openMenuId === story.id && (
+                        <div className="absolute top-11 right-0 w-44 bg-[#1a1a1e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden py-1">
+                          {(story.user_id === user?.id || story.username === user?.username) && (
+                            <button
+                              onClick={() => { setOpenMenuId(null); handleDeleteStory(story.id); }}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete post
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setOpenMenuId(null)}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:bg-white/5 transition-colors"
+                          >
+                            <Flag className="w-4 h-4" />
+                            Report
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     
                     {/* Interaction Buttons (Instagram/Snapchat Style) */}
                     <div className="absolute right-4 bottom-24 md:bottom-20 flex flex-col items-center space-y-6 z-30">
@@ -345,13 +393,28 @@ const Dashboard = () => {
                          </div>
                          <div className="flex flex-col drop-shadow-md">
                            <p className="font-bold text-base leading-tight text-white tracking-tight">@{story.username}</p>
-                           <p className="text-[10px] text-white/60 font-medium">Original Audio</p>
+                           <div className="flex items-center gap-2">
+                             <p className="text-[10px] text-white/60 font-medium">Original Audio</p>
+                             {story.expires_at && (() => {
+                               const diff = new Date(story.expires_at).getTime() - Date.now();
+                               if (diff <= 0) return null;
+                               const h = Math.floor(diff / 3600000);
+                               const label = h < 1 ? `${Math.floor(diff / 60000)}m left` : `${h}h left`;
+                               return (
+                                 <span className="flex items-center gap-0.5 text-[9px] font-bold text-amber-400/80 bg-amber-400/10 px-1.5 py-0.5 rounded-full">
+                                   <Clock className="w-2.5 h-2.5" />{label}
+                                 </span>
+                               );
+                             })()}
+                           </div>
                          </div>
                       </div>
                       <p className="text-sm md:text-base text-gray-100 line-clamp-2 drop-shadow-md mb-4 font-medium leading-relaxed">{story.caption}</p>
-                      <div className="flex items-center space-x-2 text-white text-xs font-bold bg-white/10 backdrop-blur-md self-start inline-flex px-3 py-1.5 rounded-full cursor-pointer hover:bg-white/20 transition-all border border-white/20 shadow-xl group">
-                         <MapIcon className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
-                         <span>Nearby • Mumbai</span>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center space-x-2 text-white text-xs font-bold bg-white/10 backdrop-blur-md inline-flex px-3 py-1.5 rounded-full cursor-pointer hover:bg-white/20 transition-all border border-white/20 shadow-xl group">
+                           <MapIcon className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
+                           <span>Nearby • Mumbai</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -395,10 +458,13 @@ const Dashboard = () => {
       />
 
       {viewingStoryIndex !== null && (
-        <StoryViewer 
-          stories={stories} 
-          initialIndex={viewingStoryIndex} 
-          onClose={() => setViewingStoryIndex(null)} 
+        <StoryViewer
+          stories={stories}
+          initialIndex={viewingStoryIndex}
+          onClose={() => setViewingStoryIndex(null)}
+          currentUser={user?.username}
+          currentUserID={user?.id}
+          onDelete={(storyId) => setStories(prev => prev.filter(s => s.id !== storyId))}
         />
       )}
 

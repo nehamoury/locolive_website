@@ -1,28 +1,39 @@
 import { useState, useEffect, type FC } from 'react';
-import { Settings, Grid3x3, Heart, Bookmark, Footprints } from 'lucide-react';
+import { Settings, Grid3x3, Bookmark, Footprints, Trash2, MapPin, Camera, Heart, Lock, Eye, Bell, Zap, LogOut, Users, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../services/api'; // Updated import
+import api from '../../services/api';
 import EditProfileModal from './EditProfileModal';
+import StoryViewer from '../../components/story/StoryViewer';
 
 interface ProfileProps {
   onLogout?: () => void;
 }
 
-const Profile: FC<ProfileProps> = () => {
-  const { user } = useAuth();
+const Profile: FC<ProfileProps> = ({ onLogout }) => {
+  const { user, logout } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [myStories, setMyStories] = useState<any[]>([]);
   const [visitors, setVisitors] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'stories' | 'archived' | 'visitors'>('stories');
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
+
+  // Toggle states (local for now — can hook to API later)
+  const [ghostMode, setGhostMode] = useState(false);
+  const [allowCrossings, setAllowCrossings] = useState(true);
+  const [storyViewNotifs, setStoryViewNotifs] = useState(true);
+  const [crossingAlerts, setCrossingAlerts] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        const lat = localStorage.getItem('last_lat') || '19.0760';
+        const lng = localStorage.getItem('last_lng') || '72.8777';
+
         const [profileRes, storiesRes, visitorsRes] = await Promise.all([
           api.get('/profile/me'),
-          api.get('/feed', { params: { latitude: 28.6139, longitude: 77.2090 } }),
+          api.get('/feed', { params: { latitude: lat, longitude: lng } }),
           api.get('/profile/visitors'),
         ]);
         setProfile(profileRes.data);
@@ -38,129 +49,295 @@ const Profile: FC<ProfileProps> = () => {
     fetchProfile();
   }, [user]);
 
+  const handleDeleteStory = async (storyId: string) => {
+    if (!confirm('Delete this story permanently?')) return;
+    try {
+      await api.delete(`/stories/${storyId}`);
+      setMyStories(prev => prev.filter(s => s.id !== storyId));
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to delete story');
+    }
+  };
+
+  const toggleGhostMode = async (val: boolean) => {
+    setGhostMode(val);
+    try { await api.put('/location/ghost-mode', { enabled: val, duration: 0 }); } catch { /* ignore */ }
+  };
+
+  const handleLogout = () => {
+    if (onLogout) onLogout();
+    else logout();
+  };
+
   const displayProfile = profile || user;
+  const avatarLetter = displayProfile?.full_name?.charAt(0)?.toUpperCase() || displayProfile?.username?.charAt(0)?.toUpperCase() || 'U';
 
   return (
-    <div className="h-full bg-black text-white overflow-y-auto no-scrollbar pb-24 md:pb-0">
-      <div className="max-w-2xl mx-auto px-4 py-8">
-
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-xl font-bold tracking-tight">@{displayProfile?.username || 'username'}</h1>
-          <button 
-            onClick={() => setIsEditOpen(true)}
-            className="p-2 hover:bg-white/5 rounded-full transition-colors"
-          >
-            <Settings className="w-5 h-5 text-gray-400" />
-          </button>
-        </div>
+    <div className="h-full bg-[#0a0a0a] text-white overflow-y-auto no-scrollbar pb-24 md:pb-0">
+      <div className="max-w-xl mx-auto px-4 py-8">
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <>
-            {/* Profile Info */}
-            <div className="flex flex-col items-center text-center mb-8">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 border-2 border-black flex items-center justify-center shadow-xl shadow-purple-500/20 mb-4 overflow-hidden">
-                {displayProfile?.avatar_url ? (
-                  <img src={`http://localhost:8080${displayProfile.avatar_url}`} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-3xl font-bold">{displayProfile?.full_name?.charAt(0) || 'U'}</span>
-                )}
-              </div>
-              <h2 className="text-lg font-bold mb-1 tracking-tight">{displayProfile?.full_name || 'User'}</h2>
-              <p className="text-gray-400 font-medium text-sm mb-2">@{displayProfile?.username || 'username'}</p>
-              {displayProfile?.bio && (
-                <p className="text-xs text-gray-500 max-w-xs mb-3">{displayProfile.bio}</p>
-              )}
-              
-              <div className="flex space-x-8 mt-2">
-                <div className="flex flex-col items-center">
-                  <span className="text-base font-bold">{myStories.length}</span>
-                  <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mt-0.5">Stories</span>
+            {/* ─── Header: Avatar + Name + Settings ─── */}
+            <div className="flex items-start justify-between mb-6">
+              <div className="flex items-center gap-4">
+                {/* Avatar */}
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-violet-500/20 overflow-hidden border-2 border-violet-500/30">
+                    {displayProfile?.avatar_url ? (
+                      <img src={`http://localhost:8080${displayProfile.avatar_url}`} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-2xl font-black">{avatarLetter}</span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-base font-bold">{profile?.connections_count || 0}</span>
-                  <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mt-0.5">Following</span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-base font-bold">{visitors.length}</span>
-                  <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mt-0.5">Visitors</span>
+                {/* Name + handle + location */}
+                <div>
+                  <h2 className="text-xl font-black tracking-tight">{displayProfile?.full_name || 'Your Name'}</h2>
+                  <p className="text-violet-400 font-semibold text-sm">@{displayProfile?.username || 'username'}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <MapPin className="w-3 h-3 text-gray-500" />
+                    <span className="text-xs text-gray-500">{displayProfile?.location || 'Location-based discovery'}</span>
+                  </div>
                 </div>
               </div>
-
-              <button 
-                onClick={() => setIsEditOpen(true)}
-                className="mt-4 px-6 py-2 bg-white/10 rounded-lg text-xs font-bold hover:bg-white/20 transition-colors"
-              >
-                Edit Profile
+              {/* Settings gear */}
+              <button onClick={() => setIsEditOpen(true)} className="p-2.5 bg-white/5 hover:bg-white/10 rounded-xl transition-colors border border-white/10">
+                <Settings className="w-5 h-5 text-gray-400" />
               </button>
             </div>
 
-            {/* Tabs */}
-            <div className="flex border-b border-white/10 mb-4">
-              <button 
-                onClick={() => setActiveTab('stories')}
-                className={`flex-1 py-3 flex justify-center items-center text-sm font-semibold transition-all relative ${activeTab === 'stories' ? 'text-white' : 'text-gray-500'}`}
+            {/* Bio */}
+            {displayProfile?.bio && (
+              <p className="text-sm text-gray-400 leading-relaxed mb-5 max-w-sm">{displayProfile.bio}</p>
+            )}
+
+            {/* Edit Profile button */}
+            <button
+              onClick={() => setIsEditOpen(true)}
+              className="w-full py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all mb-6"
+            >
+              <Camera className="w-4 h-4" />
+              Edit Profile
+            </button>
+
+            {/* ─── Stats Row (matching reference) ─── */}
+            <div className="grid grid-cols-4 gap-3 mb-8">
+              <StatCard icon={<Zap className="w-4 h-4 text-violet-400" />} value={myStories.length} label="Stories" />
+              <StatCard icon={<Footprints className="w-4 h-4 text-violet-400" />} value={profile?.crossings_count || visitors.length} label="Crossings" />
+              <StatCard icon={<Eye className="w-4 h-4 text-violet-400" />} value={profile?.views_count ? formatCount(profile.views_count) : '0'} label="Views" />
+              <StatCard icon={<Users className="w-4 h-4 text-violet-400" />} value={profile?.connections_count || 0} label="Connections" />
+            </div>
+
+            {/* ─── PRIVACY Section ─── */}
+            <SectionHeader icon={<Lock className="w-4 h-4" />} label="PRIVACY" />
+            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl mb-6 overflow-hidden">
+              <ToggleRow
+                icon={<Lock className="w-5 h-5 text-gray-400" />}
+                title="Ghost Mode"
+                subtitle="Hide your location"
+                value={ghostMode}
+                onChange={toggleGhostMode}
+              />
+              <div className="h-px bg-white/5" />
+              <ToggleRow
+                icon={<Footprints className="w-5 h-5 text-gray-400" />}
+                title="Allow Crossings"
+                subtitle="Detect path intersections"
+                value={allowCrossings}
+                onChange={setAllowCrossings}
+              />
+            </div>
+
+            {/* ─── NOTIFICATIONS Section ─── */}
+            <SectionHeader icon={<Bell className="w-4 h-4" />} label="NOTIFICATIONS" />
+            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl mb-6 overflow-hidden">
+              <ToggleRow
+                icon={<Eye className="w-5 h-5 text-gray-400" />}
+                title="Story Views"
+                subtitle=""
+                value={storyViewNotifs}
+                onChange={setStoryViewNotifs}
+              />
+              <div className="h-px bg-white/5" />
+              <ToggleRow
+                icon={<Zap className="w-5 h-5 text-gray-400" />}
+                title="Crossing Alerts"
+                subtitle=""
+                value={crossingAlerts}
+                onChange={setCrossingAlerts}
+              />
+            </div>
+
+            {/* ─── ACCOUNT Section ─── */}
+            <SectionHeader icon={<Settings className="w-4 h-4" />} label="ACCOUNT" />
+            <div className="bg-white/[0.03] border border-white/[0.07] rounded-2xl mb-8 overflow-hidden">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
               >
-                <Grid3x3 className="w-4 h-4 mr-1.5" />
-                Stories
-                {activeTab === 'stories' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full" />}
-              </button>
-              <button 
-                onClick={() => setActiveTab('archived')}
-                className={`flex-1 py-3 flex justify-center items-center text-sm font-semibold transition-all relative ${activeTab === 'archived' ? 'text-white' : 'text-gray-500'}`}
-              >
-                <Bookmark className="w-4 h-4 mr-1.5" />
-                Archived
-                {activeTab === 'archived' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full" />}
-              </button>
-              <button 
-                onClick={() => setActiveTab('visitors')}
-                className={`flex-1 py-3 flex justify-center items-center text-sm font-semibold transition-all relative ${activeTab === 'visitors' ? 'text-white' : 'text-gray-500'}`}
-              >
-                <Footprints className="w-4 h-4 mr-1.5" />
-                Visitors
-                {activeTab === 'visitors' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full" />}
+                <div className="flex items-center gap-3">
+                  <LogOut className="w-5 h-5 text-red-400" />
+                  <span className="text-sm font-semibold text-red-400">Sign Out</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-600" />
               </button>
             </div>
 
-            {/* Content */}
+            {/* ─── Content Tabs ─── */}
+            <div className="flex border-b border-white/[0.08] mb-4">
+              {([
+                { key: 'stories', label: 'Stories', icon: <Grid3x3 className="w-4 h-4" /> },
+                { key: 'archived', label: 'Archived', icon: <Bookmark className="w-4 h-4" /> },
+                { key: 'visitors', label: 'Visitors', icon: <Footprints className="w-4 h-4" /> },
+              ] as const).map(tab => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex-1 py-3 flex justify-center items-center gap-1.5 text-xs font-bold uppercase tracking-widest transition-all relative
+                    ${activeTab === tab.key ? 'text-white' : 'text-gray-600 hover:text-gray-400'}`}
+                >
+                  {tab.icon}
+                  {tab.label}
+                  {activeTab === tab.key && (
+                    <div className="absolute bottom-0 left-1/4 right-1/4 h-0.5 bg-gradient-to-r from-violet-500 to-indigo-500 rounded-full" />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Stories Grid */}
             {activeTab === 'stories' && (
               myStories.length > 0 ? (
-                <div className="grid grid-cols-3 gap-1">
-                  {myStories.map(story => (
-                    <div key={story.id} className="aspect-[9/16] bg-white/5 rounded-lg overflow-hidden relative group cursor-pointer">
+                <div className="grid grid-cols-3 gap-1.5">
+                  {myStories.map((story, index) => (
+                    <div
+                      key={story.id}
+                      className="aspect-[9/16] bg-white/5 rounded-xl overflow-hidden relative group cursor-pointer"
+                      onClick={() => setViewingStoryIndex(index)}
+                    >
                       <img src={`http://localhost:8080${story.media_url}`} alt="" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <div className="flex items-center space-x-1 text-xs font-bold">
-                          <Heart className="w-3.5 h-3.5" />
-                          <span>{story.reactions_count || 0}</span>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1 text-xs font-bold">
+                            <Heart className="w-3 h-3" />
+                            <span>{story.reactions_count || 0}</span>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteStory(story.id); }}
+                            className="p-1.5 bg-red-500/30 hover:bg-red-500/60 rounded-lg transition-colors text-red-400"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <EmptyState text="No stories yet. Share your first moment!" />
+                <EmptyState icon="📸" title="No stories yet" text="Share your first moment from the Home feed!" />
               )
             )}
-            {/* ... other tab contents ... */}
+
+            {activeTab === 'archived' && (
+              <EmptyState icon="🗂️" title="Nothing archived" text="Stories you archive will appear here." />
+            )}
+
+            {activeTab === 'visitors' && (
+              visitors.length > 0 ? (
+                <div className="space-y-3">
+                  {visitors.map((v: any) => (
+                    <div key={v.id} className="flex items-center gap-3 p-3 bg-white/[0.03] rounded-2xl border border-white/[0.06]">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-600 to-indigo-500 flex items-center justify-center text-sm font-bold overflow-hidden">
+                        {v.avatar_url
+                          ? <img src={`http://localhost:8080${v.avatar_url}`} alt="" className="w-full h-full object-cover" />
+                          : v.full_name?.charAt(0) || '?'}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">{v.full_name || v.username}</p>
+                        <p className="text-xs text-gray-500">@{v.username}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState icon="👣" title="No visitors yet" text="People who visit your profile show up here." />
+              )
+            )}
           </>
         )}
       </div>
 
       <EditProfileModal isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} />
+
+      {viewingStoryIndex !== null && (
+        <StoryViewer
+          stories={myStories}
+          initialIndex={viewingStoryIndex}
+          onClose={() => setViewingStoryIndex(null)}
+          currentUser={user?.username}
+          currentUserID={user?.id}
+          onDelete={(storyId) => setMyStories(prev => prev.filter(s => s.id !== storyId))}
+        />
+      )}
     </div>
   );
 };
 
-const EmptyState = ({ text }: { text: string }) => (
-  <div className="flex flex-col items-center justify-center py-12 text-center opacity-40">
-    <p className="text-sm font-medium max-w-[220px]">{text}</p>
+// ─── Sub-components ──────────────────────────────────────────────────────────
+
+const StatCard = ({ icon, value, label }: { icon: React.ReactNode; value: number | string; label: string }) => (
+  <div className="flex flex-col items-center p-3 bg-white/[0.03] border border-white/[0.07] rounded-2xl">
+    {icon}
+    <span className="text-lg font-black mt-1">{value}</span>
+    <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider">{label}</span>
   </div>
 );
+
+const SectionHeader = ({ icon, label }: { icon: React.ReactNode; label: string }) => (
+  <div className="flex items-center gap-2 mb-3">
+    <span className="text-gray-500">{icon}</span>
+    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">{label}</span>
+  </div>
+);
+
+const ToggleRow = ({ icon, title, subtitle, value, onChange }: {
+  icon: React.ReactNode; title: string; subtitle: string;
+  value: boolean; onChange: (v: boolean) => void;
+}) => (
+  <div className="flex items-center justify-between p-4">
+    <div className="flex items-center gap-3">
+      {icon}
+      <div>
+        <p className="text-sm font-semibold">{title}</p>
+        {subtitle && <p className="text-[10px] text-gray-500">{subtitle}</p>}
+      </div>
+    </div>
+    <button
+      onClick={() => onChange(!value)}
+      className={`w-11 h-6 rounded-full transition-colors relative ${value ? 'bg-violet-600' : 'bg-gray-700'}`}
+    >
+      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow ${value ? 'left-6' : 'left-1'}`} />
+    </button>
+  </div>
+);
+
+const EmptyState = ({ icon, title, text }: { icon: string; title: string; text: string }) => (
+  <div className="flex flex-col items-center justify-center py-16 text-center space-y-2">
+    <span className="text-4xl">{icon}</span>
+    <p className="text-sm font-bold text-white/60">{title}</p>
+    <p className="text-xs text-gray-600 max-w-[220px] leading-relaxed">{text}</p>
+  </div>
+);
+
+function formatCount(n: number): string {
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return String(n);
+}
 
 export { Profile };

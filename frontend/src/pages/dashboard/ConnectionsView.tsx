@@ -50,14 +50,14 @@ const ConnectionsView: FC = () => {
   const handleRequest = async (userId: string, action: 'send' | 'accept' | 'decline') => {
     try {
       if (action === 'send') {
-        await api.post('/connections/request', { user_id: userId });
+        await api.post('/connections/request', { target_user_id: userId });
         setSuggestions(prev => prev.filter(s => s.id !== userId));
       } else if (action === 'accept') {
-        await api.post('/connections/update', { user_id: userId, status: 'accepted' });
-        setRequests(prev => prev.filter(r => r.user_id !== userId));
+        await api.post('/connections/update', { requester_id: userId, status: 'accepted' });
+        setRequests(prev => prev.filter(r => (r.user_id || r.requester_id) !== userId));
       } else if (action === 'decline') {
-        await api.post('/connections/update', { user_id: userId, status: 'declined' });
-        setRequests(prev => prev.filter(r => r.user_id !== userId));
+        await api.post('/connections/update', { requester_id: userId, status: 'blocked' });
+        setRequests(prev => prev.filter(r => (r.user_id || r.requester_id) !== userId));
       }
     } catch (err) {
       console.error(`Failed to ${action} request:`, err);
@@ -113,13 +113,13 @@ const ConnectionsView: FC = () => {
                 </div>
                 <div className="flex space-x-2">
                   <button 
-                    onClick={() => handleRequest(req.user_id, 'accept')}
+                    onClick={() => handleRequest(req.user_id || req.requester_id, 'accept')}
                     className="p-1.5 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500/30 transition-colors"
                   >
                     <UserCheck className="w-4 h-4" />
                   </button>
                   <button 
-                    onClick={() => handleRequest(req.user_id, 'decline')}
+                    onClick={() => handleRequest(req.user_id || req.requester_id, 'decline')}
                     className="p-1.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-colors"
                   >
                     <X className="w-4 h-4" />
