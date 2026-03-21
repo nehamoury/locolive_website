@@ -66,6 +66,7 @@ type Querier interface {
 	GetArchivedStories(ctx context.Context, arg GetArchivedStoriesParams) ([]ArchivedStory, error)
 	GetArchivedStory(ctx context.Context, arg GetArchivedStoryParams) (ArchivedStory, error)
 	GetBlockedUsers(ctx context.Context, blockerID uuid.UUID) ([]GetBlockedUsersRow, error)
+	GetActiveStoriesByUserID(ctx context.Context, userID uuid.UUID) ([]GetActiveStoriesByUserIDRow, error)
 	GetConnection(ctx context.Context, arg GetConnectionParams) (Connection, error)
 	// Get stories from connected users (not limited by radius)
 	GetConnectionStories(ctx context.Context, userID uuid.UUID) ([]GetConnectionStoriesRow, error)

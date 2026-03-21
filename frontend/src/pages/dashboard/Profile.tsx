@@ -28,17 +28,15 @@ const Profile: FC<ProfileProps> = ({ onLogout }) => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const lat = localStorage.getItem('last_lat') || '19.0760';
-        const lng = localStorage.getItem('last_lng') || '72.8777';
+        // latitude and longitude are no longer needed for /stories/me
 
         const [profileRes, storiesRes, visitorsRes] = await Promise.all([
           api.get('/profile/me'),
-          api.get('/feed', { params: { latitude: lat, longitude: lng } }),
+          api.get('/stories/me'),
           api.get('/profile/visitors'),
         ]);
         setProfile(profileRes.data);
-        const allStories = storiesRes.data?.stories || storiesRes.data || [];
-        setMyStories(allStories.filter((s: any) => s.user_id === user?.id || s.username === user?.username));
+        setMyStories(storiesRes.data || []);
         setVisitors(visitorsRes.data || []);
       } catch (err) {
         console.error('Failed to fetch profile:', err);

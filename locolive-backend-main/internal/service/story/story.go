@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -37,6 +38,8 @@ type GetFeedParams struct {
 type Service interface {
 	CreateStory(ctx context.Context, params CreateStoryParams) (*db.CreateStoryRow, error)
 	GetFeed(ctx context.Context, params GetFeedParams) ([]db.GetStoriesWithinRadiusRow, string, float64, error)
+	GetMapStories(ctx context.Context, params GetFeedParams) ([]db.GetStoriesWithinRadiusRow, error)
+	GetMyStories(ctx context.Context, userID uuid.UUID) ([]db.GetActiveStoriesByUserIDRow, error)
 	DeleteStory(ctx context.Context, storyID uuid.UUID, userID uuid.UUID) error
 }
 
@@ -66,17 +69,14 @@ func (s *ServiceImpl) CreateStory(ctx context.Context, req CreateStoryParams) (*
 				Float64("lat", req.Latitude).
 				Float64("lng", req.Longitude).
 				Msg("Fake GPS detected (Dev Bypass: User not banned)")
-			// Logic for banning can be added here if needed
 		}
 	}
 
-	// Get user to check premium status
 	user, err := s.store.GetUserByID(ctx, req.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	// Premium users get 48h expiry, free users get 24h
 	expiryDuration := 24 * time.Hour
 	isPremium := false
 	if user.IsPremium.Valid && user.IsPremium.Bool {
@@ -107,19 +107,11 @@ func (s *ServiceImpl) CreateStory(ctx context.Context, req CreateStoryParams) (*
 		return nil, err
 	}
 
-	// Update user activity (for visibility system)
 	_, err = s.store.UpdateUserActivity(ctx, req.UserID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to update user activity")
 	}
 
-	// Create mentions if caption has @username
-	// NOTE: In a real service, this might be async or handled by another service method
-	// keeping it simple here, skipping the async mentions creation for now or assuming handler handles it?
-	// The original code did `go server.createStoryMentions`. We should probably expose that or do it here.
-	// For now, let's omit the async mention part to keep this pure or add a placeholder.
-
-	// Invalidate feed cache for the area
 	userGeohash := hash
 	if len(userGeohash) > 5 {
 		userGeohash = userGeohash[:5]
@@ -130,33 +122,10 @@ func (s *ServiceImpl) CreateStory(ctx context.Context, req CreateStoryParams) (*
 }
 
 func (s *ServiceImpl) GetFeed(ctx context.Context, params GetFeedParams) ([]db.GetStoriesWithinRadiusRow, string, float64, error) {
-	// Create cache key based on user's geohash (5 chars = ~2.4km precision)
-	// Cache logic currently disabled in service layer
-	// userGeohash := geohash.Encode(params.Latitude, params.Longitude)
-	// if len(userGeohash) > 5 {
-	// 	userGeohash = userGeohash[:5]
-	// }
-	// cacheKey := "feed:" + userGeohash
+	const maxRadius = 50000.0 // 50km
 
-	// Try to get from Redis cache first
-	// NOTE: Returns data only if cached. If not, returns logical empty
-	// In service layer, returning raw bytes is weird. Ideally we return structs.
-	// For this refactor, we will skip the "read from cache" part inside the service for now
-	// OR we deserialize. Let's deserialize if found.
-	// BUT the cache stored JSON Response, not DB rows. This is a mix of concerns.
-	// DECISION: Service should return logic results (DB rows). Caching of logic results should be handled here.
-	// But the old cache stored the *final JSON*.
-	// To minimize breakage, let's ignore the cache read in implementation specific to the service returning *DB rows*.
-	// The Handler can do the JSON caching if it wants, OR the service handles it.
-	// If the service handles it, it must return the standardized struct.
-
-	// Let's implement the DB logic loop (the one we want to optimize later).
-
-	// Optimized: Single query with K-NN (Limit 50 relevant stories within 50km)
-	// The database query now uses <-> operator for efficient nearest-neighbor search
-	const maxRadius = 50000.0 // 50km hard cap
-
-	stories, err := s.store.GetStoriesWithinRadius(ctx, db.GetStoriesWithinRadiusParams{
+	// 1. Fetch stories using existing radius query (respects privacy/blocks)
+	allStories, err := s.store.GetStoriesWithinRadius(ctx, db.GetStoriesWithinRadiusParams{
 		Lng:          params.Longitude,
 		Lat:          params.Latitude,
 		RadiusMeters: maxRadius,
@@ -166,12 +135,83 @@ func (s *ServiceImpl) GetFeed(ctx context.Context, params GetFeedParams) ([]db.G
 		return nil, "", 0, err
 	}
 
-	message := "Stories found nearby"
-	if len(stories) == 0 {
-		message = "No stories found within 50km"
+	// 2. Fetch connections
+	connections, err := s.store.ListConnections(ctx, params.UserID)
+	if err != nil {
+		return nil, "", 0, err
 	}
 
-	return stories, message, maxRadius, nil
+	connectionMap := make(map[uuid.UUID]bool)
+	for _, c := range connections {
+		connectionMap[c.ID] = true
+	}
+
+	// 3. Filter: Only Self OR Connections
+	var filtered []db.GetStoriesWithinRadiusRow
+	for _, st := range allStories {
+		if st.UserID == params.UserID || connectionMap[st.UserID] {
+			filtered = append(filtered, st)
+		}
+	}
+
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].CreatedAt.Before(filtered[j].CreatedAt)
+	})
+
+	message := "Stories found nearby"
+	if len(filtered) == 0 {
+		message = "No stories from connections found nearby"
+	}
+
+	return filtered, message, maxRadius, nil
+}
+
+func (s *ServiceImpl) GetMapStories(ctx context.Context, params GetFeedParams) ([]db.GetStoriesWithinRadiusRow, error) {
+	// For map, we use a larger radius or specific bounds. 
+	// To reuse GetStoriesWithinRadius for now, we use a large radius.
+	// Ideally we'd use GetStoriesInBounds, but let's stick to radius for consistency with Feed for now.
+	const mapRadius = 100000.0 // 100km for map view
+
+	stories, err := s.store.GetStoriesWithinRadius(ctx, db.GetStoriesWithinRadiusParams{
+		Lng:          params.Longitude,
+		Lat:          params.Latitude,
+		RadiusMeters: mapRadius,
+		UserID:       params.UserID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	connections, err := s.store.ListConnections(ctx, params.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	connectionMap := make(map[uuid.UUID]bool)
+	for _, c := range connections {
+		connectionMap[c.ID] = true
+	}
+
+	var filtered []db.GetStoriesWithinRadiusRow
+	for _, st := range stories {
+		if st.UserID == params.UserID || connectionMap[st.UserID] {
+			filtered = append(filtered, st)
+		}
+	}
+
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].CreatedAt.Before(filtered[j].CreatedAt)
+	})
+
+	return filtered, nil
+}
+
+func (s *ServiceImpl) GetMyStories(ctx context.Context, userID uuid.UUID) ([]db.GetActiveStoriesByUserIDRow, error) {
+	stories, err := s.store.GetActiveStoriesByUserID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return stories, nil
 }
 
 func (s *ServiceImpl) DeleteStory(ctx context.Context, storyID uuid.UUID, userID uuid.UUID) error {
@@ -192,7 +232,6 @@ func (s *ServiceImpl) DeleteStory(ctx context.Context, storyID uuid.UUID, userID
 		return err
 	}
 
-	// Invalidate feed cache
 	userGeohash := story.Geohash
 	if len(userGeohash) > 5 {
 		userGeohash = userGeohash[:5]
@@ -206,11 +245,3 @@ func (s *ServiceImpl) invalidateFeedCache(ctx context.Context, geohash string) {
 	cacheKey := "feed:" + geohash
 	s.redis.Del(ctx, cacheKey)
 }
-
-// Helper to replace cached JSON logic?
-// For now, the GetFeed method just returns DB rows. The API layer currently caches the JSON.
-// If we move logic here, we lose the JSON caching unless we move response mapping here.
-// I'll keep the response mapping in the handler for now, which means the CACHE HIT logic
-// in handler should remain, but CACHE MISS calls service.
-// BUT invalidation happens in Service. This is inconsistent (Service invalidates, Handler reads/sets).
-// This is typical for transition phases. Accepted.

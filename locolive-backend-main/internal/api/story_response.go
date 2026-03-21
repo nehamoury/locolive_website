@@ -264,3 +264,44 @@ func toStoryResponseFromUpdate(row db.UpdateStoryRow) StoryResponse {
 
 	return resp
 }
+
+func toStoryResponseFromActive(row db.GetActiveStoriesByUserIDRow) StoryResponse {
+	resp := StoryResponse{
+		ID:           row.ID,
+		UserID:       row.UserID,
+		MediaURL:     row.MediaUrl,
+		MediaType:    row.MediaType,
+		Geohash:      row.Geohash,
+		Visibility:   string(row.Visibility),
+		ExpiresAt:    row.ExpiresAt,
+		CreatedAt:    row.CreatedAt,
+		IsAnonymous:  row.IsAnonymous,
+		ShowLocation: row.ShowLocation,
+		Username:     row.Username,
+	}
+
+	if val, ok := row.Lat.(float64); ok {
+		resp.Lat = val
+	}
+	if val, ok := row.Lng.(float64); ok {
+		resp.Lng = val
+	}
+
+	if row.ThumbnailUrl.Valid {
+		resp.ThumbnailURL = &row.ThumbnailUrl.String
+	}
+
+	if row.Caption.Valid {
+		resp.Caption = &row.Caption.String
+	}
+
+	if row.AvatarUrl.Valid {
+		resp.AvatarURL = &row.AvatarUrl.String
+	}
+
+	if row.IsPremium.Valid {
+		resp.IsPremium = &row.IsPremium.Bool
+	}
+
+	return resp
+}

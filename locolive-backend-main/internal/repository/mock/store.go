@@ -731,6 +731,21 @@ func (mr *MockStoreMockRecorder) GetArchivedStory(ctx, arg any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetArchivedStory", reflect.TypeOf((*MockStore)(nil).GetArchivedStory), ctx, arg)
 }
 
+// GetActiveStoriesByUserID mocks base method.
+func (m *MockStore) GetActiveStoriesByUserID(ctx context.Context, userID uuid.UUID) ([]db.GetActiveStoriesByUserIDRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetActiveStoriesByUserID", ctx, userID)
+	ret0, _ := ret[0].([]db.GetActiveStoriesByUserIDRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetActiveStoriesByUserID indicates an expected call of GetActiveStoriesByUserID.
+func (mr *MockStoreMockRecorder) GetActiveStoriesByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveStoriesByUserID", reflect.TypeOf((*MockStore)(nil).GetActiveStoriesByUserID), ctx, userID)
+}
+
 // GetBlockedUsers mocks base method.
 func (m *MockStore) GetBlockedUsers(ctx context.Context, blockerID uuid.UUID) ([]db.GetBlockedUsersRow, error) {
 	m.ctrl.T.Helper()

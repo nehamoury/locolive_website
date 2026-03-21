@@ -1,40 +1,49 @@
 import { useState, useEffect, useCallback } from 'react';
-import { LogOut, Home, Map as MapIcon, MessageSquare, User, Bell, Plus, Heart, Share2, ShieldAlert, Trash2, MoreHorizontal, Flag, Clock } from 'lucide-react';
+import { ShieldAlert, Home, Map as MapIcon, Users, User, Sparkles, MessageSquare, Plus, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { Button } from '../../components/ui/button';
-import MapView from '../../components/map/MapView';
-import StoryViewer from '../../components/story/StoryViewer';
-import { StoryBar } from '../../components/story/StoryBar';
-import CreateStoryModal from '../../components/story/CreateStoryModal';
-import { Profile } from './Profile';
 import api from '../../services/api';
-import ChatList from '../../components/chat/ChatList';
-import ChatWindow from '../../components/chat/ChatWindow';
+
+// Views and Components
+import Sidebar from '../../components/layout/Sidebar';
+import RightSidebar from '../../components/layout/RightSidebar';
+import HomeView from './HomeView';
+import { Profile } from './Profile';
 import NotificationsView from './NotificationsView';
 import ConnectionsView from './ConnectionsView';
 import SettingsView from './SettingsView';
 import SearchView from './SearchView';
+import UserProfileView from './UserProfileView';
 import CrossingsView from './CrossingsView';
-import { Users, Search, Footprints, Sparkles } from 'lucide-react';
 import CastingPage from './CastingPage';
+import MapPage from './MapPage';
+
+// Modals
+import CreateStoryModal from '../../components/story/CreateStoryModal';
+import StoryViewer from '../../components/story/StoryViewer';
+import ChatList from '../../components/chat/ChatList';
+import ChatWindow from '../../components/chat/ChatWindow';
+
+type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting'>('home');
+  const [activeTab, setActiveTab] = useState<TabType>('home');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [stories, setStories] = useState<any[]>([]);
   const [loadingStories, setLoadingStories] = useState(false);
+  const [viewingStories, setViewingStories] = useState<any[]>([]);
+  const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
+  
   const [selectedChatUser, setSelectedChatUser] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
+  const [selectedUserProfileId, setSelectedUserProfileId] = useState<string | null>(null);
   const [, setPanicSequence] = useState('');
   const [showPanicConfirm, setShowPanicConfirm] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  // Stable fetch functions — wrapped in useCallback so they don't recreate on every render
+  // Core Data Fetching
   const fetchStories = useCallback(async () => {
     setLoadingStories(prev => {
-      if (prev) return prev; // Already loading, skip
+      if (prev) return prev;
       return true;
     });
     try {
@@ -64,41 +73,10 @@ const Dashboard = () => {
     try {
       const response = await api.get('/messages/unread-count');
       setUnreadCount(response.data.unread_count || 0);
-    } catch (err) {
-      // Silently ignore — not critical
-    }
+    } catch (err) { }
   }, []);
 
-  const handleLike = async (storyId: string) => {
-    try {
-      await api.post(`/stories/${storyId}/react`, { reaction_type: 'like' });
-      setStories(prev => prev.map(s => s.id === storyId ? { ...s, liked: true } : s));
-    } catch (err) {
-      console.error("Failed to like story:", err);
-    }
-  };
-
-  const handleDeleteStory = async (storyId: string) => {
-    if (!confirm('Delete this post?')) return;
-    try {
-      await api.delete(`/stories/${storyId}`);
-      setStories(prev => prev.filter(s => s.id !== storyId));
-    } catch (err: any) {
-      console.error('Failed to delete story:', err);
-      alert(err.response?.data?.error || 'Could not delete post.');
-    }
-  };
-
-  const handleShare = async (storyId: string) => {
-    try {
-      await api.post('/stories/share', { story_id: storyId });
-      alert("Story shared successfully!");
-    } catch (err) {
-      console.error("Failed to share story:", err);
-    }
-  };
-
-  // Mount effect: runs ONCE. Keyboard listener + location pinger + polling interval.
+  // Panic & Ping
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const char = e.key.toUpperCase();
@@ -123,19 +101,17 @@ const Dashboard = () => {
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
             });
-          } catch { /* ignore */ }
+          } catch { }
         },
-        () => { /* ignore denial */ },
+        () => { },
         { timeout: 5000 }
       );
     };
 
-    // Initial load
     fetchStories();
     fetchUnreadCount();
     pingLocation();
 
-    // Poll every 60s (was 30s but was too aggressive)
     const interval = setInterval(() => {
       fetchUnreadCount();
       pingLocation();
@@ -145,8 +121,13 @@ const Dashboard = () => {
       window.removeEventListener('keydown', handleKeyDown);
       clearInterval(interval);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only on mount — fetchStories/fetchUnreadCount are stable via useCallback
+  }, [fetchStories, fetchUnreadCount]);
+
+  useEffect(() => {
+    if (activeTab === 'home') {
+      fetchStories();
+    }
+  }, [activeTab, fetchStories]);
 
   const handlePanic = async () => {
     try {
@@ -158,102 +139,59 @@ const Dashboard = () => {
     }
   };
 
-  // Tab-change effect: refresh stories only when switching to home tab
-  useEffect(() => {
-    if (activeTab === 'home') {
-      fetchStories();
-    }
-  }, [activeTab, fetchStories]);
-
-  return (
-    <div className="h-screen w-full bg-black text-white font-sans flex flex-col md:flex-row overflow-hidden relative">
-      {/* Sidebar - Desktop */}
-      <aside className="w-20 md:w-64 border-r border-white/10 bg-black hidden md:flex flex-col px-4 py-6 z-20">
-        <div className="mb-8 px-4 flex justify-center md:justify-start">
-          <div className="text-xl font-black italic tracking-tighter">Locolive</div>
-        </div>
-
-        <nav className="flex-1 space-y-2">
-          <NavItem icon={<Home className="w-6 h-6" />} label="Home" active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
-          <NavItem icon={<Search className="w-6 h-6" />} label="Search" active={activeTab === 'search'} onClick={() => setActiveTab('search')} />
-          <NavItem icon={<MapIcon className="w-6 h-6" />} label="Explore" active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} />
-          <NavItem icon={<Sparkles className="w-6 h-6" />} label="Casting" active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} />
-          <NavItem icon={<Footprints className="w-6 h-6" />} label="Crossings" active={activeTab === 'crossings'} onClick={() => setActiveTab('crossings')} />
-          <NavItem icon={<Bell className="w-6 h-6" />} label="Activity" active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} />
-          <NavItem icon={<Users className="w-6 h-6" />} label="Connections" active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} />
-          <NavItem icon={<MessageSquare className="w-6 h-6" />} label="Messages" active={activeTab === 'messages'} badge={unreadCount > 0 ? unreadCount : undefined} onClick={() => setActiveTab('messages')} />
-          <NavItem icon={<User className="w-6 h-6" />} label="Profile" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
-          <NavItem icon={<ShieldAlert className="w-6 h-6" />} label="Settings" active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
-
-
-
-        </nav>
-
-        <div className="mt-auto">
-          <button
-            onClick={logout}
-            className="w-full flex items-center justify-center md:justify-start p-3 rounded-full hover:bg-white/10 transition-colors group text-gray-400 hover:text-white"
-          >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 border border-white/20 flex items-center justify-center text-sm font-bold text-white">
-              {user?.full_name.charAt(0)}
-            </div>
-            <div className="ml-3 hidden md:block text-left">
-              <p className="font-bold text-sm leading-none">{user?.full_name}</p>
-              <p className="text-gray-500 text-xs">@{user?.username}</p>
-            </div>
-            <LogOut className="ml-auto w-5 h-5 hidden md:block opacity-0 group-hover:opacity-100 transition-opacity" />
-          </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 relative overflow-hidden flex flex-col pb-[50px] md:pb-0 bg-black">
-        {/* Mobile Header (Instagram Style) */}
-        {activeTab === 'home' && (
-          <div className="md:hidden absolute top-0 left-0 right-0 z-50 px-4 py-3 flex items-center justify-between pointer-events-none">
-            <div className="text-xl font-bold tracking-tighter drop-shadow-md pb-1 pointer-events-auto">Locolive</div>
-            <div className="flex space-x-4 pointer-events-auto">
-              <button className="relative">
-                <Bell className="w-6 h-6 drop-shadow-md filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
-              </button>
-              <button 
-                className="relative"
-                onClick={() => setActiveTab('messages')}
-              >
-                <MessageSquare className="w-6 h-6 drop-shadow-md filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
-                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border border-black" />}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'profile' ? (
-          <Profile onLogout={logout} />
-        ) : activeTab === 'notifications' ? (
-          <NotificationsView />
-        ) : activeTab === 'explore' ? (
-          <MapView />
-        ) : activeTab === 'connections' ? (
-          <ConnectionsView />
-        ) : activeTab === 'settings' ? (
-          <SettingsView onBack={() => setActiveTab('profile')} />
-        ) : activeTab === 'search' ? (
-          <SearchView />
-        ) : activeTab === 'crossings' ? (
-          <CrossingsView />
-        ) : activeTab === 'casting' ? (
-          <CastingPage />
-        ) : activeTab === 'messages' ? (
-          <div className="flex h-full w-full overflow-hidden">
+  // ─── Render View Component ────────────────────────────────────────────────────────
+  const renderView = () => {
+    switch (activeTab) {
+      case 'home':
+        return (
+          <HomeView 
+            stories={stories}
+            user={user}
+            loading={loadingStories}
+            onRefresh={fetchStories}
+            onCreateStory={() => setIsCreateModalOpen(true)}
+            onStoryClick={(userStories, index) => {
+              setViewingStories(userStories);
+              setViewingStoryIndex(index);
+            }}
+          />
+        );
+      case 'profile':
+        return <Profile onLogout={logout} />;
+      case 'notifications':
+        return <NotificationsView />;
+      case 'explore':
+        return <MapPage />;
+      case 'connections':
+        return <ConnectionsView />;
+      case 'settings':
+        return <SettingsView onBack={() => setActiveTab('profile')} />;
+      case 'search':
+        return selectedUserProfileId ? (
+          <UserProfileView 
+            userId={selectedUserProfileId} 
+            onBack={() => setSelectedUserProfileId(null)}
+            onMessage={(userId) => {
+              setSelectedChatUser(userId);
+              setActiveTab('messages');
+              setSelectedUserProfileId(null);
+            }}
+          />
+        ) : (
+          <SearchView onUserSelect={setSelectedUserProfileId} />
+        );
+      case 'crossings':
+        return <CrossingsView />;
+      case 'casting':
+        return <CastingPage />;
+      case 'messages':
+        return (
+          <div className="flex h-full w-full overflow-hidden bg-[#0a0a0c]">
             <div className={`h-full w-full md:w-80 border-r border-white/10 ${selectedChatUser ? 'hidden md:block' : 'block'}`}>
-              <ChatList
-                onSelect={setSelectedChatUser}
-                selectedId={selectedChatUser || undefined}
-              />
+              <ChatList onSelect={setSelectedChatUser} selectedId={selectedChatUser || undefined} />
             </div>
             {selectedChatUser ? (
-              <div className="flex-1 h-full w-full flex flex-col bg-black relative">
-                {/* Mobile back button to chat list */}
+              <div className="flex-1 h-full w-full flex flex-col relative">
                 <button 
                   onClick={() => setSelectedChatUser(null)}
                   className="md:hidden absolute top-4 left-4 z-50 p-2 bg-black/50 backdrop-blur-md rounded-full text-white"
@@ -263,194 +201,78 @@ const Dashboard = () => {
                 <ChatWindow receiverId={selectedChatUser} />
               </div>
             ) : (
-              <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-[#0a0a0c]">
-                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
-                  <MessageSquare className="w-10 h-10 text-purple-400" />
+              <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center text-slate-400">
+                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 text-[#6228D7]">
+                  <MessageSquare className="w-10 h-10" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Your Conversations</h3>
-                <p className="text-gray-500 max-w-sm">Select a chat from the list on the left to start messaging. Your privacy is our priority.</p>
+                <h3 className="text-xl font-bold mb-2 text-white">Your Conversations</h3>
+                <p className="max-w-sm text-sm">Select a chat from the list on the left to start messaging. Your privacy is our priority.</p>
               </div>
             )}
           </div>
-        ) : (
-          <>
-            <StoryBar 
-              stories={stories} 
-              user={user} 
-              onCreateStory={() => setIsCreateModalOpen(true)}
-              onStoryClick={setViewingStoryIndex}
-            />
-            {/* TikTok-style Vertical Feed */}
-            <div className="h-full snap-y snap-mandatory overflow-y-auto no-scrollbar scroll-smooth">
-              {loadingStories ? (
-                <div className="h-full flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500" />
-                </div>
-              ) : stories.length > 0 ? (
-                stories.map((story) => (
-                  <div key={story.id} className="h-full w-full snap-start relative bg-black flex items-center justify-center overflow-hidden">
-                    {/* Dynamic Blurred Background */}
-                    <div 
-                      className="absolute inset-0 bg-cover bg-center blur-3xl opacity-50 scale-110" 
-                      style={{ backgroundImage: `url(http://localhost:8080${story.media_url})` }}
-                    />
-                    
-                    {/* Gradient Overlay for Text Readability */}
-                    <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black via-black/50 to-transparent z-10 pointer-events-none" />
+        );
+      default:
+        return null;
+    }
+  };
 
-                    {/* Media — image or video */}
-                    {story.media_type === 'video' ? (
-                      <video
-                        src={`http://localhost:8080${story.media_url}`}
-                        className="h-full w-full object-cover md:w-auto md:max-h-full md:object-contain cursor-pointer relative z-20 shadow-[-20px_0_50px_rgba(0,0,0,0.5)]"
-                        onClick={() => setViewingStoryIndex(stories.indexOf(story))}
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                      />
-                    ) : (
-                      <img
-                        src={`http://localhost:8080${story.media_url}`}
-                        alt="Content"
-                        className="h-full w-full object-cover md:w-auto md:max-h-full md:object-contain cursor-pointer relative z-20 shadow-[-20px_0_50px_rgba(0,0,0,0.5)]"
-                        onClick={() => setViewingStoryIndex(stories.indexOf(story))}
-                      />
-                    )}
+  return (
+    <div className="h-screen w-full bg-[#0B0F19] text-white font-sans flex overflow-hidden">
+      
+      {/* 1. Left Sidebar (Fixed) */}
+      <Sidebar 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        user={user} 
+        logout={logout} 
+        unreadCount={unreadCount} 
+        onCreatePost={() => setIsCreateModalOpen(true)}
+      />
 
-                    {/* Three-dot menu — top right corner */}
-                    <div
-                      className="absolute top-4 right-4 z-40"
-                      onMouseLeave={() => setOpenMenuId(null)}
-                    >
-                      <button
-                        onClick={() => setOpenMenuId(prev => prev === story.id ? null : story.id)}
-                        className="w-9 h-9 bg-black/50 backdrop-blur-md rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-black/70 transition-all border border-white/10 active:scale-90"
-                      >
-                        <MoreHorizontal className="w-5 h-5" />
-                      </button>
+      {/* 2. Main Content Center (Scrollable) */}
+      <main className="flex-1 relative overflow-hidden flex flex-col border-r border-white/5 shadow-2xl z-10">
+        
+        {/* Mobile Header */}
+        <div className="md:hidden sticky top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between bg-[#0B0F19]/90 backdrop-blur-xl border-b border-white/5">
+          <div className="text-xl font-black italic tracking-tighter bg-gradient-to-r from-[#EE2A7B] to-[#6228D7] bg-clip-text text-transparent">
+            Locolive
+          </div>
+          <div className="flex space-x-4 text-white">
+            <button><Bell className="w-6 h-6" /></button>
+            <button className="relative" onClick={() => setActiveTab('messages')}>
+              <MessageSquare className="w-6 h-6" />
+              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#EE2A7B] rounded-full border border-black" />}
+            </button>
+          </div>
+        </div>
 
-                      {openMenuId === story.id && (
-                        <div className="absolute top-11 right-0 w-44 bg-[#1a1a1e] border border-white/10 rounded-2xl shadow-2xl overflow-hidden py-1">
-                          {(story.user_id === user?.id || story.username === user?.username) && (
-                            <button
-                              onClick={() => { setOpenMenuId(null); handleDeleteStory(story.id); }}
-                              className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400 hover:bg-red-500/10 transition-colors"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Delete post
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setOpenMenuId(null)}
-                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:bg-white/5 transition-colors"
-                          >
-                            <Flag className="w-4 h-4" />
-                            Report
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Interaction Buttons (Instagram/Snapchat Style) */}
-                    <div className="absolute right-4 bottom-24 md:bottom-20 flex flex-col items-center space-y-6 z-30">
-                      
-                      <div className="group cursor-pointer flex flex-col items-center">
-                        <div 
-                          onClick={() => handleLike(story.id)}
-                          className={`w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center transition-all hover:bg-white/20 active:scale-90 border border-white/20 shadow-lg ${story.liked ? 'text-pink-500' : 'text-white'}`}
-                        >
-                          <Heart className={`w-6 h-6 ${story.liked ? 'fill-current' : 'group-hover:text-pink-500'} transition-colors`} />
-                        </div>
-                        <span className="text-[10px] mt-1.5 font-bold drop-shadow-md text-white/90">{story.likes_count || '42.1K'}</span>
-                      </div>
+        {/* Dynamic Route View */}
+        <div className="flex-1 overflow-hidden relative">
+          {renderView()}
+        </div>
 
-                      <div className="group cursor-pointer flex flex-col items-center">
-                        <div className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center transition-all hover:bg-white/20 active:scale-90 border border-white/20 shadow-lg">
-                          <MessageSquare className="w-6 h-6 text-white group-hover:text-purple-400 transition-colors" />
-                        </div>
-                        <span className="text-[10px] mt-1.5 font-bold drop-shadow-md text-white/90">452</span>
-                      </div>
-
-                      <div className="group cursor-pointer flex flex-col items-center">
-                        <div 
-                          onClick={() => handleShare(story.id)}
-                          className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center transition-all hover:bg-white/20 active:scale-90 border border-white/20 shadow-lg"
-                        >
-                          <Share2 className="w-6 h-6 text-white group-hover:text-blue-400 transition-colors" />
-                        </div>
-                        <span className="text-[10px] mt-1.5 font-bold drop-shadow-md text-white/90">Share</span>
-                      </div>
-                    </div>
-
-                    {/* Content Info */}
-                    <div className="absolute bottom-6 left-4 right-20 z-30">
-                      <div className="flex items-center space-x-3 mb-3">
-                         <div className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 shadow-lg">
-                           <div className="w-full h-full rounded-full bg-black flex items-center justify-center font-bold text-sm text-white">
-                             {story.username.charAt(0).toUpperCase()}
-                           </div>
-                         </div>
-                         <div className="flex flex-col drop-shadow-md">
-                           <p className="font-bold text-base leading-tight text-white tracking-tight">@{story.username}</p>
-                           <div className="flex items-center gap-2">
-                             <p className="text-[10px] text-white/60 font-medium">Original Audio</p>
-                             {story.expires_at && (() => {
-                               const diff = new Date(story.expires_at).getTime() - Date.now();
-                               if (diff <= 0) return null;
-                               const h = Math.floor(diff / 3600000);
-                               const label = h < 1 ? `${Math.floor(diff / 60000)}m left` : `${h}h left`;
-                               return (
-                                 <span className="flex items-center gap-0.5 text-[9px] font-bold text-amber-400/80 bg-amber-400/10 px-1.5 py-0.5 rounded-full">
-                                   <Clock className="w-2.5 h-2.5" />{label}
-                                 </span>
-                               );
-                             })()}
-                           </div>
-                         </div>
-                      </div>
-                      <p className="text-sm md:text-base text-gray-100 line-clamp-2 drop-shadow-md mb-4 font-medium leading-relaxed">{story.caption}</p>
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center space-x-2 text-white text-xs font-bold bg-white/10 backdrop-blur-md inline-flex px-3 py-1.5 rounded-full cursor-pointer hover:bg-white/20 transition-all border border-white/20 shadow-xl group">
-                           <MapIcon className="w-3.5 h-3.5 text-purple-400 group-hover:scale-110 transition-transform" />
-                           <span>Nearby • Mumbai</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center space-y-4">
-                  <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center text-gray-500">
-                    <Home className="w-10 h-10" />
-                  </div>
-                  <p className="text-gray-400">Nothing here yet. Post your first story!</p>
-                  <Button variant="primary" onClick={() => setIsCreateModalOpen(true)}>Post a Story</Button>
-                </div>
-              )}
-            </div>
-          </>
-        )}
+        {/* Mobile Bottom Navigation */}
+        <nav className="md:hidden fixed bottom-0 w-full flex items-center justify-around bg-[#0B0E14]/90 backdrop-blur-2xl border-t border-white/5 px-4 h-16 z-[60]">
+          <MobileNavItem icon={<Home className="w-6 h-6" />} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
+          <MobileNavItem icon={<MapIcon className="w-6 h-6" />} active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} />
+          <MobileNavItem icon={<Sparkles className="w-6 h-6" />} active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} />
+          
+          <button 
+            onClick={() => setIsCreateModalOpen(true)}
+            className="w-12 h-12 bg-gradient-to-tr from-[#EE2A7B] to-[#6228D7] rounded-full flex items-center justify-center transform -translate-y-4 shadow-lg shadow-pink-500/20 active:scale-95 transition-all text-white border-[3px] border-[#0B0E14]"
+          >
+            <Plus className="w-6 h-6" />
+          </button>
+          
+          <MobileNavItem icon={<Users className="w-6 h-6" />} active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} />
+          <MobileNavItem icon={<User className="w-6 h-6" />} active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
+        </nav>
       </main>
 
-      {/* Mobile Bottom Navigation (Instagram Style) */}
-      <nav className="md:hidden fixed bottom-0 w-full flex items-center justify-around bg-black border-t border-white/10 pb-safe pt-2 px-2 z-[60] h-[50px]">
-        <MobileNavItem icon={<Home className="w-6 h-6" />} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
-        <MobileNavItem icon={<MapIcon className="w-6 h-6" />} active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} />
-        
-        <MobileNavItem icon={<Sparkles className="w-6 h-6" />} active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} />
+      {/* 3. Right Sidebar (Widgets - Desktop only) */}
+      <RightSidebar />
 
-        <button 
-          onClick={() => setIsCreateModalOpen(true)}
-          className="w-8 h-8 border border-white/40 rounded-lg flex items-center justify-center transition-transform active:scale-95"
-        >
-          <Plus className="w-5 h-5 text-white" />
-        </button>
-        
-        <MobileNavItem icon={<Users className="w-6 h-6" />} active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} />
-        <MobileNavItem icon={<User className="w-6 h-6" />} active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
-      </nav>
-
+      {/* Overlays / Modals */}
       <CreateStoryModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -459,37 +281,43 @@ const Dashboard = () => {
 
       {viewingStoryIndex !== null && (
         <StoryViewer
-          stories={stories}
+          stories={viewingStories}
           initialIndex={viewingStoryIndex}
-          onClose={() => setViewingStoryIndex(null)}
+          onClose={() => {
+            setViewingStoryIndex(null);
+            setViewingStories([]);
+          }}
           currentUser={user?.username}
           currentUserID={user?.id}
-          onDelete={(storyId) => setStories(prev => prev.filter(s => s.id !== storyId))}
+          onDelete={(storyId) => {
+            setStories(prev => prev.filter(s => s.id !== storyId));
+            setViewingStories(prev => prev.filter(s => s.id !== storyId));
+          }}
         />
       )}
 
       {showPanicConfirm && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-red-950/20 backdrop-blur-2xl p-6">
-          <div className="bg-black border-2 border-red-600 p-8 rounded-[40px] max-w-md w-full text-center shadow-[0_0_100px_rgba(220,38,38,0.3)]">
-            <div className="w-20 h-20 bg-red-600/10 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600">
-              <ShieldAlert className="w-12 h-12" />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-xl p-6">
+          <div className="bg-[#1a1a1e] border-2 border-red-500/50 p-8 rounded-[32px] max-w-sm w-full text-center shadow-[0_0_50px_rgba(239,68,68,0.2)]">
+            <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
+              <ShieldAlert className="w-10 h-10" />
             </div>
-            <h2 className="text-3xl font-black mb-4 uppercase tracking-tighter">Panic Mode Detected</h2>
-            <p className="text-gray-400 mb-8 leading-relaxed">
-              You typed the secret code. This will <span className="text-red-500 font-bold underline">permanently delete all your data</span> including messages, stories, and connections.
+            <h2 className="text-2xl font-black text-white mb-2 tracking-tight">Erase all data?</h2>
+            <p className="text-slate-400 text-sm mb-8 leading-relaxed">
+              This will permanently delete all your messages, stories, and connections.
             </p>
             <div className="space-y-3">
               <button 
                 onClick={handlePanic}
-                className="w-full py-4 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black uppercase tracking-wider transition-all transform active:scale-95"
+                className="w-full py-3.5 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold transition-all active:scale-95"
               >
-                Yes, Purge Everything
+                Yes, Erase
               </button>
               <button 
                 onClick={() => setShowPanicConfirm(false)}
-                className="w-full py-4 bg-white/5 hover:bg-white/10 text-gray-400 rounded-2xl font-bold transition-all"
+                className="w-full py-3.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold transition-all active:scale-95"
               >
-                Wait, Cancel!
+                Cancel
               </button>
             </div>
           </div>
@@ -499,47 +327,14 @@ const Dashboard = () => {
   );
 };
 
-interface NavItemProps {
-  icon: React.ReactNode;
-  label: string;
-  active?: boolean;
-  badge?: number;
-  onClick?: () => void;
-}
-
-const NavItem = ({ icon, label, active, badge, onClick }: NavItemProps) => (
-  <div
-    onClick={onClick}
-    className={`
-      flex items-center p-3 rounded-lg cursor-pointer transition-all group
-      ${active ? 'text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'}
-    `}
+// Mobile Nav Item helper
+const MobileNavItem = ({ icon, active, onClick }: { icon: React.ReactNode, active: boolean, onClick: () => void }) => (
+  <button 
+    onClick={onClick} 
+    className={`p-2 transition-colors ${active ? 'text-[#EE2A7B]' : 'text-slate-500 hover:text-slate-300'}`}
   >
-    <div className="relative">
-      <div className={`${active ? 'scale-105' : 'group-hover:scale-105 transition-transform'}`}>
-        {icon}
-      </div>
-      {badge && (
-        <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-[10px] text-white flex items-center justify-center rounded-full font-bold">
-          {badge}
-        </span>
-      )}
-    </div>
-    <span className={`ml-4 text-sm hidden md:block ${active ? 'font-bold' : 'font-medium'}`}>{label}</span>
-  </div>
-);
-
-const MobileNavItem = ({ icon, active, badge, onClick }: Omit<NavItemProps, 'label'>) => (
-  <div onClick={onClick} className="relative p-2 flex flex-col items-center justify-center cursor-pointer">
-    <div className={`transition-all duration-300 ${active ? 'text-white' : 'text-gray-500'}`}>
-      {icon}
-    </div>
-    {badge && (
-      <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 text-[8px] text-white flex items-center justify-center rounded-full font-bold">
-        {badge}
-      </span>
-    )}
-  </div>
+    {icon}
+  </button>
 );
 
 export default Dashboard;

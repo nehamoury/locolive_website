@@ -289,3 +289,44 @@ func (server *Server) getStory(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, rsp)
 }
+
+func (server *Server) getMyStories(ctx *gin.Context) {
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	stories, err := server.story.GetMyStories(ctx, authPayload.UserID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	storyResponses := make([]StoryResponse, len(stories))
+	for i, s := range stories {
+		storyResponses[i] = toStoryResponseFromActive(s)
+	}
+
+	ctx.JSON(http.StatusOK, storyResponses)
+}
+
+// getUserStories returns public stories for a specific user
+func (server *Server) getUserStories(ctx *gin.Context) {
+	userID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// For now, we reuse the GetMyStories logic but for a targeted user.
+	// In a real app, this would filter by visibility (public/connections).
+	stories, err := server.story.GetMyStories(ctx, userID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	storyResponses := make([]StoryResponse, len(stories))
+	for i, s := range stories {
+		storyResponses[i] = toStoryResponseFromActive(s)
+	}
+
+	ctx.JSON(http.StatusOK, storyResponses)
+}

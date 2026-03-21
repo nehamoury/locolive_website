@@ -11,6 +11,7 @@ import (
 	"github.com/mmcloughlin/geohash"
 
 	"privacy-social-backend/internal/repository/db"
+	"privacy-social-backend/internal/service/story"
 	"privacy-social-backend/internal/token"
 )
 
@@ -55,12 +56,10 @@ func (server *Server) getStoriesMap(ctx *gin.Context) {
 		return
 	}
 
-	stories, err := server.store.GetStoriesInBounds(ctx, db.GetStoriesInBoundsParams{
-		North:         req.North,
-		South:         req.South,
-		East:          req.East,
-		West:          req.West,
-		CurrentUserID: authPayload.UserID,
+	stories, err := server.story.GetMapStories(ctx, story.GetFeedParams{
+		UserID:    authPayload.UserID,
+		Latitude:  (req.North + req.South) / 2,
+		Longitude: (req.East + req.West) / 2,
 	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
@@ -68,9 +67,8 @@ func (server *Server) getStoriesMap(ctx *gin.Context) {
 	}
 
 	// Cluster stories by geohash (5 chars = ~2.4km precision)
-	clusters := make(map[string][]db.GetStoriesInBoundsRow)
+	clusters := make(map[string][]db.GetStoriesWithinRadiusRow)
 	for _, story := range stories {
-		// Get 5-char geohash for clustering
 		hash := story.Geohash
 		if len(hash) > 5 {
 			hash = hash[:5]
@@ -103,7 +101,7 @@ func (server *Server) getStoriesMap(ctx *gin.Context) {
 		if len(clusterStories) <= 3 {
 			cluster.Stories = make([]StoryResponse, len(clusterStories))
 			for i, story := range clusterStories {
-				cluster.Stories[i] = toStoryResponseFromBounds(story)
+				cluster.Stories[i] = toStoryResponse(story)
 			}
 		}
 

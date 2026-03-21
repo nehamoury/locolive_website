@@ -130,7 +130,7 @@ const TABS: { id: FilterMode; label: string; emoji: string }[] = [
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 interface MapViewProps {
-  onStorySelect?: (id: string) => void;
+  onStorySelect?: (story: any, allStories: any[]) => void;
 }
 
 const MapView = ({ onStorySelect }: MapViewProps) => {
@@ -168,28 +168,18 @@ const MapView = ({ onStorySelect }: MapViewProps) => {
         api.get('/location/heatmap'),
       ]);
       const clusters = storiesRes.data.clusters || [];
-      const all: any[] = [];
-      clusters.forEach((c: any) => {
-        if (c.stories) {
-          all.push(
-            ...c.stories.map((s: any) => ({
-              ...s,
-              latitude: s.lat ?? s.latitude,
-              longitude: s.lng ?? s.longitude,
-            }))
-          );
-        } else {
-          all.push({
-            id: c.geohash,
-            latitude: c.latitude,
-            longitude: c.longitude,
-            isCluster: true,
-            count: c.count,
-            username: `${c.count} users`,
-          });
-        }
-      });
-      setStories(all);
+      const processedClusters = clusters.map((c: any) => ({
+        ...c,
+        latitude: c.latitude,
+        longitude: c.longitude,
+        // Ensure stories list is consistent
+        stories: (c.stories || []).map((s: any) => ({
+          ...s,
+          latitude: s.lat ?? s.latitude,
+          longitude: s.lng ?? s.longitude,
+        }))
+      }));
+      setStories(processedClusters);
       setHeatmap(heatmapRes.data || []);
     } catch (err: any) {
       console.error('Map data fetch failed:', err);
@@ -312,20 +302,24 @@ const MapView = ({ onStorySelect }: MapViewProps) => {
         {showStories &&
           stories
             .filter(s => s.latitude !== undefined && s.longitude !== undefined)
-            .map((story: any) => {
-              const count = story.count ?? 1;
-              const avatarUrl = story.avatar_url
-                ? `http://localhost:8080${story.avatar_url}`
+            .map((cluster: any) => {
+              const count = cluster.count ?? 0;
+              const firstStory = cluster.stories?.[0];
+              if (!firstStory && !cluster.isCluster) return null;
+
+              const displayUsername = firstStory?.username || cluster.username || 'Users';
+              const avatarUrl = firstStory?.avatar_url
+                ? `http://localhost:8080${firstStory.avatar_url}`
                 : undefined;
-              // vary ring color by index for visual interest
+              
               const colors = ['#ec4899', '#06b6d4', '#f59e0b', '#10b981'];
-              const color = colors[Math.abs(story.id?.charCodeAt?.(0) ?? 0) % colors.length];
+              const color = colors[Math.abs(cluster.geohash?.charCodeAt?.(0) ?? 0) % colors.length];
 
               return (
                 <Marker
-                  key={story.id}
-                  position={[story.latitude, story.longitude]}
-                  icon={createAvatarIcon(story.username || 'U', count, avatarUrl, color)}
+                  key={cluster.geohash}
+                  position={[cluster.latitude, cluster.longitude]}
+                  icon={createAvatarIcon(displayUsername, count, avatarUrl, color)}
                 >
                   <Popup className="neon-popup">
                     <div style={{
@@ -335,7 +329,7 @@ const MapView = ({ onStorySelect }: MapViewProps) => {
                       borderRadius: 16, padding: 12,
                       minWidth: 180, color: '#fff',
                     }}>
-                      {story.media_url && !story.isCluster && (
+                      {firstStory?.media_url && (
                         <div style={{
                           aspectRatio: '9/16', borderRadius: 12,
                           overflow: 'hidden', marginBottom: 10,
@@ -343,33 +337,35 @@ const MapView = ({ onStorySelect }: MapViewProps) => {
                           maxHeight: 200,
                         }}>
                           <img
-                            src={`http://localhost:8080${story.media_url}`}
-                            alt="Story"
+                            src={`http://localhost:8080${firstStory.media_url}`}
+                            alt="Story Preview"
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />
                         </div>
                       )}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div>
-                          <p style={{ fontWeight: 800, fontSize: 13, margin: 0 }}>@{story.username}</p>
-                          {story.created_at && (
+                          <p style={{ fontWeight: 800, fontSize: 13, margin: 0 }}>@{displayUsername}</p>
+                          {count > 1 && (
                             <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', margin: '2px 0 0' }}>
-                              {new Date(story.created_at).toLocaleTimeString()}
+                              {count} stories here
                             </p>
                           )}
                         </div>
-                        {!story.isCluster && (
-                          <button
-                            onClick={() => onStorySelect?.(story.id)}
-                            style={{
-                              width: 32, height: 32, borderRadius: '50%',
-                              background: 'linear-gradient(135deg,#ec4899,#8b5cf6)',
-                              border: 'none', cursor: 'pointer',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: 14,
-                            }}
-                          >▶</button>
-                        )}
+                        <button
+                          onClick={() => {
+                            if (cluster.stories && cluster.stories.length > 0) {
+                              onStorySelect?.(cluster.stories[0], cluster.stories);
+                            }
+                          }}
+                          style={{
+                            width: 32, height: 32, borderRadius: '50%',
+                            background: 'linear-gradient(135deg,#ec4899,#8b5cf6)',
+                            border: 'none', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 14,
+                          }}
+                        >▶</button>
                       </div>
                     </div>
                   </Popup>

@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Upload, Camera, Send, Lock, Globe, Loader2, Trash2, Video, Image } from 'lucide-react';
-import { Button } from '../ui/button';
+import { X, Upload, Send, Lock, Globe, Loader2, Trash2, Video, Image } from 'lucide-react';
 import api from '../../services/api';
 
 interface CreateStoryModalProps {
@@ -80,163 +79,133 @@ const CreateStoryModal = ({ isOpen, onClose, onSuccess }: CreateStoryModalProps)
       setIsAnonymous(false);
       onSuccess();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Story Creation Error:', err);
-      setError(err.response?.data?.error || 'Failed to share story. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to share story. Please try again.');
     } finally {
       setIsUploading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4 sm:p-6">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-[6000] bg-black flex flex-col animate-in fade-in duration-300">
+      {/* Top Header/Bar */}
+      <div className="absolute top-0 inset-x-0 z-50 flex items-center justify-between px-6 py-6 bg-gradient-to-b from-black/80 to-transparent">
+        <button 
+          onClick={onClose} 
+          className="w-10 h-10 flex items-center justify-center bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-all active:scale-95"
+        >
+          <X className="w-6 h-6" />
+        </button>
+        
+        <h3 className="text-white font-bold text-lg tracking-tight">Create Story</h3>
 
-      <div className="relative w-full max-w-lg bg-[#0f0f12] border border-white/10 rounded-[28px] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-          <h3 className="text-lg font-bold text-white">New Post</h3>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-            <X className="w-5 h-5 text-gray-400" />
-          </button>
-        </div>
+        <button
+          onClick={handleSubmit}
+          disabled={isUploading || !file}
+          className="px-6 py-2 bg-white text-black font-bold rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 active:scale-95 transition-all shadow-xl shadow-white/10 flex items-center gap-2"
+        >
+          {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Share'}
+          {!isUploading && <Send className="w-4 h-4" />}
+        </button>
+      </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Media Dropzone or Preview */}
-          <div className="relative">
-            <div
-              onClick={() => !preview && fileInputRef.current?.click()}
-              className={`aspect-[4/3] rounded-2xl bg-white/[0.04] border-2 border-dashed transition-all overflow-hidden flex flex-col items-center justify-center group relative ${preview ? 'border-white/20 cursor-default' : 'border-white/10 hover:border-violet-500/50 cursor-pointer'}`}
-            >
-              {preview ? (
-                <>
-                  {isVideo ? (
-                    <video
-                      src={preview}
-                      className="w-full h-full object-cover"
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                    />
-                  ) : (
-                    <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-                  )}
-                  {/* File type badge */}
-                  <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-white/10 text-xs font-semibold text-white">
-                    {isVideo ? <Video className="w-3 h-3 text-violet-400" /> : <Image className="w-3 h-3 text-pink-400" />}
-                    {isVideo ? 'Video' : 'Photo'}
-                  </div>
-                </>
-              ) : (
-                <div className="text-center space-y-3 px-6">
-                  <div className="w-14 h-14 bg-violet-600/20 rounded-full flex items-center justify-center mx-auto group-hover:scale-110 transition-transform duration-300">
-                    <Upload className="w-7 h-7 text-violet-400" />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-semibold text-white">Tap to upload photo or video</p>
-                    <p className="text-xs text-gray-500">JPG, PNG, MP4, MOV · Max 50MB</p>
-                  </div>
-                  <div className="flex items-center justify-center gap-3 mt-2">
-                    <span className="flex items-center gap-1 text-xs text-gray-600">
-                      <Image className="w-3 h-3" /> Photo
-                    </span>
-                    <span className="text-gray-700">·</span>
-                    <span className="flex items-center gap-1 text-xs text-gray-600">
-                      <Video className="w-3 h-3" /> Video
-                    </span>
-                  </div>
-                </div>
-              )}
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*,video/*"
-                className="hidden"
+      {/* Main Content (Fullscreen Preview) */}
+      <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+        {preview ? (
+          <div className="w-full h-full relative group">
+            {isVideo ? (
+              <video
+                src={preview}
+                className="w-full h-full object-cover"
+                autoPlay
+                loop
+                muted
+                playsInline
               />
-            </div>
-
-            {/* Clear / Change file buttons */}
-            {preview && (
-              <div className="absolute top-3 right-3 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-8 h-8 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-black/80 transition-all border border-white/10"
-                  title="Change file"
-                >
-                  <Camera className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleClearFile}
-                  className="w-8 h-8 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center text-white/70 hover:text-red-400 hover:bg-red-500/20 transition-all border border-white/10"
-                  title="Remove file"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+            ) : (
+              <img src={preview} alt="Preview" className="w-full h-full object-cover" />
             )}
-          </div>
-
-          {/* Caption */}
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Caption</label>
-            <textarea
-              placeholder="What's happening nearby? Add a caption..."
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              rows={3}
-              maxLength={300}
-              className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 focus:outline-none focus:border-violet-500/50 resize-none transition-all"
-            />
-            <p className="text-right text-[10px] text-gray-600">{caption.length}/300</p>
-          </div>
-
-          {/* Anonymous toggle */}
-          <div className="flex items-center justify-between py-1">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg transition-colors ${isAnonymous ? 'bg-violet-600/20 text-violet-400' : 'bg-white/5 text-gray-500'}`}>
-                {isAnonymous ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">Post Anonymously</p>
-                <p className="text-[10px] text-gray-500">Hide your profile from this post</p>
-              </div>
-            </div>
+            
+            {/* Clear Media Button */}
             <button
-              type="button"
-              onClick={() => setIsAnonymous(!isAnonymous)}
-              className={`relative w-11 h-6 rounded-full transition-colors ${isAnonymous ? 'bg-violet-600' : 'bg-white/10'}`}
+              onClick={handleClearFile}
+              className="absolute top-24 right-6 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white/70 hover:text-red-400 border border-white/10 transition-all opacity-0 group-hover:opacity-100"
             >
-              <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${isAnonymous ? 'left-5' : 'left-0.5'}`} />
+              <Trash2 className="w-5 h-5" />
             </button>
           </div>
-
-          {error && (
-            <p className="text-sm text-red-400 text-center font-medium bg-red-400/10 py-2.5 rounded-xl border border-red-400/20">
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={isUploading || !file}
-            className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-pink-500 text-white font-bold rounded-xl shadow-lg shadow-violet-600/20 hover:opacity-90 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-sm"
+        ) : (
+          <div 
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full h-full flex flex-col items-center justify-center bg-[#0a0a0c] cursor-pointer group px-10 text-center"
           >
-            {isUploading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" /> Uploading...
-              </>
-            ) : (
-              <>
-                Share Now <Send className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        </form>
+            <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 border border-white/5">
+              <Upload className="w-10 h-10 text-white/40 group-hover:text-white transition-colors" />
+            </div>
+            <h4 className="text-xl font-bold text-white mb-2">Select Story</h4>
+            <p className="text-gray-500 max-w-xs">Upload a photo or video (up to 50MB) to share with your connections.</p>
+            
+            <div className="flex gap-6 mt-10">
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-12 h-12 bg-[#1c1c1f] rounded-2xl flex items-center justify-center text-violet-400 border border-white/5">
+                  <Image className="w-6 h-6" />
+                </div>
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-widest">Photo</span>
+              </div>
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-12 h-12 bg-[#1c1c1f] rounded-2xl flex items-center justify-center text-pink-400 border border-white/5">
+                  <Video className="w-6 h-6" />
+                </div>
+                <span className="text-xs font-medium text-gray-500 uppercase tracking-widest">Video</span>
+              </div>
+            </div>
+            
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*,video/*"
+              className="hidden"
+            />
+          </div>
+        )}
+
+        {/* Caption Overlay - Bottom */}
+        {preview && (
+          <div className="absolute bottom-0 inset-x-0 p-8 pt-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
+            <div className="max-w-xl mx-auto space-y-6">
+              <textarea
+                placeholder="Write a caption..."
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                rows={2}
+                maxLength={300}
+                className="w-full bg-transparent border-b border-white/10 py-3 text-lg text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 resize-none transition-all text-center"
+              />
+              
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setIsAnonymous(!isAnonymous)}
+                  className={`flex items-center gap-3 px-5 py-3 rounded-full border transition-all ${isAnonymous ? 'bg-violet-600 border-violet-500 text-white' : 'bg-white/5 border-white/10 text-gray-400'}`}
+                >
+                  {isAnonymous ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
+                  <span className="text-sm font-bold">{isAnonymous ? 'Anonymous' : 'Public Story'}</span>
+                </button>
+                
+                <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Locolive Stories</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
+      {error && (
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 bg-red-500 text-white rounded-full font-bold shadow-2xl animate-bounce">
+          {error}
+        </div>
+      )}
     </div>
   );
 };

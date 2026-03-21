@@ -120,6 +120,80 @@ func (q *Queries) DeleteStory(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getActiveStoriesByUserID = `-- name: GetActiveStoriesByUserID :many
+SELECT s.id, s.user_id, s.media_url, s.media_type, s.thumbnail_url, s.caption, s.geohash, s.geom, s.visibility, s.expires_at, s.created_at, s.is_anonymous, s.is_premium, s.show_location, u.username, u.avatar_url, u.is_premium,
+       ST_Y(s.geom::geometry) as lat, ST_X(s.geom::geometry) as lng
+FROM stories s
+JOIN users u ON s.user_id = u.id
+WHERE s.user_id = $1 AND s.expires_at > now()
+ORDER BY s.created_at ASC
+`
+
+type GetActiveStoriesByUserIDRow struct {
+	ID           uuid.UUID         `json:"id"`
+	UserID       uuid.UUID         `json:"user_id"`
+	MediaUrl     string            `json:"media_url"`
+	MediaType    string            `json:"media_type"`
+	ThumbnailUrl sql.NullString    `json:"thumbnail_url"`
+	Caption      sql.NullString    `json:"caption"`
+	Geohash      string            `json:"geohash"`
+	Geom         interface{}       `json:"geom"`
+	Visibility   StoryAvailability `json:"visibility"`
+	ExpiresAt    time.Time         `json:"expires_at"`
+	CreatedAt    time.Time         `json:"created_at"`
+	IsAnonymous  bool              `json:"is_anonymous"`
+	IsPremium    sql.NullBool      `json:"is_premium"`
+	ShowLocation bool              `json:"show_location"`
+	Username     string            `json:"username"`
+	AvatarUrl    sql.NullString    `json:"avatar_url"`
+	IsPremium_2  sql.NullBool      `json:"is_premium_2"`
+	Lat          interface{}       `json:"lat"`
+	Lng          interface{}       `json:"lng"`
+}
+
+func (q *Queries) GetActiveStoriesByUserID(ctx context.Context, userID uuid.UUID) ([]GetActiveStoriesByUserIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, getActiveStoriesByUserID, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetActiveStoriesByUserIDRow
+	for rows.Next() {
+		var i GetActiveStoriesByUserIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.MediaUrl,
+			&i.MediaType,
+			&i.ThumbnailUrl,
+			&i.Caption,
+			&i.Geohash,
+			&i.Geom,
+			&i.Visibility,
+			&i.ExpiresAt,
+			&i.CreatedAt,
+			&i.IsAnonymous,
+			&i.IsPremium,
+			&i.ShowLocation,
+			&i.Username,
+			&i.AvatarUrl,
+			&i.IsPremium_2,
+			&i.Lat,
+			&i.Lng,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getConnectionStories = `-- name: GetConnectionStories :many
 SELECT s.id, s.user_id, s.media_url, s.media_type, s.thumbnail_url, s.caption, s.geohash, s.geom, s.visibility, s.expires_at, s.created_at, s.is_anonymous, s.is_premium, s.show_location, u.username, u.avatar_url, u.is_premium,
        ST_Y(s.geom::geometry) as lat, ST_X(s.geom::geometry) as lng

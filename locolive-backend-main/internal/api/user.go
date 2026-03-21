@@ -170,7 +170,7 @@ func (server *Server) loginUser(ctx *gin.Context) {
 }
 
 type searchUsersRequest struct {
-	Query string `form:"q" binding:"required"`
+	Query string `form:"q"`
 }
 
 func (server *Server) searchUsers(ctx *gin.Context) {
