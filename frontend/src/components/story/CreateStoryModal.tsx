@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { X, Upload, Send, Lock, Globe, Loader2, Trash2, Video, Image } from 'lucide-react';
+import { X, Camera, Edit3, Video, Calendar, Globe, MapPin, Flame, Loader2 } from 'lucide-react';
 import api from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 interface CreateStoryModalProps {
   isOpen: boolean;
@@ -9,17 +10,18 @@ interface CreateStoryModalProps {
 }
 
 const CreateStoryModal = ({ isOpen, onClose, onSuccess }: CreateStoryModalProps) => {
+  const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [showLocation, setShowLocation] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
+  
+  const [activeTab, setActiveTab] = useState('story'); // 'story', 'text', 'video', 'event'
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
-
-  const isVideo = file?.type.startsWith('video');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -29,183 +31,193 @@ const CreateStoryModal = ({ isOpen, onClose, onSuccess }: CreateStoryModalProps)
       return;
     }
     setFile(selectedFile);
-    const reader = new FileReader();
-    reader.onloadend = () => setPreview(reader.result as string);
-    reader.readAsDataURL(selectedFile);
-    setError('');
   };
 
-  const handleClearFile = () => {
-    setFile(null);
-    setPreview(null);
-    setError('');
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!file) { setError('Please select a photo or video'); return; }
+  const handleSubmit = async () => {
+    // Validation: Require file for Story and Video tabs
+    if ((activeTab === 'story' || activeTab === 'video') && !file) {
+      setError(`Please select a ${activeTab === 'video' ? 'video' : 'photo'} for your ${activeTab}.`);
+      fileInputRef.current?.click();
+      return;
+    }
+    // Validation: Require caption for text posts
+    if (activeTab === 'text' && !caption.trim()) {
+      setError('Please write something for your text post.');
+      return;
+    }
 
     setIsUploading(true);
     setError('');
 
     try {
-      // 1. Get current location (fall back to Delhi)
       const position: any = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
       }).catch(() => ({ coords: { latitude: 28.6139, longitude: 77.2090 } }));
 
-      // 2. Upload media
-      const formData = new FormData();
-      formData.append('file', file);
-      const uploadRes = await api.post('/upload', formData);
-      const mediaUrl = uploadRes.data.url;
+      let mediaUrl = '';
+      let mediaType = 'text';
 
-      // 3. Create story
+      // 1. Determine MediaType based on tab
+      if (activeTab === 'story') mediaType = file?.type.startsWith('video') ? 'video' : 'image';
+      else if (activeTab === 'video') mediaType = 'video';
+      else if (activeTab === 'text') mediaType = 'text';
+      else if (activeTab === 'event') mediaType = 'text'; // Events for now are text-based stories
+
+      // 2. Upload media if present
+      if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        const uploadRes = await api.post('/upload', formData);
+        mediaUrl = uploadRes.data.url;
+      }
+
+      // 3. Create the story
       await api.post('/stories', {
         media_url: mediaUrl,
-        media_type: isVideo ? 'video' : 'image',
+        media_type: mediaType,
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
         is_anonymous: isAnonymous,
-        show_location: true,
+        show_location: showLocation,
         caption: caption.trim(),
       });
 
-      // 4. Reset & close
+      // 4. Success cleanup
       setFile(null);
-      setPreview(null);
       setCaption('');
       setIsAnonymous(false);
       onSuccess();
       onClose();
     } catch (err: unknown) {
       console.error('Story Creation Error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to share story. Please try again.');
+      setError(err instanceof Error ? err.message : 'An error occurred while sharing.');
     } finally {
       setIsUploading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[6000] bg-black flex flex-col animate-in fade-in duration-300">
-      {/* Top Header/Bar */}
-      <div className="absolute top-0 inset-x-0 z-50 flex items-center justify-between px-6 py-6 bg-gradient-to-b from-black/80 to-transparent">
-        <button 
-          onClick={onClose} 
-          className="w-10 h-10 flex items-center justify-center bg-white/10 backdrop-blur-md rounded-full text-white hover:bg-white/20 transition-all active:scale-95"
-        >
-          <X className="w-6 h-6" />
-        </button>
+    <div className="fixed inset-0 z-[6000] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 px-4">
+      {/* Modal Container */}
+      <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col relative">
         
-        <h3 className="text-white font-bold text-lg tracking-tight">Create Story</h3>
+        {/* Header */}
+        <div className="flex justify-between items-center px-6 pt-6 pb-2">
+          <h2 className="text-xl font-black text-gray-900 tracking-wide">Create Post</h2>
+          <button 
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-        <button
-          onClick={handleSubmit}
-          disabled={isUploading || !file}
-          className="px-6 py-2 bg-white text-black font-bold rounded-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 active:scale-95 transition-all shadow-xl shadow-white/10 flex items-center gap-2"
-        >
-          {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Share'}
-          {!isUploading && <Send className="w-4 h-4" />}
-        </button>
-      </div>
+        <div className="px-6 py-4 flex flex-col gap-5">
+          {/* User Info */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#D1794A] flex items-center justify-center overflow-hidden flex-shrink-0">
+               {user?.avatar_url ? (
+                  <img src={user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8080${user.avatar_url}`} alt="Avatar" className="w-full h-full object-cover" />
+               ) : (
+                  <span className="text-white font-bold">{user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'P'}</span>
+               )}
+            </div>
+            <div className="flex flex-col">
+              <span className="font-bold text-gray-900 text-sm leading-tight">{user?.full_name || user?.username || 'Priya Sharma'}</span>
+              <div className="flex items-center gap-1 text-[11px] font-semibold text-pink-500">
+                <Globe className="w-3 h-3 text-blue-500" />
+                Everyone • Near Raipur
+              </div>
+            </div>
+          </div>
 
-      {/* Main Content (Fullscreen Preview) */}
-      <div className="flex-1 relative flex items-center justify-center overflow-hidden">
-        {preview ? (
-          <div className="w-full h-full relative group">
-            {isVideo ? (
-              <video
-                src={preview}
-                className="w-full h-full object-cover"
-                autoPlay
-                loop
-                muted
-                playsInline
-              />
-            ) : (
-              <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-            )}
-            
-            {/* Clear Media Button */}
-            <button
-              onClick={handleClearFile}
-              className="absolute top-24 right-6 w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white/70 hover:text-red-400 border border-white/10 transition-all opacity-0 group-hover:opacity-100"
+          {/* Post Tabs */}
+          <div className="grid grid-cols-4 gap-3">
+            <button 
+              onClick={() => { setActiveTab('story'); fileInputRef.current?.click(); }}
+              className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border transition-all ${activeTab === 'story' || file ? 'border-pink-400 bg-pink-50/10' : 'border-gray-200 hover:bg-gray-50'}`}
             >
-              <Trash2 className="w-5 h-5" />
+              <Camera className={`w-5 h-5 ${activeTab === 'story' || file ? 'text-pink-500' : 'text-gray-500'}`} />
+              <span className={`text-[10px] font-bold ${activeTab === 'story' || file ? 'text-pink-500' : 'text-gray-500'}`}>
+                 {file ? 'Media Attached' : 'Story'}
+              </span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('text')}
+              className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border transition-all ${activeTab === 'text' && !file ? 'border-pink-400 bg-pink-50/10' : 'border-gray-200 hover:bg-gray-50'}`}
+            >
+              <Edit3 className={`w-5 h-5 ${activeTab === 'text' && !file ? 'text-pink-500' : 'text-gray-500'}`} />
+              <span className={`text-[10px] font-bold ${activeTab === 'text' && !file ? 'text-pink-500' : 'text-gray-500'}`}>Text Post</span>
+            </button>
+            <button 
+              onClick={() => { setActiveTab('video'); fileInputRef.current?.click(); }}
+              className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border transition-all ${activeTab === 'video' ? 'border-pink-400 bg-pink-50/10' : 'border-gray-200 hover:bg-gray-50'}`}
+            >
+              <Video className={`w-5 h-5 ${activeTab === 'video' ? 'text-pink-500' : 'text-gray-500'}`} />
+              <span className={`text-[10px] font-bold ${activeTab === 'video' ? 'text-pink-500' : 'text-gray-500'}`}>Video</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('event')}
+              className={`flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border transition-all justify-center ${activeTab === 'event' ? 'border-pink-400 bg-pink-50/10' : 'border-gray-200 hover:bg-gray-50'}`}
+            >
+              <Calendar className={`w-5 h-5 ${activeTab === 'event' ? 'text-pink-500' : 'text-gray-500'}`} />
+              <span className={`text-[10px] font-bold ${activeTab === 'event' ? 'text-pink-500' : 'text-gray-500'}`}>Event</span>
             </button>
           </div>
-        ) : (
-          <div 
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full h-full flex flex-col items-center justify-center bg-[#0a0a0c] cursor-pointer group px-10 text-center"
-          >
-            <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 border border-white/5">
-              <Upload className="w-10 h-10 text-white/40 group-hover:text-white transition-colors" />
-            </div>
-            <h4 className="text-xl font-bold text-white mb-2">Select Story</h4>
-            <p className="text-gray-500 max-w-xs">Upload a photo or video (up to 50MB) to share with your connections.</p>
-            
-            <div className="flex gap-6 mt-10">
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-12 h-12 bg-[#1c1c1f] rounded-2xl flex items-center justify-center text-violet-400 border border-white/5">
-                  <Image className="w-6 h-6" />
-                </div>
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-widest">Photo</span>
-              </div>
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-12 h-12 bg-[#1c1c1f] rounded-2xl flex items-center justify-center text-pink-400 border border-white/5">
-                  <Video className="w-6 h-6" />
-                </div>
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-widest">Video</span>
-              </div>
-            </div>
-            
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              accept="image/*,video/*"
-              className="hidden"
+
+          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*,video/*" className="hidden" />
+
+          {/* Text Area */}
+          <div className="relative">
+            <textarea
+              value={caption}
+              onChange={(e) => setCaption(e.target.value)}
+              placeholder="What's happening near you? Share with your local community..."
+              className="w-full h-24 p-4 rounded-xl border border-pink-400 bg-white placeholder:text-gray-400 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-100 resize-none shadow-sm"
+              maxLength={280}
             />
           </div>
-        )}
 
-        {/* Caption Overlay - Bottom */}
-        {preview && (
-          <div className="absolute bottom-0 inset-x-0 p-8 pt-20 bg-gradient-to-t from-black/90 via-black/40 to-transparent">
-            <div className="max-w-xl mx-auto space-y-6">
-              <textarea
-                placeholder="Write a caption..."
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                rows={2}
-                maxLength={300}
-                className="w-full bg-transparent border-b border-white/10 py-3 text-lg text-white placeholder:text-white/30 focus:outline-none focus:border-white/40 resize-none transition-all text-center"
-              />
-              
-              <div className="flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={() => setIsAnonymous(!isAnonymous)}
-                  className={`flex items-center gap-3 px-5 py-3 rounded-full border transition-all ${isAnonymous ? 'bg-violet-600 border-violet-500 text-white' : 'bg-white/5 border-white/10 text-gray-400'}`}
-                >
-                  {isAnonymous ? <Lock className="w-4 h-4" /> : <Globe className="w-4 h-4" />}
-                  <span className="text-sm font-bold">{isAnonymous ? 'Anonymous' : 'Public Story'}</span>
-                </button>
-                
-                <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Locolive Stories</p>
-              </div>
-            </div>
+          {/* Error display */}
+          {error && (
+            <div className="text-red-500 text-xs font-semibold px-2">{error}</div>
+          )}
+
+          {/* Mini Toggles */}
+          <div className="flex flex-wrap items-center gap-3">
+            <button 
+              onClick={() => setIsAnonymous(!isAnonymous)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${isAnonymous ? 'border-gray-400 text-gray-700 bg-gray-50' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+            >
+              <Globe className="w-3.5 h-3.5" /> Anonymous
+            </button>
+            <button 
+              onClick={() => setShowLocation(!showLocation)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${showLocation ? 'border-pink-400 text-pink-500 bg-pink-50/10' : 'border-gray-200 text-gray-500 hover:bg-gray-50'}`}
+            >
+              <MapPin className="w-3.5 h-3.5" /> Share Location
+            </button>
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 text-xs font-semibold transition-colors">
+              <Flame className="w-3.5 h-3.5 text-orange-500" /> 24h Story
+            </button>
           </div>
-        )}
-      </div>
-
-      {error && (
-        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[100] px-6 py-3 bg-red-500 text-white rounded-full font-bold shadow-2xl animate-bounce">
-          {error}
         </div>
-      )}
+
+        {/* Footer */}
+        <div className="px-6 py-4 flex items-center justify-between mt-2 flex-shrink-0">
+          <span className="text-xs font-medium text-gray-400">
+            {caption.length} / 280
+          </span>
+          <button
+            onClick={handleSubmit}
+            disabled={isUploading || (!file && !caption.trim())}
+            className="px-6 py-2.5 bg-gradient-to-r from-pink-400 to-purple-400 text-white font-bold text-sm rounded-full disabled:opacity-50 hover:shadow-lg hover:shadow-pink-500/20 active:scale-95 transition-all flex items-center justify-center min-w-[100px]"
+          >
+            {isUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Post →'}
+          </button>
+        </div>
+
+      </div>
     </div>
   );
 };

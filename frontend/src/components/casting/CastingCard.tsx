@@ -65,7 +65,7 @@ const CastingCard: FC<CastingCardProps> = ({ user, onMatch, onPass, onViewProfil
       dragElastic={0.9}
       onDragStart={() => setIsDragging(true)}
       onDragEnd={handleDragEnd}
-      className="relative aspect-[3/4] rounded-[32px] overflow-hidden bg-zinc-900 border border-white/10 shadow-2xl cursor-grab active:cursor-grabbing select-none"
+      className="relative aspect-[3/4] rounded-[32px] overflow-hidden bg-white border border-primary/10 shadow-2xl cursor-grab active:cursor-grabbing select-none"
     >
       {/* User Image */}
       <div
@@ -80,17 +80,17 @@ const CastingCard: FC<CastingCardProps> = ({ user, onMatch, onPass, onViewProfil
             draggable={false}
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-indigo-600/30 to-purple-800/30 flex flex-col items-center justify-center gap-3">
-            <div className="w-20 h-20 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center">
-              <User className="w-10 h-10 text-white/40" />
+          <div className="w-full h-full bg-primary/5 flex flex-col items-center justify-center gap-3">
+            <div className="w-20 h-20 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center">
+              <User className="w-10 h-10 text-primary/30" />
             </div>
-            <p className="text-white/20 font-black text-4xl italic tracking-tighter">LOCO</p>
+            <p className="text-primary/10 font-black text-4xl italic tracking-tighter">LOCO</p>
           </div>
         )}
       </div>
 
       {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
 
       {/* LIKE stamp — shows when dragging right */}
       <motion.div
@@ -110,8 +110,8 @@ const CastingCard: FC<CastingCardProps> = ({ user, onMatch, onPass, onViewProfil
 
       {/* Tags */}
       <div className="absolute top-4 left-4 flex flex-wrap gap-2 z-20 pointer-events-none">
-        <div className="px-3 py-1 bg-black/50 backdrop-blur-md rounded-full border border-white/10 text-[10px] font-bold text-white flex items-center gap-1">
-          <MapPin className="w-3 h-3 text-pink-400" />
+        <div className="px-3 py-1 bg-white/80 backdrop-blur-md rounded-full border border-primary/10 text-[10px] font-bold text-black flex items-center gap-1 shadow-sm">
+          <MapPin className="w-3 h-3 text-primary" />
           {user.distance} away
         </div>
         {user.is_premium && (
@@ -125,20 +125,20 @@ const CastingCard: FC<CastingCardProps> = ({ user, onMatch, onPass, onViewProfil
       {/* User Info */}
       <div className="absolute inset-x-0 bottom-0 p-5 flex flex-col z-20 pointer-events-none">
         <div className="mb-3">
-          <h3 className="text-xl font-black text-white leading-tight tracking-tight">
+          <h3 className="text-xl font-black text-black leading-tight tracking-tight">
             {user.full_name}{user.age && user.age !== 25 ? `, ${user.age}` : ''}
           </h3>
-          <p className="text-xs text-white/50 font-medium">@{user.username}</p>
-          {user.bio && <p className="text-xs text-white/70 mt-1 line-clamp-2">{user.bio}</p>}
+          <p className="text-black/60 text-xs font-medium">@{user.username}</p>
+          {user.bio && <p className="text-black/40 text-xs mt-1 line-clamp-2">{user.bio}</p>}
         </div>
 
         {/* Action Buttons */}
         <div className="flex items-center gap-3 pointer-events-auto">
           <button
             onClick={handlePass}
-            className="flex-1 h-12 rounded-2xl bg-black/50 backdrop-blur-md border border-white/10 flex items-center justify-center hover:bg-red-500/20 hover:border-red-400/50 transition-all active:scale-95 group/btn"
+            className="flex-1 h-12 rounded-2xl bg-black/5 backdrop-blur-md border border-black/10 flex items-center justify-center hover:bg-black/10 transition-all active:scale-95 group/btn"
           >
-            <X className="w-6 h-6 text-white group-hover/btn:text-red-400 transition-colors" />
+            <X className="w-6 h-6 text-black/60 group-hover/btn:text-red-400 transition-colors" />
           </button>
           <button
             onClick={handleMatch}

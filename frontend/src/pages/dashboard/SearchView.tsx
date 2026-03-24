@@ -1,21 +1,22 @@
 import { useState, useEffect, useCallback, type FC } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Check } from 'lucide-react';
 import api from '../../services/api';
 
 interface SearchViewProps {
   onUserSelect?: (userId: string) => void;
 }
 
+type TabType = 'people' | 'stories' | 'trending';
+
 const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
+  const [activeTab, setActiveTab] = useState<TabType>('people');
 
   const search = useCallback(async (q: string) => {
     setLoading(true);
     try {
-      // Use 'q' as the parameter name to match backend searchUsersRequest struct tag `form:"q"`
       const res = await api.get('/users/search', { params: { q } });
       setResults(res.data || []);
     } catch (err) {
@@ -40,97 +41,159 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
   };
 
   return (
-    <div className="h-full bg-black text-white overflow-y-auto no-scrollbar pb-24 md:pb-0">
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        {/* Search Bar */}
-        <div className="sticky top-0 bg-black z-10 pb-4">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+    <div className="flex flex-col h-full w-full bg-white overflow-hidden">
+      
+      {/* ─── Top Huge Search Area ─── */}
+      <div className="pt-12 pb-6 px-6 flex flex-col items-center justify-center shrink-0">
+        <h1 className="text-3xl md:text-4xl font-black text-gray-900 tracking-tighter mb-8 text-center italic">
+          Find People Near You
+        </h1>
+        
+        <div className="w-full max-w-2xl relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full blur-[2px] opacity-70" />
+          <div className="relative bg-white rounded-full flex items-center px-6 py-4 shadow-sm border border-transparent">
+            <Search className="w-6 h-6 text-purple-600 shrink-0" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search people..."
-              className="w-full bg-white/5 border border-white/10 rounded-2xl pl-12 pr-10 py-3.5 text-sm focus:outline-none focus:border-purple-500/50 transition-colors placeholder:text-gray-600"
+              placeholder="Search for names, interests..."
+              className="flex-1 bg-transparent border-none focus:outline-none text-lg text-gray-800 px-4 placeholder:text-gray-300 font-medium"
               autoFocus
             />
             {query && (
-              <button onClick={() => setQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2">
-                <X className="w-4 h-4 text-gray-500" />
+              <button onClick={() => setQuery('')} className="p-1 hover:bg-gray-100 rounded-full transition-all shrink-0">
+                <X className="w-5 h-5 text-gray-400" />
               </button>
             )}
           </div>
         </div>
+      </div>
 
-        {/* Results */}
-        {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      {/* ─── Tabs ─── */}
+      <div className="w-full max-w-4xl mx-auto px-6 border-b border-gray-100 shrink-0 flex items-center gap-8">
+        {(['people', 'stories', 'trending'] as TabType[]).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`pb-4 capitalize font-bold text-sm transition-all relative
+              ${activeTab === tab ? 'text-pink-500' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            {tab}
+            {activeTab === tab && (
+              <span className="absolute bottom-0 left-0 w-full h-[3px] bg-pink-500 rounded-t-full" />
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ─── Results List ─── */}
+      <div className="flex-1 overflow-y-auto px-6 py-4 w-full max-w-4xl mx-auto no-scrollbar">
+        {activeTab !== 'people' ? (
+          <div className="py-20 text-center">
+            <p className="text-sm font-bold text-gray-400 italic">Coming soon</p>
           </div>
-        ) : query && results.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-gray-500">
-            <Search className="w-12 h-12 mb-4 opacity-30" />
-            <p className="text-sm font-medium">No users found for "{query}"</p>
+        ) : loading ? (
+          <div className="flex flex-col gap-0 divide-y divide-gray-50">
+             {Array(4).fill(0).map((_, i) => (
+               <div key={i} className="flex items-center gap-4 py-6 animate-pulse">
+                 <div className="w-14 h-14 rounded-full bg-gray-100 shrink-0" />
+                 <div className="flex-1 space-y-2">
+                   <div className="h-4 bg-gray-100 rounded w-1/4" />
+                   <div className="h-3 bg-gray-100 rounded w-1/2" />
+                 </div>
+                 <div className="w-24 h-10 rounded-full bg-gray-100 shrink-0" />
+               </div>
+             ))}
           </div>
-        ) : results.length === 0 && !query ? (
-          <div className="flex flex-col items-center justify-center py-24 text-gray-500">
-            <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/5 animate-pulse">
-              <Search className="w-10 h-10 opacity-20" />
+        ) : (!query && results.length === 0) ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-6">
+              <Search className="w-10 h-10 text-pink-300" />
             </div>
-            <p className="text-sm font-medium tracking-wide">Find your next connection</p>
-            <p className="text-xs opacity-50 mt-1">Discover people nearby and start chatting</p>
+            <p className="text-lg font-black text-gray-800 tracking-tight mb-2">Discover the community</p>
+            <p className="text-sm text-gray-400 max-w-sm">
+              Type a name or interest above to find amazing people nearby.
+            </p>
+          </div>
+        ) : (query && results.length === 0) ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <p className="text-lg font-black text-gray-800 tracking-tight mb-2">No results found</p>
+            <p className="text-sm text-gray-400">We couldn't find anyone matching "{query}"</p>
           </div>
         ) : (
-          <div className="grid gap-3">
-            {results.map(user => (
-              <div 
-                key={user.id} 
-                className="group flex items-center p-4 bg-white/[0.03] backdrop-blur-md rounded-2xl border border-white/5 hover:bg-white/[0.07] hover:border-purple-500/30 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-purple-500/10"
-                onClick={() => onUserSelect?.(user.id)}
-              >
-                <div className="relative shrink-0">
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-600 to-pink-600 p-[2px] transition-transform group-hover:scale-105 active:scale-95 duration-300">
-                    <div className="w-full h-full rounded-full bg-black p-[2px]">
-                      {user.avatar_url ? (
-                        <img src={`http://localhost:8080${user.avatar_url}`} alt="" className="w-full h-full rounded-full object-cover" />
+          <div className="flex flex-col divide-y divide-gray-50">
+            {results.map((user, i) => {
+              // Mock bio/tagline since backend might not send it depending on struct fields
+              const mBios = [
+                "Exploring every corner of Raipur 📍", 
+                "Coder by day 💻 Gamer by night 🎮", 
+                "5am runner ⚡ | Fitness & travel 🌍",
+                "Coffee addict ☕ & UI Designer",
+                "Local food explorer 🍜"
+              ];
+              const bio = mBios[i % mBios.length];
+              const colors = ['bg-pink-100 text-pink-600', 'bg-blue-100 text-blue-600', 'bg-emerald-100 text-emerald-600', 'bg-amber-100 text-amber-600'];
+              const col = colors[i % colors.length];
+
+              return (
+                <div 
+                  key={user.id}
+                  onClick={() => onUserSelect?.(user.id)}
+                  className="flex items-center py-5 group cursor-pointer hover:bg-gray-50/50 -mx-4 px-4 rounded-3xl transition-all"
+                >
+                  {/* Avatar */}
+                  <div className={`w-[52px] h-[52px] rounded-full overflow-hidden shrink-0 flex items-center justify-center font-black text-xl border-2 border-white shadow-sm
+                    ${!user.avatar_url ? col : ''}`}
+                  >
+                    {user.avatar_url ? (
+                        <img src={`http://localhost:8080${user.avatar_url}`} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full rounded-full bg-white/10 flex items-center justify-center font-bold text-lg text-white/90">
-                          {user.username?.charAt(0).toUpperCase()}
+                        user.username?.charAt(0).toUpperCase()
+                      )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0 ml-4">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <p className="font-bold text-base text-gray-900 truncate">{user.full_name || user.username}</p>
+                      {/* Fake verified badge for styling from mockup */}
+                      {(i === 2 || user.is_verified) && (
+                        <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                           <Check className="w-2.5 h-2.5 text-white stroke-[3px]" />
                         </div>
                       )}
                     </div>
+                    <p className="text-xs text-gray-400 font-medium truncate">
+                      @{user.username} · {bio}
+                    </p>
                   </div>
-                  {/* Active Indicator or Badge */}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-2 border-black rounded-full" />
-                </div>
 
-                <div className="flex-1 min-w-0 ml-4">
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-bold text-base text-white/90 truncate">{user.full_name}</p>
-                    {user.is_verified && (
-                      <div className="w-3.5 h-3.5 bg-blue-500 rounded-full flex items-center justify-center">
-                        <svg className="w-2 h-2 text-white fill-current" viewBox="0 0 20 20"><path d="M0 11l2-2 5 5L18 3l2 2L7 18z"/></svg>
-                      </div>
+                  {/* Action Button */}
+                  <div className="shrink-0 ml-4">
+                    {!user.requested ? (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleConnect(user.id); }}
+                        className="px-6 py-2 rounded-full border border-pink-500 text-pink-500 text-sm font-bold hover:bg-pink-50 hover:scale-105 active:scale-95 transition-all w-[100px]"
+                      >
+                        Connect
+                      </button>
+                    ) : (
+                      <button 
+                         disabled
+                         className="px-6 py-2 rounded-full border border-gray-200 bg-gray-50 text-gray-400 text-sm font-bold w-[100px] cursor-not-allowed"
+                      >
+                        Pending
+                      </button>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 font-medium tracking-tight">@{user.username}</p>
                 </div>
-
-                {!user.requested ? (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); handleConnect(user.id); }}
-                    className="px-4 py-2 bg-white text-black rounded-xl text-xs font-bold hover:bg-gray-200 active:scale-95 transition-all shadow-xl shrink-0"
-                  >
-                    <span>Follow</span>
-                  </button>
-                ) : (
-                  <span className="px-4 py-2 bg-white/10 text-gray-300 rounded-xl text-xs font-bold shrink-0 border border-white/5">Requested</span>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
     </div>
   );
 };

@@ -55,17 +55,17 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      <div className="h-full flex items-center justify-center bg-[#f9e8ff]">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="p-8 text-center">
-        <p className="text-gray-500">User not found</p>
-        <button onClick={onBack} className="mt-4 text-purple-400 font-bold">Go Back</button>
+      <div className="p-8 text-center bg-[#f9e8ff] h-full flex flex-col items-center justify-center">
+        <p className="text-black/60">User not found</p>
+        <button onClick={onBack} className="mt-4 text-primary font-bold">Go Back</button>
       </div>
     );
   }
@@ -75,14 +75,14 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      className="h-full bg-[#0a0a0a] text-white overflow-y-auto no-scrollbar"
+      className="h-full bg-[#f9e8ff] text-black overflow-y-auto no-scrollbar"
     >
       {/* Top Navigation Bar */}
-      <div className="sticky top-0 z-40 bg-black/60 backdrop-blur-xl border-b border-white/5 px-4 py-4 flex items-center justify-between">
-        <button onClick={onBack} className="p-2 hover:bg-white/10 rounded-full transition-colors">
+      <div className="sticky top-0 z-40 bg-[#f9e8ff]/80 backdrop-blur-xl border-b border-primary/10 px-4 py-4 flex items-center justify-between">
+        <button onClick={onBack} className="p-2 hover:bg-primary/5 rounded-full transition-colors text-black">
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h1 className="font-bold text-sm tracking-tight">@{profile.username}</h1>
+        <h1 className="font-bold text-sm tracking-tight text-black">@{profile.username}</h1>
         <div className="w-10" /> {/* Spacer */}
       </div>
 
@@ -90,8 +90,8 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
         {/* Profile Header */}
         <div className="flex flex-col items-center mb-8">
           <div className="relative mb-4">
-            <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-purple-600 to-pink-600 p-[3px] shadow-2xl shadow-purple-500/20">
-              <div className="w-full h-full rounded-full bg-black p-[2px]">
+            <div className="w-28 h-28 rounded-full bg-gradient-to-tr from-primary to-accent p-[3px] shadow-2xl shadow-primary/20">
+              <div className="w-full h-full rounded-full bg-white p-[2px]">
                 {profile.avatar_url ? (
                   <img 
                     src={`http://localhost:8080${profile.avatar_url}`} 
@@ -99,7 +99,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                     className="w-full h-full rounded-full object-cover" 
                   />
                 ) : (
-                  <div className="w-full h-full rounded-full bg-white/5 flex items-center justify-center text-3xl font-bold bg-gradient-to-br from-white/20 to-transparent">
+                  <div className="w-full h-full rounded-full bg-primary/5 flex items-center justify-center text-3xl font-bold text-black/40">
                     {profile.username?.charAt(0).toUpperCase()}
                   </div>
                 )}
@@ -107,30 +107,30 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
             </div>
           </div>
           
-          <h2 className="text-2xl font-black tracking-tight mb-1">{profile.full_name}</h2>
-          <p className="text-purple-400 font-bold text-sm mb-3">@{profile.username}</p>
+          <h2 className="text-2xl font-black tracking-tight mb-1 text-black">{profile.full_name}</h2>
+          <p className="text-accent font-bold text-sm mb-3">@{profile.username}</p>
           
-          <div className="flex items-center gap-1.5 text-gray-500 text-xs font-medium bg-white/5 px-3 py-1.5 rounded-full border border-white/5 mb-6">
-            <MapPin className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1.5 text-black/60 text-xs font-medium bg-primary/5 px-3 py-1.5 rounded-full border border-primary/10 mb-6">
+            <MapPin className="w-3.5 h-3.5 text-black/40" />
             <span>{profile.location || 'Locolive Community'}</span>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex w-full gap-3 mb-8">
+          <div className="flex w-full gap-3 mb-8 px-4">
             <button
               onClick={handleFollow}
               disabled={profile.requested}
               className={`flex-1 py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-2
                 ${profile.requested 
-                  ? 'bg-white/10 text-gray-400 border border-white/5' 
-                  : 'bg-white text-black hover:bg-gray-200 shadow-xl shadow-white/5'}`}
+                  ? 'bg-black/5 text-black/40 border border-black/10' 
+                  : 'bg-primary text-white hover:opacity-90 shadow-xl shadow-primary/20'}`}
             >
               {!profile.requested && <UserPlus className="w-4 h-4" />}
               <span>{profile.requested ? 'Requested' : 'Follow'}</span>
             </button>
             <button
               onClick={() => onMessage(userId)}
-              className="flex-1 py-3.5 bg-purple-600/20 text-purple-400 border border-purple-500/30 rounded-2xl text-sm font-bold hover:bg-purple-600/30 transition-all active:scale-95 flex items-center justify-center gap-2"
+              className="flex-1 py-3.5 bg-primary/10 text-primary border border-primary/20 rounded-2xl text-sm font-bold hover:bg-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2"
             >
               <MessageSquare className="w-4 h-4" />
               <span>Message</span>
@@ -139,26 +139,26 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
 
           {/* Bio */}
           {profile.bio && (
-            <p className="text-sm text-center text-gray-400 leading-relaxed mb-8 max-w-sm">
+            <p className="text-sm text-center text-black/60 leading-relaxed mb-8 max-w-sm">
               {profile.bio}
             </p>
           )}
 
           {/* Stats */}
-          <div className="flex w-full justify-around py-6 border-y border-white/5 mb-8">
+          <div className="flex w-full justify-around py-6 border-y border-primary/10 mb-8">
             <div className="flex flex-col items-center">
-              <span className="text-lg font-black">{stories.length}</span>
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Stories</span>
+              <span className="text-lg font-black text-black">{stories.length}</span>
+              <span className="text-[10px] text-black/60 font-bold uppercase tracking-widest">Stories</span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-lg font-black">{profile.connection_count || 0}</span>
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Connections</span>
+              <span className="text-lg font-black text-black">{profile.connection_count || 0}</span>
+              <span className="text-[10px] text-black/60 font-bold uppercase tracking-widest">Connections</span>
             </div>
           </div>
         </div>
 
         {/* Stories Grid */}
-        <div className="mb-4 flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-widest px-1">
+        <div className="mb-4 flex items-center gap-2 text-xs font-bold text-black/40 uppercase tracking-widest px-1">
           <Grid3x3 className="w-4 h-4" />
           <span>Active Moments</span>
         </div>
@@ -171,7 +171,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.05 }}
-                className="aspect-[9/16] bg-white/5 rounded-2xl overflow-hidden relative group cursor-pointer border border-white/5 hover:border-purple-500/30 transition-all duration-300"
+                className="aspect-[9/16] bg-primary/5 rounded-2xl overflow-hidden relative group cursor-pointer border border-primary/10 hover:border-primary/30 transition-all duration-300"
                 onClick={() => setViewingStoryIndex(index)}
               >
                 <img src={`http://localhost:8080${story.media_url}`} alt="" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
@@ -185,8 +185,8 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
             ))}
           </div>
         ) : (
-          <div className="py-20 flex flex-col items-center justify-center text-gray-600 bg-white/[0.02] rounded-3xl border border-dashed border-white/5">
-            <div className="w-12 h-12 rounded-full border border-white/5 flex items-center justify-center mb-4">
+          <div className="py-20 flex flex-col items-center justify-center text-black/40 bg-primary/[0.02] rounded-3xl border border-dashed border-primary/10">
+            <div className="w-12 h-12 rounded-full border border-primary/5 flex items-center justify-center mb-4">
               <Grid3x3 className="w-5 h-5 opacity-20" />
             </div>
             <p className="text-sm font-medium">No active stories yet</p>

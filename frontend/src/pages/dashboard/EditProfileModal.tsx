@@ -66,14 +66,14 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
 
   return (
     <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-primary/20 backdrop-blur-sm" onClick={onClose} />
       
-      <div className="relative w-full max-w-md bg-[#0f0f12] border border-white/10 rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
+      <div className="relative w-full max-w-md bg-white border border-primary/10 rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-white/10">
-          <h3 className="text-lg font-bold">Edit Profile</h3>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full transition-colors">
-            <X className="w-5 h-5 text-gray-400" />
+        <div className="flex items-center justify-between p-5 border-b border-primary/10">
+          <h3 className="text-lg font-bold text-black">Edit Profile</h3>
+          <button onClick={onClose} className="p-2 hover:bg-primary/5 rounded-full transition-colors">
+            <X className="w-5 h-5 text-black/40" />
           </button>
         </div>
 
@@ -81,7 +81,7 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
           {/* Avatar */}
           <div className="flex justify-center">
             <label className="relative cursor-pointer group">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-3xl font-bold overflow-hidden">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-3xl font-bold overflow-hidden text-white shadow-lg shadow-primary/20">
                 {avatarPreview ? (
                   <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
                 ) : user?.avatar_url ? (
@@ -90,8 +90,8 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
                   user?.full_name?.charAt(0) || 'U'
                 )}
               </div>
-              <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <Camera className="w-6 h-6" />
+              <div className="absolute inset-0 rounded-full bg-primary/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-6 h-6 text-white" />
               </div>
               <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
             </label>
@@ -99,28 +99,28 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
 
           {/* Full Name */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Name</label>
+            <label className="text-xs font-bold text-black/40 uppercase tracking-widest ml-1">Name</label>
             <input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500/50 transition-colors"
+              className="w-full bg-primary/5 border border-primary/10 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-primary/50 transition-colors"
               placeholder="Your full name"
             />
           </div>
 
           {/* Bio */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Bio</label>
+            <label className="text-xs font-bold text-black/40 uppercase tracking-widest ml-1">Bio</label>
             <textarea
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               rows={3}
               maxLength={150}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500/50 transition-colors resize-none"
+              className="w-full bg-primary/5 border border-primary/10 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-primary/50 transition-colors resize-none"
               placeholder="Tell the world about yourself..."
             />
-            <p className="text-[10px] text-gray-600 text-right">{bio.length}/150</p>
+            <p className="text-[10px] text-black/60 text-right">{bio.length}/150</p>
           </div>
 
           {error && <p className="text-sm text-red-400 bg-red-400/10 py-2 px-4 rounded-xl text-center">{error}</p>}
@@ -129,7 +129,7 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="w-full py-3.5 bg-white text-black rounded-xl font-bold text-sm flex items-center justify-center space-x-2 hover:bg-gray-200 transition-colors disabled:opacity-50"
+            className="w-full py-3.5 bg-primary text-white rounded-xl font-bold text-sm flex items-center justify-center space-x-2 hover:opacity-90 transition-colors disabled:opacity-50"
           >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-4 h-4" /><span>Save Changes</span></>}
           </button>

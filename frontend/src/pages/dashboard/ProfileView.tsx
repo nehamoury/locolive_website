@@ -45,101 +45,100 @@ const ProfileView: React.FC<ProfileViewProps> = () => {
   const displayProfile = profile || user;
 
   return (
-    <div className="h-full bg-black text-white overflow-y-auto no-scrollbar pb-24 md:pb-0">
+    <div className="h-full bg-[#f9e8ff] text-black overflow-y-auto no-scrollbar pb-24 md:pb-0">
       <div className="max-w-2xl mx-auto px-4 py-8">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-xl font-bold tracking-tight">@{displayProfile?.username || 'username'}</h1>
+          <h1 className="text-xl font-bold tracking-tight text-black">@{displayProfile?.username || 'username'}</h1>
           <button 
             onClick={() => setIsEditOpen(true)}
-            className="p-2 hover:bg-white/5 rounded-full transition-colors"
+            className="p-2 bg-primary/5 hover:bg-primary/10 rounded-full transition-colors border border-primary/10"
           >
-            <Settings className="w-5 h-5 text-gray-400" />
+            <Settings className="w-5 h-5 text-black/40" />
           </button>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <>
             {/* Profile Info */}
             <div className="flex flex-col items-center text-center mb-8">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 border-2 border-black flex items-center justify-center shadow-xl shadow-purple-500/20 mb-4 overflow-hidden">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-primary to-accent border-2 border-white flex items-center justify-center shadow-xl shadow-primary/20 mb-4 overflow-hidden">
                 {displayProfile?.avatar_url ? (
                   <img src={`http://localhost:8080${displayProfile.avatar_url}`} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-3xl font-bold">{displayProfile?.full_name?.charAt(0) || 'U'}</span>
+                  <span className="text-3xl font-bold text-white">{displayProfile?.full_name?.charAt(0) || 'U'}</span>
                 )}
               </div>
-              <h2 className="text-lg font-bold mb-1 tracking-tight">{displayProfile?.full_name || 'User'}</h2>
-              <p className="text-gray-400 font-medium text-sm mb-2">@{displayProfile?.username || 'username'}</p>
+              <h2 className="text-lg font-bold mb-1 tracking-tight text-black">{displayProfile?.full_name || 'User'}</h2>
+              <p className="text-black/60 font-medium text-sm mb-2">@{displayProfile?.username || 'username'}</p>
               {displayProfile?.bio && (
-                <p className="text-xs text-gray-500 max-w-xs mb-3">{displayProfile.bio}</p>
+                <p className="text-xs text-black/40 max-w-xs mb-3">{displayProfile.bio}</p>
               )}
               
               <div className="flex space-x-8 mt-2">
                 <div className="flex flex-col items-center">
-                  <span className="text-base font-bold">{myStories.length}</span>
-                  <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mt-0.5">Stories</span>
+                  <span className="text-base font-bold text-slate-900">{myStories.length}</span>
+                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide mt-0.5">Stories</span>
                 </div>
                 <div className="flex flex-col items-center">
-                  <span className="text-base font-bold">{profile?.connections_count || 0}</span>
-                  <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mt-0.5">Following</span>
+                  <span className="text-base font-bold text-slate-900">{profile?.connections_count || 0}</span>
+                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide mt-0.5">Following</span>
                 </div>
                 <div className="flex flex-col items-center">
-                  <span className="text-base font-bold">{visitors.length}</span>
-                  <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wide mt-0.5">Visitors</span>
+                  <span className="text-base font-bold text-slate-900">{visitors.length}</span>
+                  <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide mt-0.5">Visitors</span>
                 </div>
               </div>
 
               <button 
                 onClick={() => setIsEditOpen(true)}
-                className="mt-4 px-6 py-2 bg-white/10 rounded-lg text-xs font-bold hover:bg-white/20 transition-colors"
+                className="mt-4 px-6 py-2 bg-primary/10 rounded-lg text-xs font-bold text-black hover:bg-primary/20 transition-colors border border-primary/10"
               >
                 Edit Profile
               </button>
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-white/10 mb-4">
+            <div className="flex border-b border-primary/10 mb-4">
               <button 
                 onClick={() => setActiveTab('stories')}
-                className={`flex-1 py-3 flex justify-center items-center text-sm font-semibold transition-all relative ${activeTab === 'stories' ? 'text-white' : 'text-gray-500'}`}
+                className={`flex-1 py-3 flex justify-center items-center text-sm font-semibold transition-all relative ${activeTab === 'stories' ? 'text-black' : 'text-black/40'}`}
               >
                 <Grid3x3 className="w-4 h-4 mr-1.5" />
                 Stories
-                {activeTab === 'stories' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full" />}
+                {activeTab === 'stories' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
               </button>
               <button 
                 onClick={() => setActiveTab('archived')}
-                className={`flex-1 py-3 flex justify-center items-center text-sm font-semibold transition-all relative ${activeTab === 'archived' ? 'text-white' : 'text-gray-500'}`}
+                className={`flex-1 py-3 flex justify-center items-center text-sm font-semibold transition-all relative ${activeTab === 'archived' ? 'text-black' : 'text-black/40'}`}
               >
                 <Bookmark className="w-4 h-4 mr-1.5" />
                 Archived
-                {activeTab === 'archived' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full" />}
+                {activeTab === 'archived' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
               </button>
               <button 
                 onClick={() => setActiveTab('visitors')}
-                className={`flex-1 py-3 flex justify-center items-center text-sm font-semibold transition-all relative ${activeTab === 'visitors' ? 'text-white' : 'text-gray-500'}`}
+                className={`flex-1 py-3 flex justify-center items-center text-sm font-semibold transition-all relative ${activeTab === 'visitors' ? 'text-black' : 'text-black/40'}`}
               >
                 <Footprints className="w-4 h-4 mr-1.5" />
                 Visitors
-                {activeTab === 'visitors' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full" />}
+                {activeTab === 'visitors' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
               </button>
             </div>
 
-            {/* Tab Content */}
             {activeTab === 'stories' && (
               myStories.length > 0 ? (
                 <div className="grid grid-cols-3 gap-1">
                   {myStories.map(story => (
-                    <div key={story.id} className="aspect-[9/16] bg-white/5 rounded-lg overflow-hidden relative group cursor-pointer">
+                    <div key={story.id} className="aspect-[9/16] bg-primary/5 rounded-lg overflow-hidden relative group cursor-pointer">
                       <img src={`http://localhost:8080${story.media_url}`} alt="" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <div className="flex items-center space-x-1 text-xs font-bold">
+                        <div className="flex items-center space-x-1 text-xs font-bold text-white">
                           <Heart className="w-3.5 h-3.5" />
                           <span>{story.reactions_count || 0}</span>
                         </div>
@@ -156,7 +155,7 @@ const ProfileView: React.FC<ProfileViewProps> = () => {
               archivedStories.length > 0 ? (
                 <div className="grid grid-cols-3 gap-1">
                   {archivedStories.map(story => (
-                    <div key={story.id} className="aspect-[9/16] bg-white/5 rounded-lg overflow-hidden relative group cursor-pointer">
+                    <div key={story.id} className="aspect-[9/16] bg-primary/5 rounded-lg overflow-hidden relative group cursor-pointer">
                       <img src={`http://localhost:8080${story.media_url}`} alt="" className="w-full h-full object-cover" />
                       <div className="absolute top-1 right-1">
                         <Bookmark className="w-3 h-3 text-white drop-shadow" />
@@ -173,13 +172,13 @@ const ProfileView: React.FC<ProfileViewProps> = () => {
               visitors.length > 0 ? (
                 <div className="space-y-2">
                   {visitors.map((visitor: any, idx: number) => (
-                    <div key={idx} className="flex items-center p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-colors">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center font-bold text-sm mr-3">
+                    <div key={idx} className="flex items-center p-3 bg-primary/5 rounded-xl border border-primary/10 hover:bg-primary/10 transition-colors">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-sm mr-3 text-white">
                         {visitor.username?.charAt(0).toUpperCase()}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-bold">@{visitor.username}</p>
-                        <p className="text-[10px] text-gray-500">{visitor.visited_at ? new Date(visitor.visited_at).toLocaleDateString() : 'Recently'}</p>
+                        <p className="text-sm font-bold text-black">@{visitor.username}</p>
+                        <p className="text-[10px] text-black/60">{visitor.visited_at ? new Date(visitor.visited_at).toLocaleDateString() : 'Recently'}</p>
                       </div>
                     </div>
                   ))}
@@ -199,7 +198,7 @@ const ProfileView: React.FC<ProfileViewProps> = () => {
 
 const EmptyState = ({ text }: { text: string }) => (
   <div className="flex flex-col items-center justify-center py-12 text-center opacity-40">
-    <p className="text-sm font-medium max-w-[220px]">{text}</p>
+    <p className="text-sm font-medium max-w-[220px] text-black/60">{text}</p>
   </div>
 );
 

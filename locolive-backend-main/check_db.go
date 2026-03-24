@@ -1,0 +1,44 @@
+package main
+
+import (
+	"database/sql"
+	"fmt"
+	"log"
+	"time"
+
+	_ "github.com/lib/pq"
+)
+
+func main() {
+	dbSource := "postgresql://postgres:password@127.0.0.1:5433/privacy_social?sslmode=disable"
+	db, err := sql.Open("postgres", dbSource)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	fmt.Println("--- USERS ---")
+	rows, err := db.Query("SELECT id, username, email, is_ghost_mode, is_shadow_banned FROM users")
+	if err != nil {
+		log.Fatal(err)
+	}
+	for rows.Next() {
+		var id, username, email string
+		var ghost, shadow bool
+		rows.Scan(&id, &username, &email, &ghost, &shadow)
+		fmt.Printf("ID: %s | Username: %s | Email: %s | Ghost: %v | Shadow: %v\n", id, username, email, ghost, shadow)
+	}
+
+	fmt.Println("\n--- ACTIVE STORIES ---")
+	rows, err = db.Query("SELECT id, user_id, expires_at, created_at, lat, lng FROM (SELECT s.id, s.user_id, s.expires_at, s.created_at, ST_Y(s.geom::geometry) as lat, ST_X(s.geom::geometry) as lng FROM stories s) s WHERE expires_at > now()")
+	if err != nil {
+		log.Fatal(err)
+	}
+	for rows.Next() {
+		var id, userID string
+		var expiresAt, createdAt time.Time
+		var lat, lng float64
+		rows.Scan(&id, &userID, &expiresAt, &createdAt, &lat, &lng)
+		fmt.Printf("ID: %s | UserID: %s | CreatedAt: %s | ExpiresAt: %s | Lat: %f | Lng: %f\n", id, userID, createdAt, expiresAt, lat, lng)
+	}
+}

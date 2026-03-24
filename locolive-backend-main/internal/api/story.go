@@ -23,7 +23,7 @@ const (
 )
 
 type createStoryRequest struct {
-	MediaURL     string  `json:"media_url" binding:"required"`
+	MediaURL     string  `json:"media_url"`
 	MediaType    string  `json:"media_type" binding:"required,oneof=image video text"`
 	Latitude     float64 `json:"latitude" binding:"required,min=-90,max=90"`
 	Longitude    float64 `json:"longitude" binding:"required,min=-180,max=180"`
@@ -36,6 +36,17 @@ func (server *Server) createStory(ctx *gin.Context) {
 	var req createStoryRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// Manual validation for MediaURL if image or video
+	if (req.MediaType == "image" || req.MediaType == "video") && req.MediaURL == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "media_url is required for image or video posts"})
+		return
+	}
+	// Manual validation for text posts (must have caption)
+	if req.MediaType == "text" && req.Caption == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "caption is required for text posts"})
 		return
 	}
 
@@ -78,8 +89,9 @@ func (server *Server) getFeed(ctx *gin.Context) {
 	if len(userGeohash) > 5 {
 		userGeohash = userGeohash[:5]
 	}
-	cacheKey := "feed:" + userGeohash
+	// cacheKey := "feed:" + userGeohash
 
+	/* // Disable cache for now to fix visibility issues
 	// Try to get from Redis cache first
 	cachedData, err := server.redis.Get(ctx, cacheKey).Result()
 	if err == nil && cachedData != "" {
@@ -88,6 +100,7 @@ func (server *Server) getFeed(ctx *gin.Context) {
 		ctx.Data(http.StatusOK, "application/json", []byte(cachedData))
 		return
 	}
+	*/
 
 	stories, message, radius, err := server.story.GetFeed(ctx, story.GetFeedParams{
 		UserID:    authPayload.UserID,
@@ -112,9 +125,11 @@ func (server *Server) getFeed(ctx *gin.Context) {
 		"search_radius": radius,
 	}
 
+	/* // Disable cache for now
 	// Cache the result for 5 minutes
 	responseJSON, _ := json.Marshal(response)
 	server.redis.Set(ctx, cacheKey, responseJSON, feedCacheTTL)
+	*/
 
 	ctx.Header("X-Cache", "MISS")
 	ctx.JSON(http.StatusOK, response)

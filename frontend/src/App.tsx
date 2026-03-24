@@ -3,13 +3,12 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
 import Dashboard from './pages/dashboard/Dashboard'
-import LandingPage from './pages/auth/LandingPage'
 
-type View = 'landing' | 'login' | 'signup'
+type View = 'login' | 'signup'
 
 function AppContent() {
   const { user, loading } = useAuth();
-  const [view, setView] = useState<View>('landing');
+  const [view, setView] = useState<View>('signup');
 
   if (loading) {
     return (
@@ -23,20 +22,11 @@ function AppContent() {
     return <Dashboard />;
   }
 
-  if (view === 'landing') {
-    return (
-      <LandingPage
-        onLogin={() => setView('login')}
-        onSignup={() => setView('signup')}
-      />
-    );
-  }
 
   if (view === 'login') {
     return (
       <Login
         onToggle={() => setView('signup')}
-        onBack={() => setView('landing')}
       />
     );
   }
@@ -44,7 +34,6 @@ function AppContent() {
   return (
     <Signup
       onToggle={() => setView('login')}
-      onBack={() => setView('landing')}
     />
   );
 }

@@ -13,13 +13,13 @@ const Toast: FC<ToastProps> = ({ message, type }) => (
     initial={{ opacity: 0, y: 60, scale: 0.8 }}
     animate={{ opacity: 1, y: 0, scale: 1 }}
     exit={{ opacity: 0, y: 60, scale: 0.8 }}
-    className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[999] flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-xl border font-bold text-white text-sm ${
+    className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[999] flex items-center gap-3 px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-xl border font-bold text-sm ${
       type === 'match'
-        ? 'bg-gradient-to-r from-green-600/80 to-emerald-500/80 border-green-400/30'
-        : 'bg-black/80 border-white/10'
+        ? 'bg-green-600/90 border-green-400/30 text-white'
+        : 'bg-black/90 border-primary/10 text-white'
     }`}
   >
-    {type === 'match' ? <CheckCircle2 className="w-5 h-5 text-green-300" /> : <X className="w-5 h-5 text-gray-400" />}
+    {type === 'match' ? <CheckCircle2 className="w-5 h-5 text-green-300" /> : <X className="w-5 h-5 text-black/40" />}
     {message}
   </motion.div>
 );
@@ -43,7 +43,7 @@ const MatchPopup: FC<MatchPopupProps> = ({ user, onClose }) => (
       animate={{ scale: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 20 } }}
       exit={{ scale: 0.5, opacity: 0 }}
       onClick={(e) => e.stopPropagation()}
-      className="relative bg-gradient-to-b from-zinc-900 to-black border border-white/10 rounded-[40px] p-10 flex flex-col items-center gap-6 max-w-sm w-full shadow-2xl"
+      className="relative bg-white border border-primary/20 rounded-[40px] p-10 flex flex-col items-center gap-6 max-w-sm w-full shadow-2xl shadow-primary/20"
     >
       {/* Background glow */}
       <div className="absolute inset-0 rounded-[40px] overflow-hidden pointer-events-none">
@@ -74,18 +74,18 @@ const MatchPopup: FC<MatchPopupProps> = ({ user, onClose }) => (
       </motion.div>
 
       <div className="text-center z-10">
-        <h2 className="text-4xl font-black italic text-white tracking-tight mb-1">It's a Match!</h2>
-        <p className="text-gray-400 text-sm">
-          You and <span className="text-white font-bold">@{user.username}</span> liked each other
+        <h2 className="text-4xl font-black italic text-black tracking-tight mb-1">It's a Match!</h2>
+        <p className="text-black/60 text-sm">
+          You and <span className="text-primary font-bold">@{user.username}</span> liked each other
         </p>
       </div>
 
       {/* Avatar */}
-      <div className="w-24 h-24 rounded-full border-4 border-pink-500 overflow-hidden shadow-xl z-10 bg-zinc-800">
+      <div className="w-24 h-24 rounded-full border-4 border-pink-500 overflow-hidden shadow-xl z-10 bg-black/5">
         {user.avatar_url ? (
           <img src={`http://localhost:8080${user.avatar_url}`} className="w-full h-full object-cover" alt="" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-3xl font-black text-white/30 italic">
+          <div className="w-full h-full flex items-center justify-center text-3xl font-black text-black/20 italic">
             {user.full_name?.charAt(0) || '?'}
           </div>
         )}
@@ -100,7 +100,7 @@ const MatchPopup: FC<MatchPopupProps> = ({ user, onClose }) => (
         </button>
         <button
           onClick={onClose}
-          className="w-full py-3 bg-white/5 border border-white/10 rounded-2xl text-gray-400 font-bold hover:bg-white/10 transition-all"
+          className="w-full py-3 bg-black/5 border border-black/10 rounded-2xl text-black/60 font-bold hover:bg-black/10 transition-all"
         >
           Keep Swiping
         </button>
@@ -186,35 +186,35 @@ const CastingPage: FC = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#0a0a0c] overflow-y-auto no-scrollbar relative">
+    <div className="flex-1 flex flex-col h-full bg-[#f9e8ff] overflow-y-auto no-scrollbar relative">
       {/* Header */}
-      <div className="px-6 py-8 flex items-center justify-between sticky top-0 bg-[#0a0a0c]/80 backdrop-blur-xl z-30 border-b border-white/5">
+      <div className="px-6 py-8 flex items-center justify-between sticky top-0 bg-[#f9e8ff]/80 backdrop-blur-xl z-30 border-b border-primary/10">
         <div className="flex flex-col">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-yellow-400" />
-            <h1 className="text-2xl font-black text-white italic tracking-tighter uppercase">User Casting</h1>
+            <Sparkles className="w-5 h-5 text-accent" />
+            <h1 className="text-2xl font-black text-black italic tracking-tighter uppercase">User Casting</h1>
           </div>
-          <p className="text-gray-500 text-xs font-bold tracking-widest uppercase mt-1 opacity-60">
+          <p className="text-black/40 text-xs font-bold tracking-widest uppercase mt-1 opacity-60">
             {loading ? 'Loading...' : `${users.length} people nearby`}
           </p>
         </div>
 
         <button
           onClick={fetchCastingUsers}
-          className="p-3 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/10 transition-all active:rotate-180 duration-500"
+          className="p-3 bg-primary/5 hover:bg-primary/10 rounded-2xl border border-primary/10 transition-all active:rotate-180 duration-500"
         >
-          <RefreshCcw className="w-5 h-5 text-purple-400" />
+          <RefreshCcw className="w-5 h-5 text-primary" />
         </button>
       </div>
 
       {/* Hint bar */}
       {!loading && users.length > 0 && (
-        <div className="flex items-center justify-center gap-8 py-3 border-b border-white/5 text-xs text-gray-600">
-          <span className="flex items-center gap-1.5">
-            <X className="w-3 h-3 text-red-500" /> Drag left or tap X to pass
+        <div className="flex items-center justify-center gap-8 py-3 border-b border-primary/5 text-xs text-black/40 font-bold uppercase tracking-wider">
+          <span className="flex items-center gap-1.5 hover:text-red-500 transition-colors">
+            <X className="w-3 h-3 text-red-500" /> Pass
           </span>
-          <span className="flex items-center gap-1.5">
-            <Heart className="w-3 h-3 text-pink-500 fill-pink-500" /> Drag right or tap Match
+          <span className="flex items-center gap-1.5 hover:text-pink-500 transition-colors">
+            <Heart className="w-3 h-3 text-pink-500 fill-pink-500" /> Match
           </span>
         </div>
       )}

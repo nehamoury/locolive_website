@@ -186,38 +186,59 @@ const Dashboard = () => {
         return <CastingPage />;
       case 'messages':
         return (
-          <div className="flex h-full w-full overflow-hidden bg-[#0a0a0c]">
-            <div className={`h-full w-full md:w-80 border-r border-white/10 ${selectedChatUser ? 'hidden md:block' : 'block'}`}>
-              <ChatList onSelect={setSelectedChatUser} selectedId={selectedChatUser || undefined} />
-            </div>
-            {selectedChatUser ? (
-              <div className="flex-1 h-full w-full flex flex-col relative">
-                <button 
-                  onClick={() => setSelectedChatUser(null)}
-                  className="md:hidden absolute top-4 left-4 z-50 p-2 bg-black/50 backdrop-blur-md rounded-full text-white"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          <div className="flex flex-col h-full w-full overflow-hidden bg-white">
+            {/* Messages Top Header */}
+            <div className="flex items-center justify-between px-6 py-3.5 border-b border-gray-100 bg-white shrink-0">
+              <h2 className="text-xl font-black text-gray-900 italic tracking-tight">Messages</h2>
+              <div className="flex items-center gap-2">
+                <button className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-gray-500 hover:bg-gray-50 transition-all">
+                  <span className="w-1.5 h-1.5 bg-pink-500 rounded-full" />
+                  {unreadCount > 0 ? `${unreadCount} pending requests` : '0 pending requests'}
                 </button>
-                <ChatWindow receiverId={selectedChatUser} />
+                <button
+                  onClick={() => setSelectedChatUser(null)}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md shadow-pink-200 hover:scale-105 active:scale-95 transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  New Chat
+                </button>
               </div>
-            ) : (
-              <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center text-slate-400">
-                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 text-[#6228D7]">
-                  <MessageSquare className="w-10 h-10" />
+            </div>
+
+            {/* Chat Split View */}
+            <div className="flex flex-1 overflow-hidden">
+              <div className={`h-full border-r border-gray-100 ${selectedChatUser ? 'hidden md:flex' : 'flex'} w-full md:w-80 lg:w-96 shrink-0`}>
+                <ChatList onSelect={setSelectedChatUser} selectedId={selectedChatUser || undefined} />
+              </div>
+              {selectedChatUser ? (
+                <div className="flex-1 h-full w-full">
+                  <ChatWindow
+                    receiverId={selectedChatUser}
+                    onBack={() => setSelectedChatUser(null)}
+                  />
                 </div>
-                <h3 className="text-xl font-bold mb-2 text-white">Your Conversations</h3>
-                <p className="max-w-sm text-sm">Select a chat from the list on the left to start messaging. Your privacy is our priority.</p>
-              </div>
-            )}
+              ) : (
+                <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-gray-50">
+                  <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-5">
+                    <MessageSquare className="w-9 h-9 text-pink-400" />
+                  </div>
+                  <h3 className="text-xl font-black text-gray-800 italic tracking-tight mb-2">Your Messages</h3>
+                  <p className="max-w-xs text-sm text-gray-400 leading-relaxed">
+                    Select a conversation to start chatting with people near you
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         );
+
       default:
         return null;
     }
   };
 
   return (
-    <div className="h-screen w-full bg-[#0B0F19] text-white font-sans flex overflow-hidden">
+    <div className="h-screen w-full bg-white text-gray-800 font-sans flex overflow-hidden">
       
       {/* 1. Left Sidebar (Fixed) */}
       <Sidebar 
@@ -230,18 +251,18 @@ const Dashboard = () => {
       />
 
       {/* 2. Main Content Center (Scrollable) */}
-      <main className="flex-1 relative overflow-hidden flex flex-col border-r border-white/5 shadow-2xl z-10">
+      <main className="flex-1 relative overflow-hidden flex flex-col border-r border-gray-100 z-10">
         
         {/* Mobile Header */}
-        <div className="md:hidden sticky top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between bg-[#0B0F19]/90 backdrop-blur-xl border-b border-white/5">
-          <div className="text-xl font-black italic tracking-tighter bg-gradient-to-r from-[#EE2A7B] to-[#6228D7] bg-clip-text text-transparent">
+        <div className="md:hidden sticky top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between bg-white/95 backdrop-blur-xl border-b border-gray-100 shadow-sm">
+          <div className="text-xl font-black italic tracking-tighter bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
             Locolive
           </div>
-          <div className="flex space-x-4 text-white">
+          <div className="flex space-x-4 text-gray-600">
             <button><Bell className="w-6 h-6" /></button>
             <button className="relative" onClick={() => setActiveTab('messages')}>
               <MessageSquare className="w-6 h-6" />
-              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#EE2A7B] rounded-full border border-black" />}
+              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-accent rounded-full border border-[#f9e8ff]" />}
             </button>
           </div>
         </div>
@@ -252,14 +273,14 @@ const Dashboard = () => {
         </div>
 
         {/* Mobile Bottom Navigation */}
-        <nav className="md:hidden fixed bottom-0 w-full flex items-center justify-around bg-[#0B0E14]/90 backdrop-blur-2xl border-t border-white/5 px-4 h-16 z-[60]">
+        <nav className="md:hidden fixed bottom-0 w-full flex items-center justify-around bg-white/95 backdrop-blur-2xl border-t border-gray-100 px-4 h-16 z-[60] shadow-lg">
           <MobileNavItem icon={<Home className="w-6 h-6" />} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
           <MobileNavItem icon={<MapIcon className="w-6 h-6" />} active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} />
           <MobileNavItem icon={<Sparkles className="w-6 h-6" />} active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} />
           
           <button 
             onClick={() => setIsCreateModalOpen(true)}
-            className="w-12 h-12 bg-gradient-to-tr from-[#EE2A7B] to-[#6228D7] rounded-full flex items-center justify-center transform -translate-y-4 shadow-lg shadow-pink-500/20 active:scale-95 transition-all text-white border-[3px] border-[#0B0E14]"
+            className="w-12 h-12 bg-gradient-to-tr from-pink-500 to-purple-600 rounded-full flex items-center justify-center transform -translate-y-4 shadow-lg active:scale-95 transition-all text-white border-[3px] border-white"
           >
             <Plus className="w-6 h-6" />
           </button>
@@ -297,25 +318,25 @@ const Dashboard = () => {
       )}
 
       {showPanicConfirm && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-xl p-6">
-          <div className="bg-[#1a1a1e] border-2 border-red-500/50 p-8 rounded-[32px] max-w-sm w-full text-center shadow-[0_0_50px_rgba(239,68,68,0.2)]">
-            <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-primary/20 backdrop-blur-xl p-6">
+          <div className="glass border-2 border-red-500/50 p-8 rounded-[32px] max-w-sm w-full text-center shadow-2xl">
+            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
               <ShieldAlert className="w-10 h-10" />
             </div>
-            <h2 className="text-2xl font-black text-white mb-2 tracking-tight">Erase all data?</h2>
-            <p className="text-slate-400 text-sm mb-8 leading-relaxed">
+            <h2 className="text-2xl font-black text-black mb-2 tracking-tight">Erase all data?</h2>
+            <p className="text-black/60 text-sm mb-8 leading-relaxed">
               This will permanently delete all your messages, stories, and connections.
             </p>
             <div className="space-y-3">
               <button 
                 onClick={handlePanic}
-                className="w-full py-3.5 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold transition-all active:scale-95"
+                className="w-full py-3.5 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-red-500/20"
               >
                 Yes, Erase
               </button>
               <button 
                 onClick={() => setShowPanicConfirm(false)}
-                className="w-full py-3.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold transition-all active:scale-95"
+                className="w-full py-3.5 bg-primary/5 hover:bg-primary/10 text-black rounded-2xl font-bold transition-all active:scale-95"
               >
                 Cancel
               </button>
@@ -331,7 +352,7 @@ const Dashboard = () => {
 const MobileNavItem = ({ icon, active, onClick }: { icon: React.ReactNode, active: boolean, onClick: () => void }) => (
   <button 
     onClick={onClick} 
-    className={`p-2 transition-colors ${active ? 'text-[#EE2A7B]' : 'text-slate-500 hover:text-slate-300'}`}
+    className={`p-2 transition-colors ${active ? 'text-accent' : 'text-black/60 hover:text-black'}`}
   >
     {icon}
   </button>

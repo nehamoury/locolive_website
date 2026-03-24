@@ -65,12 +65,12 @@ const ConnectionsView: FC = () => {
   };
 
   return (
-    <div className="h-full bg-black text-white overflow-y-auto no-scrollbar pb-24 md:pb-0">
+    <div className="h-full bg-[#f9e8ff] text-black overflow-y-auto no-scrollbar pb-24 md:pb-0">
       <div className="max-w-2xl mx-auto px-4 py-8">
         <h1 className="text-xl font-bold mb-6 tracking-tight">Connections</h1>
 
         {/* Tabs */}
-        <div className="flex border-b border-white/10 mb-6 sticky top-0 bg-black z-10 pt-2">
+        <div className="flex border-b border-primary/10 mb-6 sticky top-0 bg-[#f9e8ff] z-10 pt-2">
           <TabItem label="Suggestions" active={activeTab === 'suggestions'} onClick={() => setActiveTab('suggestions')} />
           <TabItem label="Requests" active={activeTab === 'requests'} badge={requests.length > 0 ? requests.length : undefined} onClick={() => setActiveTab('requests')} />
           <TabItem label="Following" active={activeTab === 'my-connections'} onClick={() => setActiveTab('my-connections')} />
@@ -78,7 +78,7 @@ const ConnectionsView: FC = () => {
 
         {loading ? (
           <div className="flex justify-center p-12">
-            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : (
           <div className="space-y-3">
@@ -103,13 +103,13 @@ const ConnectionsView: FC = () => {
             ))}
 
             {activeTab === 'requests' && requests.map(req => (
-              <div key={req.user_id} className="flex items-center p-3 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition-all">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center font-bold text-sm mr-3">
+              <div key={req.user_id} className="flex items-center p-3 bg-primary/5 rounded-xl border border-primary/10 hover:bg-primary/10 transition-all">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-sm mr-3 text-white">
                   {req.username?.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1">
-                  <p className="font-bold text-sm">@{req.username}</p>
-                  <p className="text-[10px] text-gray-400 capitalize">{req.full_name}</p>
+                  <p className="font-bold text-sm text-black">@{req.username}</p>
+                  <p className="text-[10px] text-black/40 capitalize">{req.full_name}</p>
                 </div>
                 <div className="flex space-x-2">
                   <button 
@@ -148,30 +148,30 @@ const ConnectionsView: FC = () => {
 const TabItem = ({ label, active, badge, onClick }: any) => (
   <button 
     onClick={onClick}
-    className={`flex-1 py-3 text-sm font-semibold relative transition-all ${active ? 'text-white' : 'text-gray-500 hover:text-gray-300'}`}
+    className={`flex-1 py-3 text-sm font-semibold relative transition-all ${active ? 'text-black' : 'text-black/60 hover:text-black'}`}
   >
     {label}
     {badge && (
-      <span className="ml-1 px-1.5 py-0.5 bg-red-500 text-[8px] text-white rounded-full align-top">
+      <span className="ml-1 px-1.5 py-0.5 bg-accent text-[8px] text-white rounded-full align-top">
         {badge}
       </span>
     )}
-    {active && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white rounded-full" />}
+    {active && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />}
   </button>
 );
 
 const UserCard = ({ user, actionLabel, onAction, icon, activeAction }: any) => (
-  <div className="flex items-center p-3 bg-white/5 rounded-xl border border-white/5 hover:bg-white/10 transition-all">
-    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center font-bold text-sm mr-3">
+  <div className="flex items-center p-3 bg-primary/5 rounded-xl border border-primary/10 hover:bg-primary/10 transition-all">
+    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-sm mr-3 text-white">
       {user.username?.charAt(0).toUpperCase()}
     </div>
     <div className="flex-1">
-      <p className="font-bold text-sm">@{user.username}</p>
-      <p className="text-[10px] text-gray-500">{user.full_name}</p>
+      <p className="font-bold text-sm text-black">@{user.username}</p>
+      <p className="text-[10px] text-black/40">{user.full_name}</p>
     </div>
     <button 
       onClick={onAction}
-      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all ${activeAction ? 'bg-white/10 text-white cursor-default' : 'bg-white text-black hover:bg-gray-200'}`}
+      className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition-all ${activeAction ? 'bg-primary/10 text-primary cursor-default' : 'bg-primary text-white hover:opacity-90'}`}
     >
       {icon}
       <span>{actionLabel}</span>

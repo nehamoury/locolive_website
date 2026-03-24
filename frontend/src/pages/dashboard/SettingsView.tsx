@@ -57,22 +57,22 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="h-full bg-black text-white overflow-y-auto no-scrollbar pb-24 md:pb-0 animate-in slide-in-from-right duration-300">
+    <div className="h-full bg-[#f9e8ff] text-black overflow-y-auto no-scrollbar pb-24 md:pb-0 animate-in slide-in-from-right duration-300">
       <div className="max-w-xl mx-auto px-4 py-8">
         
         {/* Header */}
         <div className="flex items-center space-x-4 mb-8">
-          <button onClick={onBack} className="p-2 hover:bg-white/5 rounded-full transition-colors">
+          <button onClick={onBack} className="p-2 hover:bg-primary/5 rounded-full transition-colors text-black">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-xl font-bold tracking-tight">Settings</h1>
+          <h1 className="text-xl font-bold tracking-tight text-black">Settings</h1>
         </div>
 
         <div className="space-y-8">
           {/* Privacy Section */}
           <section>
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4 ml-1">Privacy & Safety</h2>
-            <div className="space-y-1 bg-white/5 rounded-2xl overflow-hidden border border-white/5">
+            <h2 className="text-xs font-semibold text-black/40 uppercase tracking-widest mb-4 ml-1">Privacy & Safety</h2>
+            <div className="space-y-1 bg-primary/5 rounded-2xl overflow-hidden border border-primary/10">
               <SettingItem 
                 icon={<MapPin className="w-4 h-4 text-green-400" />} 
                 title="Show Location" 
@@ -97,21 +97,21 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
 
           {/* Account Section */}
           <section>
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4 ml-1">Account</h2>
-            <div className="space-y-1 bg-white/5 rounded-2xl overflow-hidden border border-white/5">
-               <div className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer group">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-white/5 rounded-lg"><User className="w-4 h-4" /></div>
+            <h2 className="text-xs font-semibold text-black/40 uppercase tracking-widest mb-4 ml-1">Account</h2>
+            <div className="space-y-1 bg-primary/5 rounded-2xl overflow-hidden border border-primary/10">
+               <div className="flex items-center justify-between p-4 hover:bg-primary/5 transition-colors cursor-pointer group">
+                  <div className="flex items-center space-x-3 text-black">
+                    <div className="p-2 bg-primary/5 rounded-lg"><User className="w-4 h-4" /></div>
                     <span className="text-sm font-medium">Edit Profile</span>
                   </div>
-                  <ArrowLeft className="w-4 h-4 text-gray-600 rotate-180" />
+                  <ArrowLeft className="w-4 h-4 text-black/20 rotate-180" />
                </div>
-               <div className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors cursor-pointer group">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-white/5 rounded-lg"><Lock className="w-4 h-4" /></div>
+               <div className="flex items-center justify-between p-4 hover:bg-primary/5 transition-colors cursor-pointer group">
+                  <div className="flex items-center space-x-3 text-black">
+                    <div className="p-2 bg-primary/5 rounded-lg"><Lock className="w-4 h-4" /></div>
                     <span className="text-sm font-medium">Change Password</span>
                   </div>
-                  <ArrowLeft className="w-4 h-4 text-gray-600 rotate-180" />
+                  <ArrowLeft className="w-4 h-4 text-black/20 rotate-180" />
                </div>
             </div>
           </section>
@@ -123,7 +123,7 @@ const SettingsView: FC<SettingsViewProps> = ({ onBack }) => {
               <Trash2 className="w-4 h-4" />
               <span className="text-sm font-bold">Delete Account</span>
             </button>
-            <p className="text-[10px] text-gray-600 mt-3 text-center px-4">This action is permanent and will wipe all your stories, messages, and location history.</p>
+            <p className="text-[10px] text-black/40 mt-3 text-center px-4">This action is permanent and will wipe all your stories, messages, and location history.</p>
           </section>
         </div>
       </div>
@@ -140,17 +140,17 @@ interface SettingItemProps {
 }
 
 const SettingItem = ({ icon, title, description, active, onToggle }: SettingItemProps) => (
-  <div className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors border-b border-white/[0.03] last:border-0">
+  <div className="flex items-center justify-between p-4 hover:bg-primary/5 transition-colors border-b border-primary/5 last:border-0">
     <div className="flex items-center space-x-3">
-      <div className="p-2 bg-black/40 rounded-xl">{icon}</div>
+      <div className="p-2 bg-primary/10 rounded-xl">{icon}</div>
       <div>
-        <h4 className="text-sm font-bold">{title}</h4>
-        <p className="text-[10px] text-gray-500">{description}</p>
+        <h4 className="text-sm font-bold text-black">{title}</h4>
+        <p className="text-[10px] text-black/40">{description}</p>
       </div>
     </div>
     <button 
       onClick={onToggle}
-      className={`w-10 h-5 rounded-full relative transition-all ${active ? 'bg-purple-600' : 'bg-white/10'}`}
+      className={`w-10 h-5 rounded-full relative transition-all ${active ? 'bg-primary' : 'bg-black/10'}`}
     >
       <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${active ? 'right-1' : 'left-1'}`} />
     </button>
@@ -165,15 +165,15 @@ interface EnumSettingItemProps {
 }
 
 const EnumSettingItem = ({ icon, title, value, onCycle }: EnumSettingItemProps) => (
-  <div onClick={onCycle} className="flex items-center justify-between p-4 hover:bg-white/5 transition-colors border-b border-white/[0.03] last:border-0 cursor-pointer group">
+  <div onClick={onCycle} className="flex items-center justify-between p-4 hover:bg-primary/5 transition-colors border-b border-primary/5 last:border-0 cursor-pointer group">
     <div className="flex items-center space-x-3">
-      <div className="p-2 bg-black/40 rounded-xl">{icon}</div>
+      <div className="p-2 bg-primary/10 rounded-xl">{icon}</div>
       <div>
-        <h4 className="text-sm font-bold">{title}</h4>
-        <p className="text-[10px] text-purple-400 uppercase font-bold tracking-widest">{value}</p>
+        <h4 className="text-sm font-bold text-black">{title}</h4>
+        <p className="text-[10px] text-accent uppercase font-bold tracking-widest">{value}</p>
       </div>
     </div>
-    <div className="text-[10px] text-gray-500 group-hover:text-purple-400 transition-colors uppercase font-bold tracking-tighter">Tap to change</div>
+    <div className="text-[10px] text-black/40 group-hover:text-accent transition-colors uppercase font-bold tracking-tighter">Tap to change</div>
   </div>
 );
 

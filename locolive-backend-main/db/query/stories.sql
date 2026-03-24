@@ -36,16 +36,13 @@ SELECT s.*, u.username, u.avatar_url, u.is_premium,
 FROM stories s
 JOIN users u ON s.user_id = u.id
 WHERE 
-    ST_DWithin(
+    ((ST_DWithin(
     s.geom::geography,
     ST_MakePoint(sqlc.arg(lng)::float8, sqlc.arg(lat)::float8)::geography,
     sqlc.arg(radius_meters)
-  )
+  ) AND u.is_ghost_mode = false) OR s.user_id = sqlc.arg(user_id))
   AND s.expires_at > now()
-  -- Allow anonymous stories (handled in presentation)
-  -- AND (s.is_anonymous = false OR s.user_id = @user_id)
-  AND u.is_shadow_banned = false
-  AND u.is_ghost_mode = false
+  AND (u.is_shadow_banned = false OR s.user_id = sqlc.arg(user_id))
   -- Strict Streak Rule (DISABLED)
   -- AND DATE(u.last_active_at) >= CURRENT_DATE - INTERVAL '1 day'
   -- Block Logic: Exclude if blocked by either party (using blocked_users table)
@@ -97,8 +94,7 @@ JOIN connections c ON
 WHERE 
   c.status = 'accepted'
   AND s.expires_at > now()
-  AND u.is_shadow_banned = false
-  AND u.is_shadow_banned = false
+  AND (u.is_shadow_banned = false OR s.user_id = @user_id)
   -- strict streak rule (DISABLED)
   -- AND DATE(u.last_active_at) >= CURRENT_DATE - INTERVAL '1 day'
   -- Block Logic: Exclude if blocked by either party
@@ -117,8 +113,7 @@ FROM stories s
 JOIN users u ON s.user_id = u.id
 WHERE s.geom && ST_MakeEnvelope(@west::float8, @south::float8, @east::float8, @north::float8, 4326)
 AND s.expires_at > now()
-AND u.is_shadow_banned = false
-AND u.is_ghost_mode = false
+AND (s.user_id = @current_user_id OR (u.is_shadow_banned = false AND u.is_ghost_mode = false))
 -- AND DATE(u.last_active_at) >= CURRENT_DATE - INTERVAL '1 day'
 AND NOT EXISTS (
     SELECT 1 FROM blocked_users bu 

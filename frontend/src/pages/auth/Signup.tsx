@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 
 interface SignupProps {
   onToggle: () => void;
-  onBack: () => void;
+  onBack?: () => void;
 }
 
 type Step = 1 | 2 | 3;
@@ -33,13 +33,13 @@ const Stepper = ({ step }: { step: Step }) => (
       return (
         <React.Fragment key={label}>
           {idx > 0 && (
-            <div className={`flex-1 h-[2px] rounded-full transition-all duration-500 ${done ? 'bg-violet-500' : 'bg-white/10'}`} />
+            <div className={`flex-1 h-[2px] rounded-full transition-all duration-500 ${done ? 'bg-primary' : 'bg-primary/10'}`} />
           )}
           <div className="flex items-center gap-1.5">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 ${done ? 'bg-violet-600 border-violet-600 text-white' : active ? 'bg-violet-600 border-violet-600 text-white' : 'bg-transparent border-white/20 text-gray-500'}`}>
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 ${done ? 'bg-primary border-primary text-black' : active ? 'bg-primary border-primary text-black' : 'bg-transparent border-slate-200 text-black/40'}`}>
               {done ? <Check className="w-3.5 h-3.5" /> : num}
             </div>
-            <span className={`text-xs font-semibold hidden sm:block ${active ? 'text-white' : done ? 'text-violet-400' : 'text-gray-600'}`}>{label}</span>
+            <span className={`text-xs font-semibold hidden sm:block ${active ? 'text-black' : done ? 'text-black/60' : 'text-black/40'}`}>{label}</span>
           </div>
         </React.Fragment>
       );
@@ -130,25 +130,28 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#0a0a0c] relative overflow-hidden font-sans px-4 py-12">
+    <div className="min-h-screen w-full flex items-center justify-center bg-[#f9e8ff] relative overflow-hidden font-sans px-4 py-12">
       {/* Background glow */}
-      <div className="absolute top-[-300px] left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-violet-600/10 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute top-[-300px] left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-primary/20 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-[-300px] right-0 w-[500px] h-[500px] bg-accent/15 rounded-full blur-[100px] pointer-events-none" />
 
       {/* Back button */}
-      <button
-        onClick={onBack}
-        className="absolute top-6 left-6 flex items-center gap-1.5 text-sm text-gray-500 hover:text-white transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" /> Back
-      </button>
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="absolute top-6 left-6 flex items-center gap-1.5 text-sm text-black/60 hover:text-black transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+      )}
 
-      <div className="w-full max-w-md bg-[#111113] border border-white/[0.07] rounded-[28px] p-8 shadow-2xl relative z-10">
+      <div className="w-full max-w-md glass rounded-[28px] p-8 shadow-2xl relative z-10 border border-white/60">
         {/* Logo */}
         <div className="flex items-center gap-2.5 mb-7">
-          <div className="w-9 h-9 bg-violet-600 rounded-full flex items-center justify-center">
+          <div className="w-9 h-9 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/20">
             <MapPin className="w-4 h-4 text-white" />
           </div>
-          <span className="text-xl font-black tracking-tight text-white">Locolive</span>
+          <span className="text-xl font-black tracking-tight text-black">Locolive</span>
         </div>
 
         {/* Stepper */}
@@ -183,41 +186,41 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
               className="space-y-5"
             >
               <div>
-                <h2 className="text-2xl font-black text-white">Create your account</h2>
-                <p className="text-sm text-gray-500 mt-1">Start discovering your neighborhood</p>
+                <h2 className="text-2xl font-black text-black">Create your account</h2>
+                <p className="text-sm text-black/60 mt-1">Start discovering your neighborhood</p>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Email</label>
+                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
                   <input
                     type="email"
                     required
                     value={form.email}
                     onChange={(e) => set('email', e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full h-12 bg-white/[0.04] border border-white/10 rounded-xl pl-11 pr-4 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-violet-500/60 transition-all"
+                    className="w-full h-12 glass-input border border-primary/10 rounded-xl pl-11 pr-4 text-black text-sm placeholder:text-black/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Password</label>
+                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
                   <input
                     type={showPass ? 'text' : 'password'}
                     required
                     value={form.password}
                     onChange={(e) => set('password', e.target.value)}
                     placeholder="Min. 8 characters"
-                    className="w-full h-12 bg-white/[0.04] border border-white/10 rounded-xl pl-11 pr-11 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-violet-500/60 transition-all"
+                    className="w-full h-12 glass-input border border-primary/10 rounded-xl pl-11 pr-11 text-black text-sm placeholder:text-black/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPass(v => !v)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-300 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-black/40 hover:text-black transition-colors"
                   >
                     {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -226,14 +229,14 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
 
               <button
                 type="submit"
-                className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-pink-500 text-white font-bold rounded-xl shadow-lg shadow-violet-600/20 hover:opacity-90 active:scale-95 transition-all text-sm mt-2"
+                className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-black font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 transition-all text-sm mt-2"
               >
                 Continue <ArrowRight className="w-4 h-4" />
               </button>
 
-              <p className="text-center text-xs text-gray-600 pt-1">
+              <p className="text-center text-xs text-black/40 pt-1">
                 Already have an account?{' '}
-                <button type="button" onClick={onToggle} className="text-violet-400 hover:text-violet-300 font-semibold transition-colors">
+                <button type="button" onClick={onToggle} className="text-primary font-bold hover:text-accent transition-colors">
                   Sign in
                 </button>
               </p>
@@ -253,62 +256,62 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
               className="space-y-5"
             >
               <div>
-                <h2 className="text-2xl font-black text-white">Set up your profile</h2>
-                <p className="text-sm text-gray-500 mt-1">How should others see you?</p>
+                <h2 className="text-2xl font-black text-black">Set up your profile</h2>
+                <p className="text-sm text-black/60 mt-1">How should others see you?</p>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Username</label>
+                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Username</label>
                 <div className="relative">
-                  <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                  <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     required
                     value={form.username}
                     onChange={(e) => set('username', e.target.value)}
                     placeholder="yourhandle"
-                    className="w-full h-12 bg-white/[0.04] border border-white/10 rounded-xl pl-11 pr-4 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-violet-500/60 transition-all"
+                    className="w-full h-12 glass-input border border-primary/10 rounded-xl pl-11 pr-4 text-black text-sm placeholder:text-black/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Display Name</label>
+                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Display Name</label>
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     required
                     value={form.full_name}
                     onChange={(e) => set('full_name', e.target.value)}
                     placeholder="Your Name"
-                    className="w-full h-12 bg-white/[0.04] border border-white/10 rounded-xl pl-11 pr-4 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-violet-500/60 transition-all"
+                    className="w-full h-12 glass-input border border-primary/10 rounded-xl pl-11 pr-4 text-black text-sm placeholder:text-black/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Phone Number <span className="text-gray-700 normal-case font-normal">(optional)</span></label>
+                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Phone Number <span className="text-black/30 normal-case font-normal">(optional)</span></label>
                 <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600" />
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
                     type="tel"
                     value={form.phone}
                     onChange={(e) => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
                     placeholder="10-digit mobile number"
                     maxLength={10}
-                    className="w-full h-12 bg-white/[0.04] border border-white/10 rounded-xl pl-11 pr-4 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-violet-500/60 transition-all"
+                    className="w-full h-12 glass-input border border-primary/10 rounded-xl pl-11 pr-4 text-black text-sm placeholder:text-black/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Profile Photo</label>
+                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Profile Photo</label>
                 <div className="flex items-center gap-4">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-14 h-14 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400 hover:bg-violet-600/30 transition-all overflow-hidden"
+                    className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-black opacity-60 hover:bg-primary/20 transition-all overflow-hidden"
                   >
                     {avatarPreview
                       ? <img src={avatarPreview} alt="avatar" className="w-full h-full object-cover" />
@@ -318,7 +321,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 text-sm font-semibold text-white bg-white/[0.06] border border-white/10 rounded-xl hover:bg-white/[0.1] transition-all"
+                    className="px-4 py-2 text-sm font-semibold text-black bg-primary/5 border border-primary/10 rounded-xl hover:bg-primary/10 transition-all"
                   >
                     Upload Photo
                   </button>
@@ -330,13 +333,13 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="h-12 w-12 flex items-center justify-center bg-white/[0.05] border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/[0.1] transition-all"
+                  className="h-12 w-12 flex items-center justify-center bg-primary/5 border border-primary/10 rounded-xl text-black/40 hover:text-black hover:bg-primary/10 transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-pink-500 text-white font-bold rounded-xl shadow-lg shadow-violet-600/20 hover:opacity-90 active:scale-95 transition-all text-sm"
+                  className="flex-1 h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-black font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 transition-all text-sm"
                 >
                   Continue <ArrowRight className="w-4 h-4" />
                 </button>
@@ -356,51 +359,51 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
               className="space-y-5"
             >
               <div>
-                <h2 className="text-2xl font-black text-white">Privacy Settings</h2>
-                <p className="text-sm text-gray-500 mt-1">You control your data, always.</p>
+                <h2 className="text-2xl font-black text-black">Privacy Settings</h2>
+                <p className="text-sm text-black/60 mt-1">You control your data, always.</p>
               </div>
 
               {/* Ghost Mode Toggle */}
-              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-start justify-between gap-4">
+              <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <span className="text-xl">👻</span>
                   <div>
-                    <p className="text-sm font-bold text-white">Ghost Mode</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Hide your location from everyone. You can still browse the map.</p>
+                    <p className="text-sm font-bold text-black">Ghost Mode</p>
+                    <p className="text-xs text-black/40 mt-0.5">Hide your location from everyone. You can still browse the map.</p>
                   </div>
                 </div>
                 <button
                   onClick={() => set('ghostMode', !form.ghostMode)}
-                  className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-all duration-300 ${form.ghostMode ? 'bg-violet-600' : 'bg-white/10'}`}
+                  className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-all duration-300 ${form.ghostMode ? 'bg-primary' : 'bg-primary/20'}`}
                 >
-                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-300 ${form.ghostMode ? 'left-5' : 'left-0.5'}`} />
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-300 ${form.ghostMode ? 'left-5' : 'left-0.5'}`} />
                 </button>
               </div>
 
               {/* Allow Crossings Toggle */}
-              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.07] flex items-start justify-between gap-4">
+              <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <span className="text-xl">🤝</span>
                   <div>
-                    <p className="text-sm font-bold text-white">Allow Crossings</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Let the app notify you when you cross paths with someone.</p>
+                    <p className="text-sm font-bold text-black">Allow Crossings</p>
+                    <p className="text-xs text-black/40 mt-0.5">Let the app notify you when you cross paths with someone.</p>
                   </div>
                 </div>
                 <button
                   onClick={() => set('allowCrossings', !form.allowCrossings)}
-                  className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-all duration-300 ${form.allowCrossings ? 'bg-violet-600' : 'bg-white/10'}`}
+                  className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-all duration-300 ${form.allowCrossings ? 'bg-primary' : 'bg-primary/20'}`}
                 >
-                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-300 ${form.allowCrossings ? 'left-5' : 'left-0.5'}`} />
+                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-300 ${form.allowCrossings ? 'left-5' : 'left-0.5'}`} />
                 </button>
               </div>
 
               {/* Panic Mode (info only) */}
-              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.07]">
+              <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
                 <div className="flex items-start gap-3">
                   <span className="text-xl">🚨</span>
                   <div>
-                    <p className="text-sm font-bold text-white">Panic Mode</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Triple-tap the screen to instantly delete all your data and go offline. Always available in Settings.</p>
+                    <p className="text-sm font-bold text-black">Panic Mode</p>
+                    <p className="text-xs text-black/40 mt-0.5">Triple-tap the screen to instantly delete all your data and go offline. Always available in Settings.</p>
                   </div>
                 </div>
               </div>
@@ -409,7 +412,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium text-center"
+                  className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-medium text-center"
                 >
                   {error}
                 </motion.div>
@@ -418,14 +421,14 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
               <div className="flex gap-3 mt-2">
                 <button
                   onClick={() => setStep(2)}
-                  className="h-12 w-12 flex items-center justify-center bg-white/[0.05] border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/[0.1] transition-all"
+                  className="h-12 w-12 flex items-center justify-center bg-primary/5 border border-primary/10 rounded-xl text-black/40 hover:text-black hover:bg-primary/10 transition-all"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleFinalSubmit}
                   disabled={isLoading}
-                  className="flex-1 h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-pink-500 text-white font-bold rounded-xl shadow-lg shadow-violet-600/20 hover:opacity-90 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
+                  className="flex-1 h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-black font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
                 >
                   {isLoading ? (
                     <>

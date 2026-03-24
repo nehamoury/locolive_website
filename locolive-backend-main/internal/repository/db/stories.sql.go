@@ -205,8 +205,7 @@ JOIN connections c ON
 WHERE 
   c.status = 'accepted'
   AND s.expires_at > now()
-  AND u.is_shadow_banned = false
-  AND u.is_shadow_banned = false
+  AND (u.is_shadow_banned = false OR s.user_id = $1)
   -- strict streak rule (DISABLED)
   -- AND DATE(u.last_active_at) >= CURRENT_DATE - INTERVAL '1 day'
   -- Block Logic: Exclude if blocked by either party
@@ -291,8 +290,7 @@ FROM stories s
 JOIN users u ON s.user_id = u.id
 WHERE s.geom && ST_MakeEnvelope($1::float8, $2::float8, $3::float8, $4::float8, 4326)
 AND s.expires_at > now()
-AND u.is_shadow_banned = false
-AND u.is_ghost_mode = false
+AND (s.user_id = $5 OR (u.is_shadow_banned = false AND u.is_ghost_mode = false))
 AND NOT EXISTS (
     SELECT 1 FROM blocked_users bu 
     WHERE (bu.blocker_id = $5 AND bu.blocked_id = s.user_id)
@@ -408,16 +406,13 @@ SELECT s.id, s.user_id, s.media_url, s.media_type, s.thumbnail_url, s.caption, s
 FROM stories s
 JOIN users u ON s.user_id = u.id
 WHERE 
-    ST_DWithin(
+    ((ST_DWithin(
     s.geom::geography,
     ST_MakePoint($1::float8, $2::float8)::geography,
     $3
-  )
+  ) AND u.is_ghost_mode = false) OR s.user_id = $4)
   AND s.expires_at > now()
-  -- Allow anonymous stories (handled in presentation)
-  -- AND (s.is_anonymous = false OR s.user_id = @user_id)
-  AND u.is_shadow_banned = false
-  AND u.is_ghost_mode = false
+  AND (u.is_shadow_banned = false OR s.user_id = $4)
   -- Strict Streak Rule (DISABLED)
   -- AND DATE(u.last_active_at) >= CURRENT_DATE - INTERVAL '1 day'
   -- Block Logic: Exclude if blocked by either party (using blocked_users table)

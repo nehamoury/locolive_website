@@ -1,52 +1,72 @@
 import { type FC } from 'react';
-import { CloudSun, Droplets, Wind, Sun, Hash } from 'lucide-react';
+import { CloudSun, Hash, MapPin, TrendingUp, Users } from 'lucide-react';
 
 const RightSidebar: FC = () => {
   return (
-    <aside className="w-80 border-l border-white/5 bg-[#0B0E14] hidden lg:flex flex-col px-6 py-8 overflow-y-auto no-scrollbar h-full flex-shrink-0">
-      
-      {/* Weather Widget */}
-      <div className="mb-8 p-5 rounded-3xl bg-gradient-to-br from-[#1E2538] to-[#0F1420] border border-white/5 relative overflow-hidden group">
-        {/* Glow effect */}
-        <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-pink-500/20 transition-colors" />
-        
-        <div className="relative z-10">
-          <p className="text-slate-400 text-xs font-bold mb-3 uppercase tracking-widest leading-none">
-            Raipur, Chhattisgarh
-          </p>
-          <div className="flex items-center gap-3 mb-4">
-            <CloudSun className="w-10 h-10 text-amber-400 fill-amber-400/20" />
-            <div className="flex flex-col">
-              <span className="text-4xl font-black text-white leading-none">28°C</span>
-              <span className="text-xs text-slate-300 font-medium">Partly cloudy</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400">
-            <span className="flex items-center gap-1"><Droplets className="w-3 h-3 text-blue-400" /> 68%</span>
-            <span className="flex items-center gap-1"><Wind className="w-3 h-3 text-emerald-400" /> 14 km/h</span>
-            <span className="flex items-center gap-1"><Sun className="w-3 h-3 text-amber-400" /> UV 5</span>
+    <aside className="w-80 border-l border-gray-100 bg-white hidden lg:flex flex-col px-5 py-6 overflow-y-auto no-scrollbar h-full flex-shrink-0">
+
+      {/* Your Location */}
+      <div className="mb-6 p-4 rounded-2xl bg-white border border-gray-100 shadow-sm">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          <span className="text-xs font-semibold text-green-600">Location Sharing Active</span>
+        </div>
+        <p className="text-xs text-gray-400 font-medium mb-3 flex items-center gap-1">
+          <MapPin className="w-3 h-3" /> Raipur, Chhattisgarh
+        </p>
+        {/* Weather */}
+        <div className="flex items-center gap-3">
+          <CloudSun className="w-9 h-9 text-amber-500" />
+          <div>
+            <span className="text-2xl font-black text-gray-800 leading-none">28°C</span>
+            <p className="text-xs text-gray-400">Partly cloudy</p>
           </div>
         </div>
       </div>
 
-      {/* Trending Nearby */}
-      <div className="mb-10">
-        <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-          <span>Trending Nearby</span>
+      {/* Nearby Stats */}
+      <div className="mb-6 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+          <TrendingUp className="w-3 h-3" /> Nearby
         </h3>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {[
-            { tag: 'ChhattisgarhFood', loc: 'Pandri Market', posts: '1.2K' },
-            { tag: 'RaipurSunsets', loc: 'Talibandha', posts: '847' },
-            { tag: 'MorningRun', loc: 'Nandan Van', posts: '623' },
-            { tag: 'LocalCuisine', loc: 'Sadar Bazar', posts: '412' }
+            { label: 'Nearby People', value: 12, color: 'from-pink-500 to-rose-400', width: '75%' },
+            { label: 'Stories Nearby', value: 6, color: 'from-purple-500 to-indigo-400', width: '45%' },
+            { label: 'Crossings Today', value: 3, color: 'from-amber-400 to-orange-400', width: '25%' },
+          ].map((s) => (
+            <div key={s.label}>
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs text-gray-500">{s.label}</span>
+                <span className="text-xs font-bold text-gray-800">{s.value}</span>
+              </div>
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <div className={`h-full bg-gradient-to-r ${s.color} rounded-full`} style={{ width: s.width }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Trending Nearby */}
+      <div className="mb-6">
+        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+          🔥 Trending Near You
+        </h3>
+        <div className="space-y-3">
+          {[
+            { tag: 'PandriStreetFood', loc: 'Food & Dining', posts: '2.4K' },
+            { tag: 'RaipurSunsets', loc: 'Nature & Outdoors', posts: '1.1K' },
+            { tag: 'MorningRun5K', loc: 'Fitness', posts: '847' },
+            { tag: 'RaipurChaiCulture', loc: 'Local Life', posts: '623' },
+            { tag: 'LocalArtsFestival', loc: 'Events', posts: '412' },
           ].map((item, i) => (
-            <div key={i} className="flex flex-col cursor-pointer group">
-              <span className="text-[10px] font-bold text-slate-500">{item.loc}</span>
-              <span className="text-sm font-black text-white group-hover:text-pink-400 transition-colors flex items-center gap-1">
-                <Hash className="w-3 h-3 text-[#EE2A7B]" />{item.tag}
+            <div key={i} className="flex flex-col cursor-pointer group p-2 -mx-2 rounded-xl hover:bg-gray-50 transition-colors">
+              <span className="text-[10px] font-semibold text-gray-400">{item.loc}</span>
+              <span className="text-sm font-bold text-gray-800 group-hover:text-pink-500 transition-colors flex items-center gap-1">
+                <Hash className="w-3 h-3 text-pink-500" />{item.tag}
               </span>
-              <span className="text-[10px] text-slate-600 font-medium">{item.posts} posts</span>
+              <span className="text-[10px] text-gray-400">{item.posts} posts this week</span>
             </div>
           ))}
         </div>
@@ -54,33 +74,33 @@ const RightSidebar: FC = () => {
 
       {/* People You May Know */}
       <div>
-        <h3 className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-          <span>People you may know</span>
+        <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+          <Users className="w-3 h-3" /> People you may know
         </h3>
-        <div className="space-y-4">
+        <div className="space-y-3">
           {[
-            { name: 'Demo User', handle: '@demo', initial: 'D', color: 'bg-yellow-400 text-black' },
-            { name: 'Rahul Verma', handle: '@rahul', initial: 'R', color: 'bg-emerald-400 text-black' },
-            { name: 'Arjun Singh', handle: '@arjun', initial: 'A', color: 'bg-orange-400 text-black' }
+            { name: 'Demo User', handle: '@demo', initial: 'D', color: 'from-yellow-400 to-orange-400' },
+            { name: 'Rahul Verma', handle: '@rahul', initial: 'R', color: 'from-emerald-400 to-teal-500' },
+            { name: 'Arjun Singh', handle: '@arjun', initial: 'A', color: 'from-blue-400 to-indigo-500' }
           ].map((person, i) => (
-            <div key={i} className="flex items-center justify-between group cursor-pointer p-2 -mx-2 rounded-2xl hover:bg-white/5 transition-colors">
+            <div key={i} className="flex items-center justify-between group">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${person.color}`}>
+                <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${person.color} flex items-center justify-center font-black text-white text-sm`}>
                   {person.initial}
                 </div>
                 <div className="flex flex-col text-left">
-                  <span className="font-bold text-sm text-white group-hover:text-pink-400 transition-colors">{person.name}</span>
-                  <span className="text-[11px] font-medium text-slate-500">{person.handle}</span>
+                  <span className="font-semibold text-sm text-gray-800">{person.name}</span>
+                  <span className="text-[11px] text-gray-400">{person.handle}</span>
                 </div>
               </div>
-              <button className="text-[11px] font-bold text-white/70 hover:text-white px-3 py-1.5 rounded-full border border-white/10 hover:border-white/20 hover:bg-white/5 transition-colors flex items-center gap-1">
+              <button className="text-[11px] font-bold text-pink-500 hover:text-white px-3 py-1 rounded-full border border-pink-200 hover:bg-gradient-to-r hover:from-pink-500 hover:to-purple-500 hover:border-transparent transition-all">
                 Follow
               </button>
             </div>
           ))}
         </div>
       </div>
-      
+
     </aside>
   );
 };

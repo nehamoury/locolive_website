@@ -29,8 +29,8 @@ const StoryBar: FC<StoryBarProps> = ({ stories, user, onCreateStory, onStoryClic
         onClick={userStories.length > 0 ? () => onStoryClick(userStories, 0) : onCreateStory}
         className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group relative"
       >
-        <div className={`w-[72px] h-[72px] rounded-full p-[3px] transition-all duration-300 group-hover:scale-105 active:scale-95 ${userStories.length > 0 ? 'bg-gradient-to-tr from-[#EE2A7B] to-[#6228D7]' : 'border-2 border-dashed border-slate-600 bg-transparent'}`}>
-          <div className="w-full h-full rounded-full border-[3px] border-[#0B0F19] bg-zinc-900 flex items-center justify-center overflow-hidden relative">
+        <div className={`w-[72px] h-[72px] rounded-full p-[3px] transition-all duration-300 group-hover:scale-105 active:scale-95 ${userStories.length > 0 ? 'bg-gradient-to-tr from-primary to-accent' : 'border-2 border-dashed border-black/20 bg-transparent'}`}>
+          <div className="w-full h-full rounded-full border-[3px] border-white bg-white flex items-center justify-center overflow-hidden relative">
             {user?.avatar_url ? (
               <img 
                 src={user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8080${user.avatar_url}`} 
@@ -43,13 +43,13 @@ const StoryBar: FC<StoryBarProps> = ({ stories, user, onCreateStory, onStoryClic
             
             {/* The Plus Badge (only if no stories) */}
             {userStories.length === 0 && (
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                 <Plus className="w-8 h-8 text-white opacity-80" strokeWidth={2} />
+              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                 <Plus className="w-8 h-8 text-primary" strokeWidth={2} />
               </div>
             )}
           </div>
         </div>
-        <span className="text-[11px] font-bold text-slate-400 group-hover:text-white transition-colors">Your Story</span>
+        <span className="text-[11px] font-semibold text-gray-400 group-hover:text-gray-700 transition-colors">Your Story</span>
       </div>
 
       {/* Dynamic User Stories */}
@@ -64,9 +64,9 @@ const StoryBar: FC<StoryBarProps> = ({ stories, user, onCreateStory, onStoryClic
           >
             <div className={`
               w-[72px] h-[72px] rounded-full p-[3px] transition-all duration-300 group-hover:scale-105 active:scale-95
-              ${isViewed ? 'bg-slate-700' : 'bg-gradient-to-tr from-[#EE2A7B] to-[#6228D7]'}
+              ${isViewed ? 'bg-black/10' : 'bg-gradient-to-tr from-primary to-accent'}
             `}>
-              <div className="w-full h-full rounded-full border-[3px] border-[#0B0F19] bg-zinc-900 overflow-hidden">
+              <div className="w-full h-full rounded-full border-[3px] border-white bg-white overflow-hidden">
                 {story.avatar_url ? (
                   <img 
                     src={story.avatar_url.startsWith('http') ? story.avatar_url : `http://localhost:8080${story.avatar_url}`} 
@@ -80,7 +80,7 @@ const StoryBar: FC<StoryBarProps> = ({ stories, user, onCreateStory, onStoryClic
                 )}
               </div>
             </div>
-            <span className={`text-[11px] font-bold max-w-[72px] truncate transition-colors ${isViewed ? 'text-slate-500' : 'text-slate-300'}`}>
+            <span className={`text-[11px] font-semibold max-w-[72px] truncate transition-colors ${isViewed ? 'text-gray-300' : 'text-gray-700'}`}>
               {story.username}
             </span>
           </div>

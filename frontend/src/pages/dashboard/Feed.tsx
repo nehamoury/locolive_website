@@ -4,12 +4,12 @@ import { StoryBar } from '../../components/story/StoryBar';
 
 const Feed: FC = () => {
   return (
-    <div className="h-full overflow-y-auto no-scrollbar bg-black text-white p-4 space-y-6">
+    <div className="h-full overflow-y-auto no-scrollbar bg-[#f9e8ff] text-black p-4 space-y-6">
       <StoryBar stories={[]} user={null} onCreateStory={() => {}} onStoryClick={() => {}} />
       
       <div className="max-w-xl mx-auto space-y-6">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-[#121214] border border-white/10 rounded-2xl overflow-hidden shadow-xl">
+          <div key={i} className="bg-white border border-primary/10 rounded-2xl overflow-hidden shadow-xl">
             {/* Post Header */}
             <div className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -17,17 +17,17 @@ const Feed: FC = () => {
                   U{i}
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold">User {i}</h4>
-                  <p className="text-[10px] text-gray-500">2 hours ago • New Delhi</p>
+                  <h4 className="text-sm font-bold text-black">User {i}</h4>
+                  <p className="text-[10px] text-black/40">2 hours ago • New Delhi</p>
                 </div>
               </div>
-              <button className="text-gray-400 hover:text-white">
+              <button className="text-black/40 hover:text-black">
                 <MoreHorizontal className="w-5 h-5" />
               </button>
             </div>
 
             {/* Post Content */}
-            <div className="aspect-square bg-white/5 flex items-center justify-center">
+            <div className="aspect-square bg-primary/5 flex items-center justify-center">
               <img 
                 src={`https://picsum.photos/seed/${i + 100}/600/600`} 
                 alt="post" 
@@ -38,20 +38,20 @@ const Feed: FC = () => {
             {/* Post Actions */}
             <div className="p-4 space-y-3">
               <div className="flex items-center gap-4">
-                <button className="hover:text-red-500 transition-colors">
+                <button className="text-black/40 hover:text-accent transition-colors">
                   <Heart className="w-6 h-6" />
                 </button>
-                <button className="hover:text-purple-500 transition-colors">
+                <button className="text-black/40 hover:text-primary transition-colors">
                   <MessageCircle className="w-6 h-6" />
                 </button>
-                <button className="hover:text-blue-500 transition-colors">
+                <button className="text-black/40 hover:text-black transition-colors">
                   <Share2 className="w-6 h-6" />
                 </button>
               </div>
               <div>
-                <p className="text-sm font-bold">1,234 likes</p>
-                <p className="text-sm">
-                  <span className="font-bold mr-2">User {i}</span>
+                <p className="text-sm font-bold text-black">1,234 likes</p>
+                <p className="text-sm text-black/60">
+                  <span className="font-bold mr-2 text-black">User {i}</span>
                   Exploring the beautiful streets of Delhi today! #travel #delhi
                 </p>
               </div>

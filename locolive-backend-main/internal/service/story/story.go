@@ -155,7 +155,7 @@ func (s *ServiceImpl) GetFeed(ctx context.Context, params GetFeedParams) ([]db.G
 	}
 
 	sort.Slice(filtered, func(i, j int) bool {
-		return filtered[i].CreatedAt.Before(filtered[j].CreatedAt)
+		return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
 	})
 
 	message := "Stories found nearby"
@@ -200,7 +200,7 @@ func (s *ServiceImpl) GetMapStories(ctx context.Context, params GetFeedParams) (
 	}
 
 	sort.Slice(filtered, func(i, j int) bool {
-		return filtered[i].CreatedAt.Before(filtered[j].CreatedAt)
+		return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
 	})
 
 	return filtered, nil
