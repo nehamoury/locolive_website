@@ -6,10 +6,13 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/mmcloughlin/geohash"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 
 	"privacy-social-backend/internal/repository/db"
+
 	"privacy-social-backend/internal/token"
 )
 
@@ -133,3 +136,100 @@ func (server *Server) getHeatmap(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, rsp)
 }
+
+type getNearbyUsersRequest struct {
+	Latitude  float64 `form:"lat" binding:"required,min=-90,max=90"`
+	Longitude float64 `form:"lng" binding:"required,min=-180,max=180"`
+	Radius    float64 `form:"radius,default=10"` // in km
+}
+
+type nearbyUserResponse struct {
+	ID        string  `json:"id"`
+	Username  string  `json:"username"`
+	FullName  string  `json:"full_name"`
+	AvatarUrl string  `json:"avatar_url"`
+	IsPremium bool    `json:"is_premium"`
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	Distance  float64 `json:"distance"` // in meters
+}
+
+func (server *Server) getNearbyUsers(ctx *gin.Context) {
+	var req getNearbyUsersRequest
+	if err := ctx.ShouldBindQuery(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	// Fetch from Redis
+	radiusMeters := req.Radius * 1000
+	matches, err := server.redis.GeoRadius(ctx, "users:locations", req.Longitude, req.Latitude, &redis.GeoRadiusQuery{
+		Radius:      radiusMeters,
+		Unit:        "m",
+		WithDist:    true,
+		WithCoord:   true,
+		Sort:        "ASC",
+	}).Result()
+
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	var rsp []nearbyUserResponse
+	for _, match := range matches {
+		if match.Name == authPayload.UserID.String() {
+			continue // Skip self
+		}
+
+		// Parse string to uuid
+		uid, parseErr := uuid.Parse(match.Name)
+		if parseErr != nil {
+			continue
+		}
+		
+		user, err := server.store.GetUserByID(ctx, uid)
+		if err != nil {
+			continue
+		}
+
+		// Filter
+		if user.IsGhostMode || user.IsShadowBanned {
+			continue
+		}
+
+		// Check blocks (simple check)
+		blocked, _ := server.store.IsUserBlocked(ctx, db.IsUserBlockedParams{
+			BlockerID: authPayload.UserID,
+			BlockedID: uid,
+		})
+		if blocked { continue }
+
+		blockedReverse, _ := server.store.IsUserBlocked(ctx, db.IsUserBlockedParams{
+			BlockerID: uid,
+			BlockedID: authPayload.UserID,
+		})
+		if blockedReverse { continue }
+
+		rsp = append(rsp, nearbyUserResponse{
+			ID:        user.ID.String(),
+			Username:  user.Username,
+			FullName:  user.FullName,
+			AvatarUrl: user.AvatarUrl.String,
+			IsPremium: user.IsPremium.Bool,
+			Latitude:  match.Latitude,
+			Longitude: match.Longitude,
+			Distance:  match.Dist,
+		})
+
+		// Max 50 users for performance on map
+		if len(rsp) >= 50 {
+			break
+		}
+	}
+
+	ctx.JSON(http.StatusOK, rsp)
+}
+

@@ -16,22 +16,21 @@ interface HomeViewProps {
 const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onRefresh, onCreateStory, onStoryClick }) => {
   return (
     <div className="flex flex-col h-full bg-white overflow-y-auto no-scrollbar relative w-full pb-20 md:pb-0">
-      
       {/* Main Header */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xl border-b border-gray-100 px-6 lg:px-10 py-4 flex items-center justify-between">
-        <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">Home</h1>
+      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl px-6 lg:px-10 py-6 flex items-center justify-between">
+        <h1 className="text-4xl md:text-5xl font-black text-black tracking-tighter italic">Home</h1>
         <div className="flex items-center gap-3">
           <button 
             onClick={onRefresh}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-full text-xs font-semibold text-gray-500 hover:text-gray-800 transition-all active:scale-95 disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-3 bg-white hover:bg-gray-50 border border-gray-100 rounded-full text-xs font-bold text-gray-500 transition-all active:scale-95 disabled:opacity-50 shadow-sm"
           >
-            <RefreshCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Refresh</span>
+            <RefreshCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline italic">Refresh</span>
           </button>
           <button
             onClick={onCreateStory}
-            className="flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-full text-xs font-bold shadow-md hover:shadow-pink-300 transition-all active:scale-95"
+            className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-full text-sm font-black shadow-[0_10px_20px_-5px_rgba(236,72,153,0.4)] hover:shadow-[0_15px_25px_-5px_rgba(236,72,153,0.5)] transition-all active:scale-95 italic"
           >
             + Create Post
           </button>
@@ -39,7 +38,7 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onRefresh, onCrea
       </div>
 
       {/* Stories Bar Container */}
-      <div className="px-6 lg:px-10 py-4 border-b border-gray-100">
+      <div className="px-6 lg:px-10 py-6">
         <StoryBar 
           stories={stories} 
           user={user} 
@@ -64,42 +63,46 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onRefresh, onCrea
             <Button variant="primary" onClick={onCreateStory}>Create a Post</Button>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-10">
             {stories.map((story) => (
               <motion.div 
                 key={story.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col gap-3 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+                className="flex flex-col gap-4 bg-white rounded-[32px] border border-gray-100 shadow-xl shadow-gray-200/50 overflow-hidden group/card"
               >
                 {/* Post Header */}
-                <div className="flex items-center justify-between px-5 pt-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-br from-pink-500 to-purple-600">
+                <div className="flex items-center justify-between px-6 pt-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-br from-pink-500 to-purple-600 shadow-md shadow-pink-500/20">
                       <div className="w-full h-full rounded-full bg-white overflow-hidden flex items-center justify-center">
                         {story.avatar_url ? (
                           <img src={`http://localhost:8080${story.avatar_url}`} className="w-full h-full object-cover" alt="" />
                         ) : (
-                          <span className="text-pink-500 font-bold text-sm">{story.username?.charAt(0)?.toUpperCase()}</span>
+                          <div className="w-full h-full flex items-center justify-center bg-gray-50 text-pink-500 font-black italic">
+                            {story.username?.charAt(0)?.toUpperCase()}
+                          </div>
                         )}
                       </div>
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-bold text-gray-900 text-sm flex items-center gap-1">
-                        {story.full_name || story.username}
-                        <span className="text-pink-500">✓</span>
-                      </span>
-                      <div className="flex items-center gap-2 text-[11px]">
-                        <span className="text-gray-400">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-black text-black text-base italic tracking-tight uppercase">
+                          {story.full_name || story.username}
+                        </span>
+                        <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center text-[8px] text-white">✓</div>
+                      </div>
+                      <div className="flex items-center gap-3 text-[12px] font-bold">
+                        <span className="text-gray-300">
                           {(() => {
                             const diff = Math.floor((Date.now() - new Date(story.created_at).getTime()) / 60000);
-                            if (diff < 60) return `${diff} minutes ago`;
-                            return `${Math.floor(diff/60)} hours ago`;
+                            if (diff < 60) return `${diff} min ago`;
+                            return `${Math.floor(diff/60)} hrs ago`;
                           })()}
                         </span>
-                        <span className="text-pink-500 flex items-center gap-1 font-medium">
-                          <MapPin className="w-3 h-3" />
-                          {story.location_name || 'Nearby'}
+                        <span className="text-pink-500 flex items-center gap-1 uppercase tracking-tighter">
+                          <Heart className="w-3 h-3 fill-pink-500" />
+                          Near you
                         </span>
                       </div>
                     </div>
@@ -111,18 +114,18 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onRefresh, onCrea
 
                 {/* Caption */}
                 {story.caption && (
-                  <p className="px-5 text-gray-700 text-sm leading-relaxed">{story.caption}</p>
+                  <p className="px-6 text-black font-medium text-lg tracking-tight leading-tight">{story.caption}</p>
                 )}
 
                 {/* Post Image/Video */}
                 <div 
-                  className="w-full aspect-[4/3] overflow-hidden bg-gray-100 relative cursor-pointer group"
+                  className="mx-6 mb-2 aspect-[4/3] rounded-[24px] overflow-hidden bg-gray-50 relative cursor-pointer group"
                   onClick={() => {
                     const userStories = stories.filter(s => s.username === story.username);
                     onStoryClick(userStories, userStories.findIndex(s => s.id === story.id));
                   }}
                 >
-                  <div className="absolute inset-0 bg-black/20 z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="absolute inset-0 bg-black/5 z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
                   {story.media_type === 'video' ? (
                     <video src={`http://localhost:8080${story.media_url}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" autoPlay loop muted playsInline />
                   ) : (

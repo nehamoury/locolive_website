@@ -29,8 +29,8 @@ const StoryBar: FC<StoryBarProps> = ({ stories, user, onCreateStory, onStoryClic
         onClick={userStories.length > 0 ? () => onStoryClick(userStories, 0) : onCreateStory}
         className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group relative"
       >
-        <div className={`w-[72px] h-[72px] rounded-full p-[3px] transition-all duration-300 group-hover:scale-105 active:scale-95 ${userStories.length > 0 ? 'bg-gradient-to-tr from-primary to-accent' : 'border-2 border-dashed border-black/20 bg-transparent'}`}>
-          <div className="w-full h-full rounded-full border-[3px] border-white bg-white flex items-center justify-center overflow-hidden relative">
+        <div className={`w-[78px] h-[78px] rounded-full p-[2px] transition-all duration-300 group-hover:scale-105 active:scale-95 ${userStories.length > 0 ? 'bg-gradient-to-tr from-pink-500 to-purple-600' : 'border-2 border-dashed border-gray-200 bg-transparent'}`}>
+          <div className="w-full h-full rounded-full border-[3px] border-white bg-white flex items-center justify-center overflow-hidden relative shadow-sm">
             {user?.avatar_url ? (
               <img 
                 src={user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8080${user.avatar_url}`} 
@@ -38,18 +38,20 @@ const StoryBar: FC<StoryBarProps> = ({ stories, user, onCreateStory, onStoryClic
                 alt="You"
               />
             ) : (
-              <span className="text-xl font-bold text-white uppercase">{user?.full_name?.charAt(0) || 'U'}</span>
+              <div className="w-full h-full flex items-center justify-center bg-gray-50 text-xl font-bold text-gray-300 uppercase italic">
+                {user?.full_name?.charAt(0) || user?.username?.charAt(0) || '?'}
+              </div>
             )}
             
             {/* The Plus Badge (only if no stories) */}
             {userStories.length === 0 && (
-              <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                 <Plus className="w-8 h-8 text-primary" strokeWidth={2} />
+              <div className="absolute inset-0 bg-white flex items-center justify-center">
+                 <Plus className="w-7 h-7 text-pink-500" strokeWidth={3} />
               </div>
             )}
           </div>
         </div>
-        <span className="text-[11px] font-semibold text-gray-400 group-hover:text-gray-700 transition-colors">Your Story</span>
+        <span className="text-[11px] font-bold text-gray-500 group-hover:text-pink-600 transition-colors uppercase tracking-tight">Your Story</span>
       </div>
 
       {/* Dynamic User Stories */}
@@ -63,8 +65,8 @@ const StoryBar: FC<StoryBarProps> = ({ stories, user, onCreateStory, onStoryClic
             className="flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer"
           >
             <div className={`
-              w-[72px] h-[72px] rounded-full p-[3px] transition-all duration-300 group-hover:scale-105 active:scale-95
-              ${isViewed ? 'bg-black/10' : 'bg-gradient-to-tr from-primary to-accent'}
+              w-[78px] h-[78px] rounded-full p-[2px] transition-all duration-300 group-hover:scale-105 active:scale-95 shadow-sm
+              ${isViewed ? 'bg-gray-200' : 'bg-gradient-to-tr from-pink-500 to-purple-600'}
             `}>
               <div className="w-full h-full rounded-full border-[3px] border-white bg-white overflow-hidden">
                 {story.avatar_url ? (
@@ -80,7 +82,7 @@ const StoryBar: FC<StoryBarProps> = ({ stories, user, onCreateStory, onStoryClic
                 )}
               </div>
             </div>
-            <span className={`text-[11px] font-semibold max-w-[72px] truncate transition-colors ${isViewed ? 'text-gray-300' : 'text-gray-700'}`}>
+            <span className={`text-[11px] font-bold max-w-[78px] truncate transition-colors uppercase tracking-tight ${isViewed ? 'text-gray-400' : 'text-pink-600'}`}>
               {story.username}
             </span>
           </div>

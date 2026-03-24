@@ -116,6 +116,7 @@ func (server *Server) setupRouter() {
 
 	// User Profiles
 	authRoutes.GET("/users/search", server.searchUsers)
+	authRoutes.GET("/users/nearby", server.getNearbyUsers)
 	authRoutes.GET("/users/:id", server.getUserProfile)
 	authRoutes.GET("/stories/user/:id", server.getUserStories)
 	authRoutes.GET("/profile/me", server.getMyProfile)

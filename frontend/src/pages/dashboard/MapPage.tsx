@@ -29,19 +29,50 @@ const createStoryMarkerIcon = (avatarUrl: string, username: string, count: numbe
     const initial = username ? username.charAt(0).toUpperCase() : '?';
     const imgHtml = avatarUrl
         ? `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;" />`
-        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:white;font-style:italic;">${initial}</div>`;
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:white;font-style:italic;">${initial}</div>`;
 
     return new L.DivIcon({
         html: `
-            <div class="story-marker">
-                <div class="marker-glow"></div>
-                <div class="marker-container">${imgHtml}</div>
-                ${count > 1 ? `<div class="marker-badge">${count}</div>` : ''}
+            <div class="story-marker-refined" style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div class="story-marker" style="width:72px;height:72px;">
+                    <div class="marker-glow"></div>
+                    <div class="marker-container" style="width:64px;height:64px;border-width:4px;">${imgHtml}</div>
+                    ${count > 1 ? `<div class="marker-badge" style="width:24px;height:24px;font-size:12px;top:-6px;right:-6px;">${count}</div>` : ''}
+                </div>
+                <div style="background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:4px 12px;border-radius:12px;border:2px solid #ec4899;box-shadow:0 10px 20px -5px rgba(236,72,153,0.3);transform:translateY(-8px);">
+                    <span style="font-size:11px;font-weight:900;color:black;text-transform:uppercase;font-style:italic;letter-spacing:-0.5px;white-space:nowrap;">@${username}</span>
+                </div>
             </div>
         `,
         className: '',
-        iconSize: [56, 56],
-        iconAnchor: [28, 28],
+        iconSize: [80, 110],
+        iconAnchor: [40, 72],
+    });
+};
+
+const createOtherUserIcon = (avatarUrl: string, username: string) => {
+    const initial = username ? username.charAt(0).toUpperCase() : '?';
+    const imgHtml = avatarUrl
+        ? `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;" />`
+        : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:white;font-style:italic;background:linear-gradient(45deg, #10b981, #3b82f6);">${initial}</div>`;
+
+    return new L.DivIcon({
+        html: `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="position:relative;width:56px;height:56px;">
+                    <div style="width:56px;height:56px;border-radius:50%;border:4px solid #10b981;overflow:hidden;box-shadow:0 0 20px rgba(16,185,129,0.4);background:white;">
+                        ${imgHtml}
+                    </div>
+                    <div style="position:absolute;bottom:0px;right:0px;width:18px;height:18px;background:#10b981;border-radius:50%;border:4px solid white;"></div>
+                </div>
+                <div style="background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:3px 10px;border-radius:10px;border:2px solid #10b981;box-shadow:0 10px 15px -3px rgba(16,185,129,0.3);transform:translateY(-4px);">
+                    <span style="font-size:10px;font-weight:900;color:black;text-transform:uppercase;font-style:italic;letter-spacing:-0.5px;white-space:nowrap;">${username}</span>
+                </div>
+            </div>
+        `,
+        className: '',
+        iconSize: [70, 90],
+        iconAnchor: [35, 56],
     });
 };
 
@@ -73,6 +104,7 @@ const MapPage = () => {
     const { } = useAuth();
     const [clusters, setClusters] = useState<any[]>([]);
     const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
+    const [nearbyUsers, setNearbyUsers] = useState<any[]>([]);
     const [flyTo, setFlyTo] = useState<[number, number] | null>(null);
     const [isGhostMode, setIsGhostMode] = useState(false);
     const [isPanicActive, setIsPanicActive] = useState(false);
@@ -83,11 +115,23 @@ const MapPage = () => {
     const [locationName] = useState('Raipur, CG');
     const watchIdRef = useRef<number | null>(null);
 
+    const fetchNearbyUsers = async (lat: number, lng: number) => {
+        try {
+            const res = await api.get('/users/nearby', { params: { lat, lng } });
+            setNearbyUsers(res.data || []);
+        } catch (err) {
+            console.error('Failed to fetch nearby users:', err);
+        }
+    };
+
     // Geolocation watch
     useEffect(() => {
         if (!navigator.geolocation) return;
         watchIdRef.current = navigator.geolocation.watchPosition(
-            (pos) => setUserPosition([pos.coords.latitude, pos.coords.longitude]),
+            (pos) => {
+                setUserPosition([pos.coords.latitude, pos.coords.longitude]);
+                fetchNearbyUsers(pos.coords.latitude, pos.coords.longitude);
+            },
             (err) => console.error('Geolocation error:', err),
             { enableHighAccuracy: true }
         );
@@ -135,13 +179,13 @@ const MapPage = () => {
         <div className="flex h-screen w-full overflow-hidden bg-white">
             {/* Custom CSS for Leaflet markers */}
             <style>{`
-                .leaflet-container { background: #f9e8ff !important; }
+                .leaflet-container { background: #ffffff !important; }
                 .leaflet-control-attribution { display: none !important; }
                 .leaflet-control-zoom a {
-                    background: rgba(255,255,255,0.9) !important;
-                    color: #1a1a2e !important;
-                    border-color: rgba(0,0,0,0.15) !important;
-                    backdrop-filter: blur(12px) !important;
+                    background: rgba(255,255,255,0.95) !important;
+                    color: #000000 !important;
+                    border-color: rgba(0,0,0,0.05) !important;
+                    backdrop-filter: blur(20px) !important;
                 }
 
                 .user-marker-pulse {
@@ -150,24 +194,24 @@ const MapPage = () => {
                     display: flex; align-items: center; justify-content: center;
                 }
                 .inner-circle {
-                    width: 14px; height: 14px;
-                    background: #6b21a8;
-                    border: 3px solid white;
+                    width: 16px; height: 16px;
+                    background: #ec4899;
+                    border: 4px solid white;
                     border-radius: 50%;
                     position: absolute;
                     z-index: 3;
-                    box-shadow: 0 0 10px rgba(107, 33, 168, 0.5);
+                    box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);
                 }
                 .pulse {
                     width: 48px; height: 48px;
-                    background: rgba(107, 33, 168, 0.3);
+                    background: rgba(236, 72, 153, 0.2);
                     border-radius: 50%;
                     position: absolute;
                     animation: pulseAnim 2s infinite ease-out;
                 }
                 .pulse-ring {
                     width: 64px; height: 64px;
-                    border: 2px solid rgba(107, 33, 168, 0.2);
+                    border: 2px solid rgba(236, 72, 153, 0.15);
                     border-radius: 50%;
                     position: absolute;
                     animation: pulseRing 3s 0.5s infinite ease-out;
@@ -218,13 +262,13 @@ const MapPage = () => {
             `}</style>
 
             {/* Left Column: Map (65%) */}
-            <div className="flex-[2.5] relative h-full bg-gray-50 overflow-hidden border-r border-gray-100">
+            <div className="flex-[2.5] relative h-full bg-white overflow-hidden border-r border-gray-100">
                 <MapContainer
                     center={defaultCenter}
                     zoom={14}
                     zoomControl={false}
                     className="absolute inset-0 w-full h-full z-0"
-                    style={{ background: '#f8f9fa' }}
+                    style={{ background: '#ffffff' }}
                 >
                     <TileLayer
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -253,16 +297,26 @@ const MapPage = () => {
                         </>
                     )}
 
+                    {/* Nearby Real-time Users */}
+                    {nearbyUsers.map((u) => (
+                        <Marker
+                            key={`user-${u.id}`}
+                            position={[u.latitude, u.longitude]}
+                            icon={createOtherUserIcon(u.avatar_url ? (u.avatar_url.startsWith('http') ? u.avatar_url : `http://localhost:8080${u.avatar_url}`) : '', u.username)}
+                            eventHandlers={{ click: () => setSelectedUser({ count: 0, stories: [u], isUserOnly: true }) }}
+                        />
+                    ))}
+
                     {/* Story cluster markers */}
                     {clusters.map((cluster) => {
                         const avatar = cluster.stories?.[0]?.avatar_url
-                            ? `http://localhost:8080${cluster.stories[0].avatar_url}`
+                            ? (cluster.stories[0].avatar_url.startsWith('http') ? cluster.stories[0].avatar_url : `http://localhost:8080${cluster.stories[0].avatar_url}`)
                             : '';
                         const username = cluster.stories?.[0]?.username || 'User';
                         const icon = createStoryMarkerIcon(avatar, username, cluster.count);
                         return (
                             <Marker
-                                key={cluster.geohash}
+                                key={`story-${cluster.geohash}`}
                                 position={[cluster.latitude, cluster.longitude]}
                                 icon={icon}
                                 eventHandlers={{ click: () => setSelectedUser(cluster) }}
@@ -279,31 +333,31 @@ const MapPage = () => {
                     </div>
                 </div>
 
-                <div className="absolute bottom-8 left-8 z-[600] flex flex-col gap-4">
+                <div className="absolute bottom-10 left-10 z-[600] flex flex-col gap-5">
                     <motion.button
                         whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                         onClick={() => setIsPanicActive(!isPanicActive)}
-                        className={`w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all shadow-xl ${
-                            isPanicActive ? 'bg-red-500 text-white' : 'bg-white/90 text-gray-900 hover:bg-white'
+                        className={`w-14 h-14 rounded-full flex items-center justify-center backdrop-blur-xl border-4 border-white transition-all shadow-[0_15px_30px_-5px_rgba(239,68,68,0.3)] ${
+                            isPanicActive ? 'bg-red-500 text-white' : 'bg-white/95 text-red-500 hover:bg-white'
                         }`}
                     >
-                        <ShieldAlert className="w-5 h-5" />
+                        <ShieldAlert className="w-6 h-6" />
                     </motion.button>
                     <motion.button
                         whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                         onClick={() => setIsGhostMode(!isGhostMode)}
-                        className={`w-12 h-12 rounded-full flex items-center justify-center backdrop-blur-xl border transition-all shadow-xl ${
-                            isGhostMode ? 'bg-primary text-white' : 'bg-white/90 text-gray-900 hover:bg-white'
+                        className={`w-14 h-14 rounded-full flex items-center justify-center backdrop-blur-xl border-4 border-white transition-all shadow-[0_15px_30px_-5px_rgba(168,85,247,0.3)] ${
+                            isGhostMode ? 'bg-purple-500 text-white' : 'bg-white/95 text-purple-500 hover:bg-white'
                         }`}
                     >
-                        <Ghost className="w-5 h-5" />
+                        <Ghost className="w-6 h-6" />
                     </motion.button>
                     <motion.button
                         whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                         onClick={() => { if (userPosition) setFlyTo([...userPosition]); }}
-                        className="w-12 h-12 bg-white/90 backdrop-blur-xl border rounded-full flex items-center justify-center shadow-xl hover:bg-white transition-all text-gray-900"
+                        className="w-14 h-14 bg-white/95 backdrop-blur-xl border-4 border-white rounded-full flex items-center justify-center shadow-[0_15px_30px_-5px_rgba(0,0,0,0.1)] hover:bg-white transition-all text-black"
                     >
-                        <Navigation className="w-5 h-5" />
+                        <Navigation className="w-6 h-6" />
                     </motion.button>
                 </div>
             </div>
@@ -344,7 +398,9 @@ const MapPage = () => {
                                     </div>
                                 </div>
                                 <h3 className="text-2xl font-black text-gray-900 italic tracking-tight mb-1">@{selectedUser.stories?.[0]?.username}</h3>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">Nearby Raipur · {selectedUser.count} stories</p>
+                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">
+                                    {selectedUser.isUserOnly ? 'Nearby User' : `Nearby Raipur · ${selectedUser.count} stories`}
+                                </p>
                                 
                                 <div className="flex gap-3 w-full">
                                     <button className="flex-1 py-3 bg-pink-500 text-white font-bold rounded-2xl shadow-lg shadow-pink-200 active:scale-95 transition-all flex items-center justify-center gap-2">
