@@ -2,6 +2,7 @@ package location
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 
+	"privacy-social-backend/internal/realtime"
 	"privacy-social-backend/internal/repository"
 	"privacy-social-backend/internal/repository/db"
 )
@@ -25,8 +27,8 @@ const (
 	// Key: crossing:<uid1>:<uid2>
 	crossingKeyPrefix = "crossing:"
 
-	// Crossing TTL (Don't trigger same crossing for 24h)
-	crossingTTL = 24 * time.Hour
+	// Crossing TTL (Don't trigger same crossing for 10 minutes)
+	crossingTTL = 10 * time.Minute
 
 	// Radius for "crossing paths" (approx 76m to match Geohash precision)
 	crossingRadiusMeters = 80.0
@@ -35,12 +37,14 @@ const (
 type RedisLocationService struct {
 	redis *redis.Client
 	store repository.Store
+	hub   *realtime.Hub
 }
 
-func NewRedisLocationService(redis *redis.Client, store repository.Store) *RedisLocationService {
+func NewRedisLocationService(redis *redis.Client, store repository.Store, hub *realtime.Hub) *RedisLocationService {
 	return &RedisLocationService{
 		redis: redis,
 		store: store,
+		hub:   hub,
 	}
 }
 
@@ -201,7 +205,7 @@ func (s *RedisLocationService) validateCrossingPrivacy(ctx context.Context, u1, 
 }
 
 func (s *RedisLocationService) createNotification(ctx context.Context, recipient, crossedWith uuid.UUID, crossingID uuid.UUID) {
-	_, err := s.store.CreateNotification(ctx, db.CreateNotificationParams{
+	notif, err := s.store.CreateNotification(ctx, db.CreateNotificationParams{
 		UserID:            recipient,
 		Type:              "crossing_detected",
 		Title:             "Path Crossed!",
@@ -211,8 +215,22 @@ func (s *RedisLocationService) createNotification(ctx context.Context, recipient
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create notification for crossing")
+		return
 	}
-	// Note: We could trigger WebSocket here if we had access to hub
+
+	// Trigger real-time WebSocket alert
+	if s.hub != nil {
+		s.hub.SendToUser(recipient, s.formatAlert("crossing_detected", notif))
+	}
+}
+
+func (s *RedisLocationService) formatAlert(msgType string, payload interface{}) []byte {
+	wsMsg := realtime.WSMessage{
+		Type:    msgType,
+		Payload: payload,
+	}
+	data, _ := json.Marshal(wsMsg)
+	return data
 }
 
 // invalidateCrossingsCache removes the cached crossings for a user

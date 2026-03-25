@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 
 interface PeopleNearbyCardProps {
   user: {
+    id: string;
     username: string;
     full_name?: string;
     avatar_url?: string;
@@ -11,12 +12,17 @@ interface PeopleNearbyCardProps {
     bio?: string;
     tags?: string[];
   };
+  onConnect?: (userId: string) => void;
+  onProfileClick?: (userId: string) => void;
 }
 
-export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({ user }) => {
+export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({ user, onConnect, onProfileClick }) => {
   return (
     <div className="relative group px-2">
-      <div className="aspect-[4/5] rounded-[40px] overflow-hidden shadow-2xl relative border-[6px] border-white shadow-pink-100/50">
+      <div 
+        onClick={() => onProfileClick?.(user.id)}
+        className="aspect-[4/5] rounded-[40px] overflow-hidden shadow-2xl relative border-[6px] border-white shadow-pink-100/50 cursor-pointer"
+      >
         {user.avatar_url ? (
           <img 
             src={`http://localhost:8080${user.avatar_url}`} 
@@ -24,8 +30,8 @@ export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({ user }) => {
             alt={user.username} 
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-pink-50 to-purple-50 flex items-center justify-center text-5xl font-black text-pink-200 italic">
-            {user.username.charAt(0).toUpperCase()}
+          <div className="w-full h-full bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center text-5xl font-black text-pink-300 italic">
+            {(user.username?.charAt(0) || 'U').toUpperCase()}
           </div>
         )}
         
@@ -35,7 +41,7 @@ export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({ user }) => {
         {/* User Info Overlay */}
         <div className="absolute bottom-0 left-0 right-0 p-8 text-white pointer-events-none">
           <div className="flex flex-wrap gap-2 mb-3">
-            {(user.tags || ['Foodie 🍹', 'Reader 📚', 'Hiker 🏔️']).map((tag, i) => (
+            {(user.tags || ['Explorer 📍', 'Coffee Lover ☕']).map((tag, i) => (
               <span key={i} className="px-3 py-1.5 bg-black/20 backdrop-blur-md rounded-full text-[10px] font-black border border-white/20 uppercase tracking-tighter shadow-lg">
                 {tag}
               </span>
@@ -47,7 +53,7 @@ export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({ user }) => {
           </div>
           <div className="flex items-center gap-2 text-white/70 text-[10px] font-black uppercase tracking-widest">
              <MapPin className="w-3 h-3 text-pink-400" />
-             Near Civil Lines · 2h ago
+             Nearby · {user.distance || 'Recently'}
           </div>
         </div>
       </div>
@@ -55,17 +61,25 @@ export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({ user }) => {
       {/* Action Buttons */}
       <div className="flex items-center justify-center gap-5 mt-8">
         <ActionButton icon={<X className="w-7 h-7" />} color="text-gray-400" bg="bg-white" shadow="shadow-gray-200/50" />
+        <ActionButton 
+          onClick={() => onConnect?.(user.id)}
+          icon={<Heart className="w-7 h-7 fill-white" />} 
+          color="text-white" 
+          bg="bg-gradient-to-tr from-pink-500 to-purple-600" 
+          large 
+          shadow="shadow-pink-300/50" 
+        />
         <ActionButton icon={<Star className="w-6 h-6" />} color="text-amber-400" bg="bg-white" shadow="shadow-amber-100" />
-        <ActionButton icon={<Heart className="w-7 h-7 fill-white" />} color="text-white" bg="bg-gradient-to-tr from-pink-500 to-purple-600" large shadow="shadow-pink-300/50" />
       </div>
     </div>
   );
 };
 
-const ActionButton = ({ icon, color, bg, large, shadow }: { icon: React.ReactNode, color: string, bg: string, large?: boolean, shadow: string }) => (
+const ActionButton = ({ icon, color, bg, large, shadow, onClick }: { icon: React.ReactNode, color: string, bg: string, large?: boolean, shadow: string, onClick?: () => void }) => (
   <motion.button
     whileHover={{ scale: 1.1, y: -2 }}
     whileTap={{ scale: 0.9 }}
+    onClick={onClick}
     className={`${bg} ${color} ${shadow} ${large ? 'w-14 h-14' : 'w-12 h-12'} rounded-full flex items-center justify-center shadow-xl border border-gray-100 transition-all`}
   >
     {icon}

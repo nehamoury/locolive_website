@@ -1,9 +1,15 @@
 import { useState, useEffect, type FC } from 'react';
-import { UserPlus, UserCheck, X, Search, Users } from 'lucide-react';
+import { UserPlus, UserCheck, X, Search, Users, MessageSquare } from 'lucide-react';
 import api from '../../services/api';
 
-const ConnectionsView: FC = () => {
-  const [activeTab, setActiveTab] = useState<'suggestions' | 'requests' | 'my-connections'>('suggestions');
+interface ConnectionsViewProps {
+  initialTab?: 'suggestions' | 'requests' | 'my-connections';
+  onUserSelect?: (userId: string) => void;
+  onMessage?: (userId: string) => void;
+}
+
+const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions', onUserSelect, onMessage }) => {
+  const [activeTab, setActiveTab] = useState<'suggestions' | 'requests' | 'my-connections'>(initialTab);
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
   const [connections, setConnections] = useState<any[]>([]);
@@ -99,15 +105,22 @@ const ConnectionsView: FC = () => {
                 actionLabel="Follow" 
                 onAction={() => handleRequest(user.id, 'send')} 
                 icon={<UserPlus className="w-4 h-4" />}
+                onUserClick={() => onUserSelect?.(user.id)}
               />
             ))}
 
             {activeTab === 'requests' && requests.map(req => (
               <div key={req.user_id} className="flex items-center p-3 bg-primary/5 rounded-xl border border-primary/10 hover:bg-primary/10 transition-all">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-sm mr-3 text-white">
+                <div 
+                  onClick={() => onUserSelect?.(req.user_id || req.requester_id)}
+                  className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-sm mr-3 text-white cursor-pointer"
+                >
                   {req.username?.charAt(0).toUpperCase()}
                 </div>
-                <div className="flex-1">
+                <div 
+                  className="flex-1 cursor-pointer"
+                  onClick={() => onUserSelect?.(req.user_id || req.requester_id)}
+                >
                   <p className="font-bold text-sm text-black">@{req.username}</p>
                   <p className="text-[10px] text-black/40 capitalize">{req.full_name}</p>
                 </div>
@@ -132,10 +145,11 @@ const ConnectionsView: FC = () => {
               <UserCard 
                 key={conn.id} 
                 user={conn} 
-                actionLabel="Following" 
-                activeAction 
-                onAction={() => {}} 
-                icon={<UserCheck className="w-4 h-4" />}
+                actionLabel="Message" 
+                activeAction={false}
+                onAction={() => onMessage?.(conn.id)} 
+                icon={<MessageSquare className="w-4 h-4" />}
+                onUserClick={() => onUserSelect?.(conn.id)}
               />
             ))}
           </div>
@@ -160,12 +174,15 @@ const TabItem = ({ label, active, badge, onClick }: any) => (
   </button>
 );
 
-const UserCard = ({ user, actionLabel, onAction, icon, activeAction }: any) => (
+const UserCard = ({ user, actionLabel, onAction, icon, activeAction, onUserClick }: any) => (
   <div className="flex items-center p-3 bg-primary/5 rounded-xl border border-primary/10 hover:bg-primary/10 transition-all">
-    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-sm mr-3 text-white">
+    <div 
+      onClick={onUserClick}
+      className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center font-bold text-sm mr-3 text-white cursor-pointer"
+    >
       {user.username?.charAt(0).toUpperCase()}
     </div>
-    <div className="flex-1">
+    <div className="flex-1 cursor-pointer" onClick={onUserClick}>
       <p className="font-bold text-sm text-black">@{user.username}</p>
       <p className="text-[10px] text-black/40">{user.full_name}</p>
     </div>

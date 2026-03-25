@@ -193,6 +193,10 @@ func (server *Server) updateConnection(ctx *gin.Context) {
 				log.Error().Err(err).Msg("failed to create connection accepted notification")
 			}
 		}
+
+		// Invalidate profile caches for both users so connection count updates instantly
+		server.redis.Del(ctx, "profile:"+authPayload.UserID.String())
+		server.redis.Del(ctx, "profile:"+requesterID.String())
 	}
 
 	ctx.JSON(http.StatusOK, conn)
@@ -216,6 +220,10 @@ func (server *Server) deleteConnection(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+
+	// Invalidate profile caches for both users so connection count updates instantly
+	server.redis.Del(ctx, "profile:"+authPayload.UserID.String())
+	server.redis.Del(ctx, "profile:"+targetUserID.String())
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "connection deleted"})
 }

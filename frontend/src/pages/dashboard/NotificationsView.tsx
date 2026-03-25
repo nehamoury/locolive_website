@@ -12,6 +12,7 @@ interface Notification {
   actor_username?: string;
   actor_full_name?: string;
   actor_avatar_url?: string;
+  related_user_id?: any;
   is_read: boolean;
   created_at: string;
 }
@@ -22,7 +23,7 @@ const timeAgo = (dateStr: string) => {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}h ago`;
+  if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.floor(hours / 24)}d ago`;
@@ -85,9 +86,9 @@ const NotifCard = ({
   return (
     <div
       onClick={() => !notif.is_read && onRead(notif.id)}
-      className={`flex items-start gap-3.5 px-5 py-4 transition-all cursor-pointer group
+      className={`flex items-start gap-3.5 px-5 py-4 transition-all group relative
         ${!notif.is_read
-          ? 'bg-pink-50/60 border-l-4 border-pink-400 hover:bg-pink-50'
+          ? 'bg-pink-50/60 border-l-4 border-pink-400 hover:bg-pink-50 cursor-pointer'
           : 'bg-white border-l-4 border-transparent hover:bg-gray-50'
         }`}
     >
@@ -99,7 +100,7 @@ const NotifCard = ({
           {notif.actor_avatar_url ? (
             <img
               src={notif.actor_avatar_url.startsWith('http') ? notif.actor_avatar_url : `http://localhost:8080${notif.actor_avatar_url}`}
-              alt={notif.actor_full_name}
+              alt={notif.actor_full_name || '?'}
               className="w-full h-full object-cover"
             />
           ) : initial}
@@ -111,16 +112,48 @@ const NotifCard = ({
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pr-6">
         <p className="text-sm text-gray-600 leading-snug">
           {parseMessage(notif)}
         </p>
         <p className="text-[11px] text-gray-400 mt-1 font-medium">{timeAgo(notif.created_at)}</p>
+        
+        {/* Inline Actions for Connection Requests */}
+        {notif.type === 'connection_request' && notif.related_user_id && (
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const reqId = typeof notif.related_user_id === 'string' ? notif.related_user_id : notif.related_user_id?.UUID;
+                if (!reqId) return;
+                api.post('/connections/update', { requester_id: reqId, status: 'accepted' })
+                  .then(() => onRead(notif.id)) // Mark as read or visually update
+                  .catch(err => console.error('Failed to accept:', err));
+              }}
+              className="px-4 py-1.5 bg-pink-500 hover:bg-pink-600 text-white rounded-full text-xs font-bold transition-all shadow-sm shadow-pink-200 active:scale-95"
+            >
+              Accept
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                const reqId = typeof notif.related_user_id === 'string' ? notif.related_user_id : notif.related_user_id?.UUID;
+                if (!reqId) return;
+                api.post('/connections/update', { requester_id: reqId, status: 'blocked' })
+                  .then(() => onRead(notif.id)) // Mark as read or visually update
+                  .catch(err => console.error('Failed to decline:', err));
+              }}
+              className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full text-xs font-bold transition-all active:scale-95"
+            >
+              Decline
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Unread dot */}
       {!notif.is_read && (
-        <div className="shrink-0 w-2 h-2 rounded-full bg-pink-500 mt-1.5" />
+        <div className="absolute right-5 top-1/2 -translate-y-1/2 shrink-0 w-2.5 h-2.5 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.6)]" />
       )}
     </div>
   );

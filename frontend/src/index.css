@@ -4,14 +4,14 @@
 @theme {
   --color-primary: #ec4899;
   --color-accent: #a855f7;
-  --font-inter: "Inter", sans-serif;
+  --font-poppins: "Poppins", sans-serif;
 }
 
 @layer base {
   body {
     background-color: #ffffff;
     color: #111827;
-    font-family: var(--font-inter);
+    font-family: var(--font-poppins);
   }
 }
 

@@ -33,7 +33,7 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
 
   const handleConnect = async (userId: string) => {
     try {
-      await api.post('/connections/request', { user_id: userId });
+      await api.post('/connections/request', { target_user_id: userId });
       setResults(prev => prev.map(u => u.id === userId ? { ...u, requested: true } : u));
     } catch (err) {
       console.error('Failed to send request:', err);

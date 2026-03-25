@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 
+	"privacy-social-backend/internal/realtime"
 	"privacy-social-backend/internal/repository"
 	"privacy-social-backend/internal/repository/db"
 	"privacy-social-backend/internal/service/safety"
@@ -47,13 +49,15 @@ type ServiceImpl struct {
 	store  repository.Store
 	redis  *redis.Client
 	safety *safety.Monitor
+	hub    *realtime.Hub
 }
 
-func NewService(store repository.Store, rdb *redis.Client, safety *safety.Monitor) Service {
+func NewService(store repository.Store, rdb *redis.Client, safety *safety.Monitor, hub *realtime.Hub) Service {
 	return &ServiceImpl{
 		store:  store,
 		redis:  rdb,
 		safety: safety,
+		hub:    hub,
 	}
 }
 
@@ -118,7 +122,67 @@ func (s *ServiceImpl) CreateStory(ctx context.Context, req CreateStoryParams) (*
 	}
 	s.invalidateFeedCache(ctx, userGeohash)
 
+	// Notify nearby users about the new post
+	go s.notifyNearbyUsers(context.Background(), story)
+
 	return &story, nil
+}
+
+func (s *ServiceImpl) notifyNearbyUsers(ctx context.Context, story db.CreateStoryRow) {
+	// Radius for nearby post alert: 2km
+	const alertRadius = 2000.0
+	const userLocationsKey = "users:locations"
+
+	matches, err := s.redis.GeoRadius(ctx, userLocationsKey, story.Lng.(float64), story.Lat.(float64), &redis.GeoRadiusQuery{
+		Radius: alertRadius,
+		Unit:   "m",
+	}).Result()
+
+	if err != nil {
+		log.Error().Err(err).Msg("failed to find nearby users for story alert")
+		return
+	}
+
+	for _, match := range matches {
+		targetIDStr := match.Name
+		if targetIDStr == story.UserID.String() {
+			continue
+		}
+
+		targetID, err := uuid.Parse(targetIDStr)
+		if err != nil {
+			continue
+		}
+
+		// Deduplication: 5 minutes per user for ANY nearby story alert
+		dedupKey := fmt.Sprintf("alert_dedup:nearby_story:%s", targetID.String())
+		val, _ := s.redis.SetNX(ctx, dedupKey, "1", 5*time.Minute).Result()
+		if !val {
+			continue // Already notified recently
+		}
+
+		// Create DB notification
+		notif, err := s.store.CreateNotification(ctx, db.CreateNotificationParams{
+			UserID:         targetID,
+			Type:           "nearby_story",
+			Title:          "Nearby Activity!",
+			Message:        "Someone just posted a new story near you",
+			RelatedStoryID: uuid.NullUUID{UUID: story.ID, Valid: true},
+		})
+		if err != nil {
+			continue
+		}
+
+		// Push WebSocket alert
+		if s.hub != nil {
+			msg := realtime.WSMessage{
+				Type:    "new_nearby_post",
+				Payload: notif,
+			}
+			data, _ := json.Marshal(msg)
+			s.hub.SendToUser(targetID, data)
+		}
+	}
 }
 
 func (s *ServiceImpl) GetFeed(ctx context.Context, params GetFeedParams) ([]db.GetStoriesWithinRadiusRow, string, float64, error) {
@@ -146,24 +210,17 @@ func (s *ServiceImpl) GetFeed(ctx context.Context, params GetFeedParams) ([]db.G
 		connectionMap[c.ID] = true
 	}
 
-	// 3. Filter: Only Self OR Connections
-	var filtered []db.GetStoriesWithinRadiusRow
-	for _, st := range allStories {
-		if st.UserID == params.UserID || connectionMap[st.UserID] {
-			filtered = append(filtered, st)
-		}
-	}
-
-	sort.Slice(filtered, func(i, j int) bool {
-		return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
+	// 3. No filter - allow discovering nearby users!
+	sort.Slice(allStories, func(i, j int) bool {
+		return allStories[i].CreatedAt.After(allStories[j].CreatedAt)
 	})
 
 	message := "Stories found nearby"
-	if len(filtered) == 0 {
-		message = "No stories from connections found nearby"
+	if len(allStories) == 0 {
+		message = "No stories found nearby"
 	}
 
-	return filtered, message, maxRadius, nil
+	return allStories, message, maxRadius, nil
 }
 
 func (s *ServiceImpl) GetMapStories(ctx context.Context, params GetFeedParams) ([]db.GetStoriesWithinRadiusRow, error) {
@@ -192,18 +249,11 @@ func (s *ServiceImpl) GetMapStories(ctx context.Context, params GetFeedParams) (
 		connectionMap[c.ID] = true
 	}
 
-	var filtered []db.GetStoriesWithinRadiusRow
-	for _, st := range stories {
-		if st.UserID == params.UserID || connectionMap[st.UserID] {
-			filtered = append(filtered, st)
-		}
-	}
-
-	sort.Slice(filtered, func(i, j int) bool {
-		return filtered[i].CreatedAt.After(filtered[j].CreatedAt)
+	sort.Slice(stories, func(i, j int) bool {
+		return stories[i].CreatedAt.After(stories[j].CreatedAt)
 	})
 
-	return filtered, nil
+	return stories, nil
 }
 
 func (s *ServiceImpl) GetMyStories(ctx context.Context, userID uuid.UUID) ([]db.GetActiveStoriesByUserIDRow, error) {

@@ -11,27 +11,27 @@ interface NearbyStoriesGridProps {
   stories: Story[];
 }
 
-export const NearbyStoriesGrid: React.FC<NearbyStoriesGridProps> = ({ stories }) => {
+export const NearbyStoriesGrid: React.FC<NearbyStoriesGridProps> = ({ stories = [] }) => {
+  if (!Array.isArray(stories) || stories.length === 0) return null;
+  
   return (
-    <div className="flex flex-col gap-6 mb-10 px-2">
-      <h3 className="text-[12px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 italic">
-        Nearby Stories <span className="text-lg">📍</span>
-      </h3>
-
-      <div className="grid grid-cols-3 gap-4">
-        {stories.map((story, i) => (
-          <div key={i} className="aspect-square rounded-[24px] overflow-hidden relative group cursor-pointer shadow-md active:scale-95 transition-all border-2 border-white shadow-pink-500/5">
-            <img 
-               src={`http://localhost:8080${story.media_url}`} 
-               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-               alt="" 
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-100 group-hover:opacity-80 transition-opacity" />
-            <div className="absolute bottom-2.5 left-2.5 text-white">
-              <p className="text-[9px] font-black italic tracking-tighter uppercase">{story.username}</p>
-              <p className="text-[8px] font-bold text-white/60 uppercase tracking-widest opacity-80">
-                {story.distance || '0.5km'}
-              </p>
+    <div className="flex flex-col gap-4 mb-4">
+      <h3 className="text-xs font-black text-gray-400 uppercase italic">Nearby</h3>
+      <div className="grid grid-cols-3 gap-2">
+        {stories.slice(0, 9).map((s, i) => (
+          <div key={i} className="aspect-square bg-gray-100 rounded-xl overflow-hidden relative group">
+            {s?.media_url && <img src={`http://localhost:8080${s.media_url}`} className="w-full h-full object-cover relative z-0" alt="" />}
+            
+            {/* Dark overlay for text readability */}
+            <div className="absolute z-10 inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2 opacity-90 transition-opacity">
+              <span className="text-[11px] font-bold text-white leading-tight truncate">
+                {s.username || 'user'}
+              </span>
+              {s.distance && (
+                <span className="text-[9px] font-semibold text-white/80">
+                  {s.distance}
+                </span>
+              )}
             </div>
           </div>
         ))}

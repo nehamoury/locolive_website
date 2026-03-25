@@ -100,7 +100,12 @@ const FlyToUser = ({ position }: { position: [number, number] | null }) => {
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const MapPage = () => {
+interface MapPageProps {
+  onUserSelect?: (userId: string) => void;
+  onConnect?: (userId: string) => void;
+}
+
+const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
     const { } = useAuth();
     const [clusters, setClusters] = useState<any[]>([]);
     const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
@@ -114,6 +119,19 @@ const MapPage = () => {
     const [crossings, setCrossings] = useState<any[]>([]);
     const [locationName] = useState('Raipur, CG');
     const watchIdRef = useRef<number | null>(null);
+
+    const handleConnect = async (userId: string) => {
+        try {
+            if (onConnect) {
+                await onConnect(userId);
+                return;
+            }
+            await api.post('/connections/request', { target_user_id: userId });
+            // Optionally show toast here, but onConnect usually handles it
+        } catch (err) {
+            console.error('Failed to send connection request:', err);
+        }
+    };
 
     const fetchNearbyUsers = async (lat: number, lng: number) => {
         try {
@@ -172,7 +190,7 @@ const MapPage = () => {
     const defaultCenter: [number, number] = userPosition || [21.2514, 81.6296]; // Default to Raipur center
 
     // Derive data for DiscoveryPanel
-    const nearbyStories = clusters.flatMap(c => c.stories).slice(0, 9);
+    const nearbyStories = (clusters || []).flatMap(c => c.stories || []).slice(0, 9);
     const featuredUser = clusters[0]?.stories?.[0];
 
     return (
@@ -371,6 +389,8 @@ const MapPage = () => {
                     nearbyUser={featuredUser}
                     crossings={crossings}
                     nearbyStories={nearbyStories}
+                    onUserSelect={onUserSelect}
+                    onConnect={handleConnect}
                 />
             </div>
 
@@ -403,11 +423,17 @@ const MapPage = () => {
                                 </p>
                                 
                                 <div className="flex gap-3 w-full">
-                                    <button className="flex-1 py-3 bg-pink-500 text-white font-bold rounded-2xl shadow-lg shadow-pink-200 active:scale-95 transition-all flex items-center justify-center gap-2">
+                                    <button 
+                                        onClick={() => handleConnect(selectedUser.stories?.[0]?.user_id || selectedUser.stories?.[0]?.id)}
+                                        className="flex-1 py-3 bg-pink-500 text-white font-bold rounded-2xl shadow-lg shadow-pink-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                    >
                                         <UserPlus className="w-4 h-4" /> Follow
                                     </button>
-                                    <button className="flex-1 py-3 bg-gray-50 border border-gray-100 text-gray-900 font-bold rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2">
-                                        <MessageCircle className="w-4 h-4" /> Chat
+                                    <button 
+                                        onClick={() => onUserSelect?.(selectedUser.stories?.[0]?.user_id || selectedUser.stories?.[0]?.id)}
+                                        className="flex-1 py-3 bg-gray-50 border border-gray-100 text-gray-900 font-bold rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <MessageCircle className="w-4 h-4" /> Profile
                                     </button>
                                 </div>
                             </div>

@@ -26,8 +26,11 @@ export const useChat = (targetUserId?: string) => {
         params: { user_id: targetUserId }
       });
       setMessages(response.data || []);
+      
+      // Mark messages as read since we just opened the chat
+      await api.put(`/messages/read/${targetUserId}`);
     } catch (err) {
-      console.error('Failed to fetch chat history:', err);
+      console.error('Failed to fetch chat history or mark read:', err);
     }
   }, [targetUserId]);
 

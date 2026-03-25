@@ -48,6 +48,17 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
     fetchConversations();
   }, []);
 
+  // Clear unread badge locally when a chat is selected
+  useEffect(() => {
+    if (selectedId) {
+      setConversations(prev => {
+        const hasUnread = prev.find(c => c.id === selectedId && c.unread_count > 0);
+        if (!hasUnread) return prev; // Avoid unnecessary re-renders
+        return prev.map(c => c.id === selectedId ? { ...c, unread_count: 0 } : c);
+      });
+    }
+  }, [selectedId]);
+
   const filtered = conversations.filter(c =>
     c.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.username.toLowerCase().includes(searchQuery.toLowerCase())

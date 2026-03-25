@@ -8,50 +8,51 @@ interface StoryBarProps {
   onStoryClick: (stories: any[], index: number) => void;
 }
 
-const StoryBar: FC<StoryBarProps> = ({ stories, user, onCreateStory, onStoryClick }) => {
-  // Group stories by username to show one circle per user
-  // This logic should probably group own stories first
-  const userStories = stories.filter(s => s.username === user?.username);
-  const otherStories = stories.filter(s => s.username !== user?.username);
+const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStoryClick }) => {
+  const myStories = (stories || []).filter(s => s && s.username === user?.username);
+  const otherStories = (stories || []).filter(s => s && s.username !== user?.username);
+  const uniqueOtherStories = Array.from(new Map(otherStories.filter(s => s && s.username).map(s => [s.username, s])).values());
   
-  const uniqueOtherStories = Array.from(new Map(otherStories.map(s => [s.username, s])).values());
-  
-  // Track viewed state locally for demo/UX
-  // In a real app, this would be backend-driven
   const getViewedStatus = (username: string) => {
     return localStorage.getItem(`story_viewed_${username}`) === 'true';
   };
 
+  const hasMyStories = myStories.length > 0;
+
   return (
-    <div className="flex gap-6 overflow-x-auto no-scrollbar py-2">
-      {/* Persistent "Add Story" Button / Your Story */}
+    <div className="flex gap-5 overflow-x-auto no-scrollbar py-2 font-poppins min-h-[120px]">
+      {/* Your Story */}
       <div 
-        onClick={userStories.length > 0 ? () => onStoryClick(userStories, 0) : onCreateStory}
-        className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group relative"
+        onClick={() => hasMyStories ? onStoryClick(myStories, 0) : onCreateStory()}
+        className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group"
       >
-        <div className={`w-[78px] h-[78px] rounded-full p-[2px] transition-all duration-300 group-hover:scale-105 active:scale-95 ${userStories.length > 0 ? 'bg-gradient-to-tr from-pink-500 to-purple-600' : 'border-2 border-dashed border-gray-200 bg-transparent'}`}>
-          <div className="w-full h-full rounded-full border-[3px] border-white bg-white flex items-center justify-center overflow-hidden relative shadow-sm">
-            {user?.avatar_url ? (
+        <div className={`
+          w-[84px] h-[84px] rounded-full p-[2.5px] transition-all duration-300 group-hover:scale-105 active:scale-95 shadow-sm relative
+          ${hasMyStories ? 'bg-gradient-to-tr from-[#FF3B8E] to-[#A436EE]' : 'border-2 border-dashed border-gray-200'}
+        `}>
+          <div className="w-full h-full rounded-full border-[4px] border-white bg-white overflow-hidden flex items-center justify-center">
+            {user?.avatar_url || (hasMyStories && myStories[0].avatar_url) ? (
               <img 
-                src={user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8080${user.avatar_url}`} 
+                src={user?.avatar_url?.startsWith('http') ? user.avatar_url : `http://localhost:8080${user?.avatar_url || myStories[0].avatar_url}`} 
+                alt="My Story" 
                 className="w-full h-full object-cover" 
-                alt="You"
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-50 text-xl font-bold text-gray-300 uppercase italic">
-                {user?.full_name?.charAt(0) || user?.username?.charAt(0) || '?'}
-              </div>
-            )}
-            
-            {/* The Plus Badge (only if no stories) */}
-            {userStories.length === 0 && (
-              <div className="absolute inset-0 bg-white flex items-center justify-center">
-                 <Plus className="w-7 h-7 text-pink-500" strokeWidth={3} />
+              <div className="w-full h-full flex items-center justify-center bg-gray-50 text-[#FF3B8E] font-bold text-xl uppercase">
+                {user?.username?.charAt(0) || 'Y'}
               </div>
             )}
           </div>
+          
+          {/* Small Plus Overlay */}
+          <div 
+            onClick={(e) => { e.stopPropagation(); onCreateStory(); }}
+            className="absolute bottom-1 right-1 w-6 h-6 rounded-full bg-[#FF3B8E] border-2 border-white flex items-center justify-center text-white shadow-md hover:scale-110 transition-transform"
+          >
+            <Plus className="w-4 h-4 stroke-[4]" />
+          </div>
         </div>
-        <span className="text-[11px] font-bold text-gray-500 group-hover:text-pink-600 transition-colors uppercase tracking-tight">Your Story</span>
+        <span className="text-[11px] font-bold text-gray-500 group-hover:text-[#FF3B8E] transition-colors tracking-tight">Your Story</span>
       </div>
 
       {/* Dynamic User Stories */}
@@ -65,25 +66,21 @@ const StoryBar: FC<StoryBarProps> = ({ stories, user, onCreateStory, onStoryClic
             className="flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer"
           >
             <div className={`
-              w-[78px] h-[78px] rounded-full p-[2px] transition-all duration-300 group-hover:scale-105 active:scale-95 shadow-sm
-              ${isViewed ? 'bg-gray-200' : 'bg-gradient-to-tr from-pink-500 to-purple-600'}
+              w-[84px] h-[84px] rounded-full p-[2.5px] transition-all duration-300 group-hover:scale-105 active:scale-95 shadow-sm
+              ${isViewed ? 'bg-gray-200' : 'bg-gradient-to-tr from-[#FF3B8E] to-[#A436EE]'}
             `}>
-              <div className="w-full h-full rounded-full border-[3px] border-white bg-white overflow-hidden">
-                {story.avatar_url ? (
-                  <img 
-                    src={story.avatar_url.startsWith('http') ? story.avatar_url : `http://localhost:8080${story.avatar_url}`} 
-                    alt={story.username} 
-                    className="w-full h-full object-cover" 
-                  />
+              <div className="w-full h-full rounded-full border-[4px] border-white bg-white overflow-hidden">
+                {story?.avatar_url ? (
+                  <img src={`http://localhost:8080${story.avatar_url}`} alt={story.username} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-lg font-bold text-white uppercase italic">
-                    {story.username.charAt(0)}
+                  <div className="w-full h-full flex items-center justify-center bg-gray-50 text-[#FF3B8E] font-bold text-xl uppercase">
+                    {story?.username?.charAt(0) || '?'}
                   </div>
                 )}
               </div>
             </div>
-            <span className={`text-[11px] font-bold max-w-[78px] truncate transition-colors uppercase tracking-tight ${isViewed ? 'text-gray-400' : 'text-pink-600'}`}>
-              {story.username}
+            <span className={`text-[11px] font-bold max-w-[84px] truncate transition-colors tracking-tight ${isViewed ? 'text-gray-400' : 'text-[#FF3B8E]'}`}>
+              {story?.username || 'User'}
             </span>
           </div>
         );

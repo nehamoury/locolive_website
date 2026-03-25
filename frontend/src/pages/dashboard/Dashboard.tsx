@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ShieldAlert, Home, Map as MapIcon, Users, User, Sparkles, MessageSquare, Plus, Bell } from 'lucide-react';
+import { ShieldAlert, Home, Map as MapIcon, User, Sparkles, MessageSquare, Plus, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { Toaster } from 'react-hot-toast';
+import { useNotifications } from '../../hooks/useNotifications';
 
 // Views and Components
 import Sidebar from '../../components/layout/Sidebar';
@@ -16,6 +18,7 @@ import UserProfileView from './UserProfileView';
 import CrossingsView from './CrossingsView';
 import CastingPage from './CastingPage';
 import MapPage from './MapPage';
+import { useGeolocation } from '../../hooks/useGeolocation';
 
 // Modals
 import CreateStoryModal from '../../components/story/CreateStoryModal';
@@ -33,12 +36,19 @@ const Dashboard = () => {
   const [loadingStories, setLoadingStories] = useState(false);
   const [viewingStories, setViewingStories] = useState<any[]>([]);
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
-  
+
   const [selectedChatUser, setSelectedChatUser] = useState<string | null>(null);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [selectedUserProfileId, setSelectedUserProfileId] = useState<string | null>(null);
+  const [activeConnectionTab, setActiveConnectionTab] = useState<'suggestions' | 'requests' | 'my-connections'>('suggestions');
   const [, setPanicSequence] = useState('');
   const [showPanicConfirm, setShowPanicConfirm] = useState(false);
+
+  // Real-time Notifications Hook
+  const { unreadCount: totalUnreadCount } = useNotifications();
+
+  // Crossings mapping
+  useGeolocation(true);
+  const [crossingsCount, setCrossingsCount] = useState<number>(0);
 
   // Core Data Fetching
   const fetchStories = useCallback(async () => {
@@ -69,14 +79,20 @@ const Dashboard = () => {
     }
   }, [logout]);
 
-  const fetchUnreadCount = useCallback(async () => {
+  // Removed manual message unread count (now handled by useNotifications)
+
+
+  const fetchCrossings = useCallback(async () => {
     try {
-      const response = await api.get('/messages/unread-count');
-      setUnreadCount(response.data.unread_count || 0);
+      const response = await api.get('/crossings');
+      const data = response.data || [];
+      const today = new Date().toISOString().split('T')[0];
+      const todayCrossings = data.filter((c: any) => c.last_crossing_at?.startsWith(today));
+      setCrossingsCount(todayCrossings.length);
     } catch (err) { }
   }, []);
 
-  // Panic & Ping
+  // Panic & Data Polling
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const char = e.key.toUpperCase();
@@ -92,36 +108,18 @@ const Dashboard = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
 
-    const pingLocation = () => {
-      if (!('geolocation' in navigator)) return;
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            await api.post('/location/ping', {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-            });
-          } catch { }
-        },
-        () => { },
-        { timeout: 5000 }
-      );
-    };
-
     fetchStories();
-    fetchUnreadCount();
-    pingLocation();
+    fetchCrossings();
 
     const interval = setInterval(() => {
-      fetchUnreadCount();
-      pingLocation();
-    }, 60000);
+      fetchCrossings();
+    }, 30000); // Crossings sync every 30s
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       clearInterval(interval);
     };
-  }, [fetchStories, fetchUnreadCount]);
+  }, [fetchStories, fetchCrossings]);
 
   useEffect(() => {
     if (activeTab === 'home') {
@@ -137,6 +135,17 @@ const Dashboard = () => {
     } catch (err) {
       console.error("Panic failed:", err);
     }
+  };
+
+  const handleUserSelect = (userId: string) => {
+    setSelectedUserProfileId(userId);
+    setActiveTab('search');
+  };
+
+  const handleStartMessage = (userId: string) => {
+    setSelectedChatUser(userId);
+    setSelectedUserProfileId(null);
+    setActiveTab('messages');
   };
 
   // ─── Render View Component ────────────────────────────────────────────────────────
@@ -161,9 +170,15 @@ const Dashboard = () => {
       case 'notifications':
         return <NotificationsView />;
       case 'explore':
-        return <MapPage />;
+        return <MapPage onUserSelect={handleUserSelect} />;
       case 'connections':
-        return <ConnectionsView />;
+        return (
+          <ConnectionsView 
+            initialTab={activeConnectionTab} 
+            onUserSelect={handleUserSelect}
+            onMessage={handleStartMessage}
+          />
+        );
       case 'settings':
         return <SettingsView onBack={() => setActiveTab('profile')} />;
       case 'search':
@@ -171,14 +186,10 @@ const Dashboard = () => {
           <UserProfileView 
             userId={selectedUserProfileId} 
             onBack={() => setSelectedUserProfileId(null)}
-            onMessage={(userId) => {
-              setSelectedChatUser(userId);
-              setActiveTab('messages');
-              setSelectedUserProfileId(null);
-            }}
+            onMessage={handleStartMessage}
           />
         ) : (
-          <SearchView onUserSelect={setSelectedUserProfileId} />
+          <SearchView onUserSelect={handleUserSelect} />
         );
       case 'crossings':
         return <CrossingsView />;
@@ -191,9 +202,15 @@ const Dashboard = () => {
             <div className="flex items-center justify-between px-6 py-3.5 border-b border-gray-100 bg-white shrink-0">
               <h2 className="text-xl font-black text-gray-900 italic tracking-tight">Messages</h2>
               <div className="flex items-center gap-2">
-                <button className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-gray-500 hover:bg-gray-50 transition-all">
-                  <span className="w-1.5 h-1.5 bg-pink-500 rounded-full" />
-                  {unreadCount > 0 ? `${unreadCount} pending requests` : '0 pending requests'}
+                <button 
+                  onClick={() => {
+                    setActiveConnectionTab('requests');
+                    setActiveTab('connections');
+                  }}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-gray-500 hover:bg-gray-50 transition-all cursor-pointer"
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${totalUnreadCount > 0 ? 'bg-pink-500 animate-pulse' : 'bg-gray-300'}`} />
+                  {totalUnreadCount > 0 ? `${totalUnreadCount} pending requests` : '0 pending requests'}
                 </button>
                 <button
                   onClick={() => setSelectedChatUser(null)}
@@ -238,7 +255,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-white text-gray-800 font-sans flex overflow-hidden">
+    <div className="h-screen w-full bg-white text-gray-800 font-poppins flex overflow-hidden">
       
       {/* 1. Left Sidebar (Fixed) */}
       <Sidebar 
@@ -246,23 +263,25 @@ const Dashboard = () => {
         setActiveTab={setActiveTab} 
         user={user} 
         logout={logout} 
-        unreadCount={unreadCount} 
+        unreadCount={totalUnreadCount} 
         onCreatePost={() => setIsCreateModalOpen(true)}
       />
 
+      <Toaster position="top-right" reverseOrder={false} />
+
       {/* 2. Main Content Center (Scrollable) */}
-      <main className="flex-1 relative overflow-hidden flex flex-col border-r border-gray-100 z-10">
+      <main className="flex-1 relative overflow-hidden flex flex-col border-r border-gray-50 z-10">
         
         {/* Mobile Header */}
-        <div className="md:hidden sticky top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between bg-white/95 backdrop-blur-xl border-b border-gray-100 shadow-sm">
-          <div className="text-xl font-black italic tracking-tighter bg-gradient-to-r from-pink-500 to-purple-600 bg-clip-text text-transparent">
-            Locolive
+        <div className="md:hidden sticky top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between bg-white/95 backdrop-blur-xl border-b border-gray-50">
+          <div className="text-2xl font-black tracking-tighter">
+            <span className="bg-gradient-to-r from-[#FF3B8E] to-[#A436EE] bg-clip-text text-transparent">Locolive</span>
           </div>
-          <div className="flex space-x-4 text-gray-600">
-            <button><Bell className="w-6 h-6" /></button>
-            <button className="relative" onClick={() => setActiveTab('messages')}>
+          <div className="flex space-x-4 text-gray-400">
+            <button className="hover:text-[#FF3B8E] transition-colors"><Bell className="w-6 h-6" /></button>
+            <button className="relative hover:text-[#FF3B8E] transition-colors" onClick={() => setActiveTab('messages')}>
               <MessageSquare className="w-6 h-6" />
-              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 bg-accent rounded-full border border-[#f9e8ff]" />}
+              {totalUnreadCount > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#FF3B8E] rounded-full border-2 border-white shadow-sm" />}
             </button>
           </div>
         </div>
@@ -273,25 +292,24 @@ const Dashboard = () => {
         </div>
 
         {/* Mobile Bottom Navigation */}
-        <nav className="md:hidden fixed bottom-0 w-full flex items-center justify-around bg-white/95 backdrop-blur-2xl border-t border-gray-100 px-4 h-16 z-[60] shadow-lg">
+        <nav className="md:hidden fixed bottom-0 w-full flex items-center justify-around bg-white/95 backdrop-blur-2xl border-t border-gray-50 px-4 h-18 z-[60] shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
           <MobileNavItem icon={<Home className="w-6 h-6" />} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
           <MobileNavItem icon={<MapIcon className="w-6 h-6" />} active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} />
-          <MobileNavItem icon={<Sparkles className="w-6 h-6" />} active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} />
           
           <button 
             onClick={() => setIsCreateModalOpen(true)}
-            className="w-12 h-12 bg-gradient-to-tr from-pink-500 to-purple-600 rounded-full flex items-center justify-center transform -translate-y-4 shadow-lg active:scale-95 transition-all text-white border-[3px] border-white"
+            className="w-13 h-13 bg-gradient-to-tr from-[#FF3B8E] to-[#A436EE] rounded-full flex items-center justify-center transform -translate-y-5 shadow-lg shadow-pink-200 active:scale-90 transition-all text-white border-4 border-white"
           >
-            <Plus className="w-6 h-6" />
+            <Plus className="w-7 h-7 stroke-[3]" />
           </button>
           
-          <MobileNavItem icon={<Users className="w-6 h-6" />} active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} />
+          <MobileNavItem icon={<Sparkles className="w-6 h-6" />} active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} />
           <MobileNavItem icon={<User className="w-6 h-6" />} active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
         </nav>
       </main>
 
-      {/* 3. Right Sidebar (Widgets - Desktop only) */}
-      <RightSidebar />
+      {/* Rightsider with data */}
+      <RightSidebar crossingsToday={crossingsCount} />
 
       {/* Overlays / Modals */}
       <CreateStoryModal
@@ -318,25 +336,25 @@ const Dashboard = () => {
       )}
 
       {showPanicConfirm && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-primary/20 backdrop-blur-xl p-6">
-          <div className="glass border-2 border-red-500/50 p-8 rounded-[32px] max-w-sm w-full text-center shadow-2xl">
-            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
-              <ShieldAlert className="w-10 h-10" />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gray-900/10 backdrop-blur-xl p-6">
+          <div className="bg-white border border-gray-100 p-8 rounded-[40px] max-w-sm w-full text-center shadow-2xl">
+            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
+              <ShieldAlert className="w-11 h-11" />
             </div>
-            <h2 className="text-2xl font-black text-black mb-2 tracking-tight">Erase all data?</h2>
-            <p className="text-black/60 text-sm mb-8 leading-relaxed">
-              This will permanently delete all your messages, stories, and connections.
+            <h2 className="text-2xl font-black text-gray-900 mb-2 tracking-tight">System Purge?</h2>
+            <p className="text-gray-400 text-sm mb-8 leading-relaxed font-medium">
+              This will permanently wipe all your data from this device and the server. This action cannot be undone.
             </p>
             <div className="space-y-3">
               <button 
                 onClick={handlePanic}
-                className="w-full py-3.5 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-red-500/20"
+                className="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-red-100"
               >
-                Yes, Erase
+                Execute Purge
               </button>
               <button 
                 onClick={() => setShowPanicConfirm(false)}
-                className="w-full py-3.5 bg-primary/5 hover:bg-primary/10 text-black rounded-2xl font-bold transition-all active:scale-95"
+                className="w-full py-4 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-2xl font-bold transition-all active:scale-95"
               >
                 Cancel
               </button>
@@ -352,7 +370,7 @@ const Dashboard = () => {
 const MobileNavItem = ({ icon, active, onClick }: { icon: React.ReactNode, active: boolean, onClick: () => void }) => (
   <button 
     onClick={onClick} 
-    className={`p-2 transition-colors ${active ? 'text-accent' : 'text-black/60 hover:text-black'}`}
+    className={`p-2 transition-all duration-300 ${active ? 'text-[#FF3B8E] scale-110' : 'text-gray-300 hover:text-gray-500'}`}
   >
     {icon}
   </button>

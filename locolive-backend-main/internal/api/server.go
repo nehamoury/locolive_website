@@ -56,8 +56,8 @@ func NewServer(
 	go hub.Run() // Start the hub in a goroutine
 
 	safetyMonitor := safety.NewMonitor(rdb)
-	locationService := location.NewRedisLocationService(rdb, store)
-	storyService := story.NewService(store, rdb, safetyMonitor)
+	locationService := location.NewRedisLocationService(rdb, store, hub)
+	storyService := story.NewService(store, rdb, safetyMonitor, hub)
 	userService := user.NewService(store, tokenMaker, user.TokenConfig{
 		AccessTokenDuration:  config.AccessTokenDuration,
 		RefreshTokenDuration: config.RefreshTokenDuration,

@@ -11,6 +11,8 @@ interface DiscoveryPanelProps {
   nearbyUser?: any;
   crossings: any[];
   nearbyStories: any[];
+  onUserSelect?: (userId: string) => void;
+  onConnect?: (userId: string) => void;
 }
 
 export const DiscoveryPanel: React.FC<DiscoveryPanelProps> = ({
@@ -19,7 +21,9 @@ export const DiscoveryPanel: React.FC<DiscoveryPanelProps> = ({
   locationName,
   nearbyUser,
   crossings,
-  nearbyStories
+  nearbyStories,
+  onUserSelect,
+  onConnect
 }) => {
   return (
     <div className="flex-1 h-full overflow-y-auto no-scrollbar flex flex-col bg-white border-l border-gray-100">
@@ -35,11 +39,15 @@ export const DiscoveryPanel: React.FC<DiscoveryPanelProps> = ({
            <h3 className="text-[12px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 italic px-2">
               People Nearby <span className="text-lg">💫</span>
            </h3>
-           <PeopleNearbyCard user={nearbyUser || { username: "Guest", bio: "Nearby user", distance: "0.2km" }} />
+           <PeopleNearbyCard 
+             user={nearbyUser || { username: "Guest", bio: "Nearby user", distance: "0.2km" }} 
+             onConnect={onConnect}
+             onProfileClick={onUserSelect}
+           />
         </section>
 
         {/* Path Crossings Section */}
-        <PathCrossingsList crossings={crossings} />
+        <PathCrossingsList crossings={crossings} onUserSelect={onUserSelect} />
 
         {/* Nearby Stories Grid */}
         <NearbyStoriesGrid stories={nearbyStories} />

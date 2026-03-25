@@ -46,7 +46,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
 
   const handleFollow = async () => {
     try {
-      await api.post('/connections/request', { receiver_id: userId });
+      await api.post('/connections/request', { target_user_id: userId });
       setProfile((prev: any) => ({ ...prev, requested: true }));
     } catch (err) {
       console.error('Follow request failed:', err);
