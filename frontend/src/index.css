@@ -23,13 +23,19 @@
     border: 1px solid rgba(0, 0, 0, 0.06);
     box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.08);
   }
-  
+
   .glass-input {
     background: rgba(255, 255, 255, 0.95);
     border: 1px solid rgba(0, 0, 0, 0.1);
     color: #111827;
   }
 
-  .no-scrollbar::-webkit-scrollbar { display: none; }
-  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

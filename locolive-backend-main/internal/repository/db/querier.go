@@ -13,6 +13,7 @@ import (
 
 type Querier interface {
 	AddGroupMember(ctx context.Context, arg AddGroupMemberParams) (GroupMember, error)
+	AddStoryToHighlight(ctx context.Context, arg AddStoryToHighlightParams) (HighlightStory, error)
 	ArchiveStory(ctx context.Context, arg ArchiveStoryParams) (ArchivedStory, error)
 	BanUser(ctx context.Context, arg BanUserParams) (User, error)
 	BlockUser(ctx context.Context, arg BlockUserParams) (BlockedUser, error)
@@ -29,10 +30,13 @@ type Querier interface {
 	CreateConnectionRequest(ctx context.Context, arg CreateConnectionRequestParams) (Connection, error)
 	CreateCrossing(ctx context.Context, arg CreateCrossingParams) (Crossing, error)
 	CreateGroup(ctx context.Context, arg CreateGroupParams) (Group, error)
+	CreateHighlight(ctx context.Context, arg CreateHighlightParams) (HighlightGroup, error)
 	CreateLocation(ctx context.Context, arg CreateLocationParams) (Location, error)
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
 	CreateMessageReaction(ctx context.Context, arg CreateMessageReactionParams) (MessageReaction, error)
 	CreateNotification(ctx context.Context, arg CreateNotificationParams) (Notification, error)
+	CreatePost(ctx context.Context, arg CreatePostParams) (CreatePostRow, error)
+	CreatePostComment(ctx context.Context, arg CreatePostCommentParams) (PostComment, error)
 	CreateReport(ctx context.Context, arg CreateReportParams) (Report, error)
 	CreateSession(ctx context.Context, arg CreateSessionParams) (Session, error)
 	CreateStory(ctx context.Context, arg CreateStoryParams) (CreateStoryRow, error)
@@ -42,6 +46,7 @@ type Querier interface {
 	// Story Views
 	CreateStoryView(ctx context.Context, arg CreateStoryViewParams) (StoryView, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DecrementPostLikes(ctx context.Context, id uuid.UUID) error
 	// Used for panic mode - deletes all user data
 	DeleteAllUserData(ctx context.Context, id uuid.UUID) error
 	DeleteArchivedStory(ctx context.Context, arg DeleteArchivedStoryParams) error
@@ -50,12 +55,15 @@ type Querier interface {
 	DeleteExpiredLocations(ctx context.Context) error
 	DeleteExpiredMessages(ctx context.Context) error
 	DeleteExpiredStories(ctx context.Context) error
+	DeleteHighlight(ctx context.Context, arg DeleteHighlightParams) error
 	DeleteMessage(ctx context.Context, arg DeleteMessageParams) error
 	DeleteMessageReaction(ctx context.Context, arg DeleteMessageReactionParams) error
 	// Delete messages older than specified days (default: 30 days)
 	DeleteOldMessages(ctx context.Context) error
 	// Delete notifications older than 30 days
 	DeleteOldNotifications(ctx context.Context) error
+	DeletePost(ctx context.Context, arg DeletePostParams) error
+	DeletePostComment(ctx context.Context, arg DeletePostCommentParams) error
 	// Admin: Delete story
 	DeleteStory(ctx context.Context, id uuid.UUID) error
 	DeleteStoryMentions(ctx context.Context, storyID uuid.UUID) error
@@ -63,10 +71,10 @@ type Querier interface {
 	DeleteUser(ctx context.Context, id uuid.UUID) error
 	// Block Logic
 	FindPotentialCrossings(ctx context.Context, arg FindPotentialCrossingsParams) ([]FindPotentialCrossingsRow, error)
+	GetActiveStoriesByUserID(ctx context.Context, userID uuid.UUID) ([]GetActiveStoriesByUserIDRow, error)
 	GetArchivedStories(ctx context.Context, arg GetArchivedStoriesParams) ([]ArchivedStory, error)
 	GetArchivedStory(ctx context.Context, arg GetArchivedStoryParams) (ArchivedStory, error)
 	GetBlockedUsers(ctx context.Context, blockerID uuid.UUID) ([]GetBlockedUsersRow, error)
-	GetActiveStoriesByUserID(ctx context.Context, userID uuid.UUID) ([]GetActiveStoriesByUserIDRow, error)
 	GetConnection(ctx context.Context, arg GetConnectionParams) (Connection, error)
 	// Get stories from connected users (not limited by radius)
 	GetConnectionStories(ctx context.Context, userID uuid.UUID) ([]GetConnectionStoriesRow, error)
@@ -78,6 +86,8 @@ type Querier interface {
 	GetGroupMembers(ctx context.Context, groupID uuid.UUID) ([]GetGroupMembersRow, error)
 	GetGroupMessages(ctx context.Context, groupID uuid.NullUUID) ([]GetGroupMessagesRow, error)
 	GetHeatmapData(ctx context.Context) ([]GetHeatmapDataRow, error)
+	// Returns all archived stories belonging to a highlight
+	GetHighlightDetails(ctx context.Context, highlightID uuid.UUID) ([]GetHighlightDetailsRow, error)
 	GetMessage(ctx context.Context, id uuid.UUID) (Message, error)
 	GetMessageReactions(ctx context.Context, messageID uuid.UUID) ([]GetMessageReactionsRow, error)
 	GetMyProfileViews(ctx context.Context, viewerID uuid.UUID) ([]GetMyProfileViewsRow, error)
@@ -113,13 +123,20 @@ type Querier interface {
 	GetUserMentions(ctx context.Context, arg GetUserMentionsParams) ([]GetUserMentionsRow, error)
 	GetUserProfile(ctx context.Context, id uuid.UUID) (GetUserProfileRow, error)
 	HasValidStory(ctx context.Context, userID uuid.UUID) (bool, error)
+	IncrementPostLikes(ctx context.Context, id uuid.UUID) error
 	IsUserBlocked(ctx context.Context, arg IsUserBlockedParams) (bool, error)
+	LikePost(ctx context.Context, arg LikePostParams) (PostLike, error)
 	// Admin: List all stories
 	ListAllStories(ctx context.Context, arg ListAllStoriesParams) ([]ListAllStoriesRow, error)
 	ListConnections(ctx context.Context, requesterID uuid.UUID) ([]ListConnectionsRow, error)
+	// Get posts from connections AND own posts
+	ListConnectionsPosts(ctx context.Context, arg ListConnectionsPostsParams) ([]ListConnectionsPostsRow, error)
+	ListHighlightsByUserID(ctx context.Context, userID uuid.UUID) ([]ListHighlightsByUserIDRow, error)
 	ListMessages(ctx context.Context, arg ListMessagesParams) ([]ListMessagesRow, error)
 	ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]Notification, error)
 	ListPendingRequests(ctx context.Context, targetID uuid.UUID) ([]ListPendingRequestsRow, error)
+	ListPostComments(ctx context.Context, postID uuid.UUID) ([]ListPostCommentsRow, error)
+	ListPostsByUserID(ctx context.Context, arg ListPostsByUserIDParams) ([]ListPostsByUserIDRow, error)
 	// Admin: List all reports
 	ListReports(ctx context.Context, arg ListReportsParams) ([]ListReportsRow, error)
 	ListSentConnectionRequests(ctx context.Context, requesterID uuid.UUID) ([]ListSentConnectionRequestsRow, error)
@@ -130,6 +147,7 @@ type Querier interface {
 	MarkMessageRead(ctx context.Context, arg MarkMessageReadParams) (Message, error)
 	MarkNotificationAsRead(ctx context.Context, arg MarkNotificationAsReadParams) (Notification, error)
 	RemoveGroupMember(ctx context.Context, arg RemoveGroupMemberParams) error
+	RemoveStoryFromHighlight(ctx context.Context, arg RemoveStoryFromHighlightParams) error
 	// Admin: Resolve report
 	ResolveReport(ctx context.Context, id uuid.UUID) (Report, error)
 	SaveMessage(ctx context.Context, id uuid.UUID) (Message, error)
@@ -139,7 +157,9 @@ type Querier interface {
 	ToggleGhostMode(ctx context.Context, arg ToggleGhostModeParams) (User, error)
 	TrackProfileView(ctx context.Context, arg TrackProfileViewParams) (ProfileView, error)
 	UnblockUser(ctx context.Context, arg UnblockUserParams) error
+	UnlikePost(ctx context.Context, arg UnlikePostParams) error
 	UpdateConnectionStatus(ctx context.Context, arg UpdateConnectionStatusParams) (Connection, error)
+	UpdateHighlightCover(ctx context.Context, arg UpdateHighlightCoverParams) (HighlightGroup, error)
 	UpdateMessage(ctx context.Context, arg UpdateMessageParams) (Message, error)
 	UpdateStory(ctx context.Context, arg UpdateStoryParams) (UpdateStoryRow, error)
 	// Updates last_active_at and calculates activity streak
@@ -148,6 +168,7 @@ type Querier interface {
 	UpdateUserGoogleID(ctx context.Context, arg UpdateUserGoogleIDParams) (User, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (UpdateUserProfileRow, error)
+	UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) (User, error)
 	UpdateUserTrust(ctx context.Context, arg UpdateUserTrustParams) (User, error)
 	UpsertPrivacySettings(ctx context.Context, arg UpsertPrivacySettingsParams) (PrivacySetting, error)
 }

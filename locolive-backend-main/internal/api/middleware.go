@@ -27,11 +27,13 @@ func authMiddleware(tokenMaker token.Maker) gin.HandlerFunc {
 		if len(authorizationHeader) == 0 {
 			tokenParam := ctx.Query("token")
 			if len(tokenParam) > 0 {
+				fmt.Printf("[DEBUG] authMiddleware: found token in query param\n")
 				authorizationHeader = "Bearer " + tokenParam
 			}
 		}
 
 		if len(authorizationHeader) == 0 {
+			fmt.Printf("[DEBUG] authMiddleware: no authorization header or token param\n")
 			err := errors.New("authorization header is not provided")
 			ctx.AbortWithStatusJSON(http.StatusUnauthorized, errorResponse(err))
 			return
@@ -94,6 +96,12 @@ func adminMiddleware(server *Server) gin.HandlerFunc {
 // corsMiddleware handles the CORS middleware
 func corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Skip CORS for WebSocket upgrade requests to avoid protocol interference
+		if c.GetHeader("Upgrade") == "websocket" {
+			c.Next()
+			return
+		}
+
 		origin := c.Request.Header.Get("Origin")
 		if origin != "" {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)

@@ -58,6 +58,21 @@ func (mr *MockStoreMockRecorder) AddGroupMember(ctx, arg any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddGroupMember", reflect.TypeOf((*MockStore)(nil).AddGroupMember), ctx, arg)
 }
 
+// AddStoryToHighlight mocks base method.
+func (m *MockStore) AddStoryToHighlight(ctx context.Context, arg db.AddStoryToHighlightParams) (db.HighlightStory, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddStoryToHighlight", ctx, arg)
+	ret0, _ := ret[0].(db.HighlightStory)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AddStoryToHighlight indicates an expected call of AddStoryToHighlight.
+func (mr *MockStoreMockRecorder) AddStoryToHighlight(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddStoryToHighlight", reflect.TypeOf((*MockStore)(nil).AddStoryToHighlight), ctx, arg)
+}
+
 // ArchiveStory mocks base method.
 func (m *MockStore) ArchiveStory(ctx context.Context, arg db.ArchiveStoryParams) (db.ArchivedStory, error) {
 	m.ctrl.T.Helper()
@@ -297,6 +312,21 @@ func (mr *MockStoreMockRecorder) CreateGroup(ctx, arg any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateGroup", reflect.TypeOf((*MockStore)(nil).CreateGroup), ctx, arg)
 }
 
+// CreateHighlight mocks base method.
+func (m *MockStore) CreateHighlight(ctx context.Context, arg db.CreateHighlightParams) (db.HighlightGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateHighlight", ctx, arg)
+	ret0, _ := ret[0].(db.HighlightGroup)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateHighlight indicates an expected call of CreateHighlight.
+func (mr *MockStoreMockRecorder) CreateHighlight(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateHighlight", reflect.TypeOf((*MockStore)(nil).CreateHighlight), ctx, arg)
+}
+
 // CreateLocation mocks base method.
 func (m *MockStore) CreateLocation(ctx context.Context, arg db.CreateLocationParams) (db.Location, error) {
 	m.ctrl.T.Helper()
@@ -355,6 +385,36 @@ func (m *MockStore) CreateNotification(ctx context.Context, arg db.CreateNotific
 func (mr *MockStoreMockRecorder) CreateNotification(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateNotification", reflect.TypeOf((*MockStore)(nil).CreateNotification), ctx, arg)
+}
+
+// CreatePost mocks base method.
+func (m *MockStore) CreatePost(ctx context.Context, arg db.CreatePostParams) (db.CreatePostRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreatePost", ctx, arg)
+	ret0, _ := ret[0].(db.CreatePostRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreatePost indicates an expected call of CreatePost.
+func (mr *MockStoreMockRecorder) CreatePost(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePost", reflect.TypeOf((*MockStore)(nil).CreatePost), ctx, arg)
+}
+
+// CreatePostComment mocks base method.
+func (m *MockStore) CreatePostComment(ctx context.Context, arg db.CreatePostCommentParams) (db.PostComment, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreatePostComment", ctx, arg)
+	ret0, _ := ret[0].(db.PostComment)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreatePostComment indicates an expected call of CreatePostComment.
+func (mr *MockStoreMockRecorder) CreatePostComment(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePostComment", reflect.TypeOf((*MockStore)(nil).CreatePostComment), ctx, arg)
 }
 
 // CreateReport mocks base method.
@@ -462,6 +522,20 @@ func (mr *MockStoreMockRecorder) CreateUser(ctx, arg any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUser", reflect.TypeOf((*MockStore)(nil).CreateUser), ctx, arg)
 }
 
+// DecrementPostLikes mocks base method.
+func (m *MockStore) DecrementPostLikes(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DecrementPostLikes", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DecrementPostLikes indicates an expected call of DecrementPostLikes.
+func (mr *MockStoreMockRecorder) DecrementPostLikes(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DecrementPostLikes", reflect.TypeOf((*MockStore)(nil).DecrementPostLikes), ctx, id)
+}
+
 // DeleteAllUserData mocks base method.
 func (m *MockStore) DeleteAllUserData(ctx context.Context, id uuid.UUID) error {
 	m.ctrl.T.Helper()
@@ -560,6 +634,20 @@ func (mr *MockStoreMockRecorder) DeleteExpiredStories(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteExpiredStories", reflect.TypeOf((*MockStore)(nil).DeleteExpiredStories), ctx)
 }
 
+// DeleteHighlight mocks base method.
+func (m *MockStore) DeleteHighlight(ctx context.Context, arg db.DeleteHighlightParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteHighlight", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteHighlight indicates an expected call of DeleteHighlight.
+func (mr *MockStoreMockRecorder) DeleteHighlight(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteHighlight", reflect.TypeOf((*MockStore)(nil).DeleteHighlight), ctx, arg)
+}
+
 // DeleteMessage mocks base method.
 func (m *MockStore) DeleteMessage(ctx context.Context, arg db.DeleteMessageParams) error {
 	m.ctrl.T.Helper()
@@ -614,6 +702,34 @@ func (m *MockStore) DeleteOldNotifications(ctx context.Context) error {
 func (mr *MockStoreMockRecorder) DeleteOldNotifications(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteOldNotifications", reflect.TypeOf((*MockStore)(nil).DeleteOldNotifications), ctx)
+}
+
+// DeletePost mocks base method.
+func (m *MockStore) DeletePost(ctx context.Context, arg db.DeletePostParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeletePost", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeletePost indicates an expected call of DeletePost.
+func (mr *MockStoreMockRecorder) DeletePost(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePost", reflect.TypeOf((*MockStore)(nil).DeletePost), ctx, arg)
+}
+
+// DeletePostComment mocks base method.
+func (m *MockStore) DeletePostComment(ctx context.Context, arg db.DeletePostCommentParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeletePostComment", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeletePostComment indicates an expected call of DeletePostComment.
+func (mr *MockStoreMockRecorder) DeletePostComment(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePostComment", reflect.TypeOf((*MockStore)(nil).DeletePostComment), ctx, arg)
 }
 
 // DeleteStory mocks base method.
@@ -701,6 +817,21 @@ func (mr *MockStoreMockRecorder) FindPotentialCrossings(ctx, arg any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindPotentialCrossings", reflect.TypeOf((*MockStore)(nil).FindPotentialCrossings), ctx, arg)
 }
 
+// GetActiveStoriesByUserID mocks base method.
+func (m *MockStore) GetActiveStoriesByUserID(ctx context.Context, userID uuid.UUID) ([]db.GetActiveStoriesByUserIDRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetActiveStoriesByUserID", ctx, userID)
+	ret0, _ := ret[0].([]db.GetActiveStoriesByUserIDRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetActiveStoriesByUserID indicates an expected call of GetActiveStoriesByUserID.
+func (mr *MockStoreMockRecorder) GetActiveStoriesByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveStoriesByUserID", reflect.TypeOf((*MockStore)(nil).GetActiveStoriesByUserID), ctx, userID)
+}
+
 // GetArchivedStories mocks base method.
 func (m *MockStore) GetArchivedStories(ctx context.Context, arg db.GetArchivedStoriesParams) ([]db.ArchivedStory, error) {
 	m.ctrl.T.Helper()
@@ -729,21 +860,6 @@ func (m *MockStore) GetArchivedStory(ctx context.Context, arg db.GetArchivedStor
 func (mr *MockStoreMockRecorder) GetArchivedStory(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetArchivedStory", reflect.TypeOf((*MockStore)(nil).GetArchivedStory), ctx, arg)
-}
-
-// GetActiveStoriesByUserID mocks base method.
-func (m *MockStore) GetActiveStoriesByUserID(ctx context.Context, userID uuid.UUID) ([]db.GetActiveStoriesByUserIDRow, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetActiveStoriesByUserID", ctx, userID)
-	ret0, _ := ret[0].([]db.GetActiveStoriesByUserIDRow)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetActiveStoriesByUserID indicates an expected call of GetActiveStoriesByUserID.
-func (mr *MockStoreMockRecorder) GetActiveStoriesByUserID(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveStoriesByUserID", reflect.TypeOf((*MockStore)(nil).GetActiveStoriesByUserID), ctx, userID)
 }
 
 // GetBlockedUsers mocks base method.
@@ -909,6 +1025,21 @@ func (m *MockStore) GetHeatmapData(ctx context.Context) ([]db.GetHeatmapDataRow,
 func (mr *MockStoreMockRecorder) GetHeatmapData(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHeatmapData", reflect.TypeOf((*MockStore)(nil).GetHeatmapData), ctx)
+}
+
+// GetHighlightDetails mocks base method.
+func (m *MockStore) GetHighlightDetails(ctx context.Context, highlightID uuid.UUID) ([]db.GetHighlightDetailsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHighlightDetails", ctx, highlightID)
+	ret0, _ := ret[0].([]db.GetHighlightDetailsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHighlightDetails indicates an expected call of GetHighlightDetails.
+func (mr *MockStoreMockRecorder) GetHighlightDetails(ctx, highlightID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHighlightDetails", reflect.TypeOf((*MockStore)(nil).GetHighlightDetails), ctx, highlightID)
 }
 
 // GetMessage mocks base method.
@@ -1361,6 +1492,20 @@ func (mr *MockStoreMockRecorder) HasValidStory(ctx, userID any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasValidStory", reflect.TypeOf((*MockStore)(nil).HasValidStory), ctx, userID)
 }
 
+// IncrementPostLikes mocks base method.
+func (m *MockStore) IncrementPostLikes(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IncrementPostLikes", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IncrementPostLikes indicates an expected call of IncrementPostLikes.
+func (mr *MockStoreMockRecorder) IncrementPostLikes(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementPostLikes", reflect.TypeOf((*MockStore)(nil).IncrementPostLikes), ctx, id)
+}
+
 // IsUserBlocked mocks base method.
 func (m *MockStore) IsUserBlocked(ctx context.Context, arg db.IsUserBlockedParams) (bool, error) {
 	m.ctrl.T.Helper()
@@ -1374,6 +1519,21 @@ func (m *MockStore) IsUserBlocked(ctx context.Context, arg db.IsUserBlockedParam
 func (mr *MockStoreMockRecorder) IsUserBlocked(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsUserBlocked", reflect.TypeOf((*MockStore)(nil).IsUserBlocked), ctx, arg)
+}
+
+// LikePost mocks base method.
+func (m *MockStore) LikePost(ctx context.Context, arg db.LikePostParams) (db.PostLike, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LikePost", ctx, arg)
+	ret0, _ := ret[0].(db.PostLike)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LikePost indicates an expected call of LikePost.
+func (mr *MockStoreMockRecorder) LikePost(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LikePost", reflect.TypeOf((*MockStore)(nil).LikePost), ctx, arg)
 }
 
 // ListAllStories mocks base method.
@@ -1404,6 +1564,36 @@ func (m *MockStore) ListConnections(ctx context.Context, requesterID uuid.UUID) 
 func (mr *MockStoreMockRecorder) ListConnections(ctx, requesterID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListConnections", reflect.TypeOf((*MockStore)(nil).ListConnections), ctx, requesterID)
+}
+
+// ListConnectionsPosts mocks base method.
+func (m *MockStore) ListConnectionsPosts(ctx context.Context, arg db.ListConnectionsPostsParams) ([]db.ListConnectionsPostsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListConnectionsPosts", ctx, arg)
+	ret0, _ := ret[0].([]db.ListConnectionsPostsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListConnectionsPosts indicates an expected call of ListConnectionsPosts.
+func (mr *MockStoreMockRecorder) ListConnectionsPosts(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListConnectionsPosts", reflect.TypeOf((*MockStore)(nil).ListConnectionsPosts), ctx, arg)
+}
+
+// ListHighlightsByUserID mocks base method.
+func (m *MockStore) ListHighlightsByUserID(ctx context.Context, userID uuid.UUID) ([]db.ListHighlightsByUserIDRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListHighlightsByUserID", ctx, userID)
+	ret0, _ := ret[0].([]db.ListHighlightsByUserIDRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListHighlightsByUserID indicates an expected call of ListHighlightsByUserID.
+func (mr *MockStoreMockRecorder) ListHighlightsByUserID(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListHighlightsByUserID", reflect.TypeOf((*MockStore)(nil).ListHighlightsByUserID), ctx, userID)
 }
 
 // ListMessages mocks base method.
@@ -1449,6 +1639,36 @@ func (m *MockStore) ListPendingRequests(ctx context.Context, targetID uuid.UUID)
 func (mr *MockStoreMockRecorder) ListPendingRequests(ctx, targetID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPendingRequests", reflect.TypeOf((*MockStore)(nil).ListPendingRequests), ctx, targetID)
+}
+
+// ListPostComments mocks base method.
+func (m *MockStore) ListPostComments(ctx context.Context, postID uuid.UUID) ([]db.ListPostCommentsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPostComments", ctx, postID)
+	ret0, _ := ret[0].([]db.ListPostCommentsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPostComments indicates an expected call of ListPostComments.
+func (mr *MockStoreMockRecorder) ListPostComments(ctx, postID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPostComments", reflect.TypeOf((*MockStore)(nil).ListPostComments), ctx, postID)
+}
+
+// ListPostsByUserID mocks base method.
+func (m *MockStore) ListPostsByUserID(ctx context.Context, arg db.ListPostsByUserIDParams) ([]db.ListPostsByUserIDRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPostsByUserID", ctx, arg)
+	ret0, _ := ret[0].([]db.ListPostsByUserIDRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListPostsByUserID indicates an expected call of ListPostsByUserID.
+func (mr *MockStoreMockRecorder) ListPostsByUserID(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPostsByUserID", reflect.TypeOf((*MockStore)(nil).ListPostsByUserID), ctx, arg)
 }
 
 // ListReports mocks base method.
@@ -1568,6 +1788,20 @@ func (mr *MockStoreMockRecorder) RemoveGroupMember(ctx, arg any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveGroupMember", reflect.TypeOf((*MockStore)(nil).RemoveGroupMember), ctx, arg)
 }
 
+// RemoveStoryFromHighlight mocks base method.
+func (m *MockStore) RemoveStoryFromHighlight(ctx context.Context, arg db.RemoveStoryFromHighlightParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveStoryFromHighlight", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveStoryFromHighlight indicates an expected call of RemoveStoryFromHighlight.
+func (mr *MockStoreMockRecorder) RemoveStoryFromHighlight(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveStoryFromHighlight", reflect.TypeOf((*MockStore)(nil).RemoveStoryFromHighlight), ctx, arg)
+}
+
 // ResolveReport mocks base method.
 func (m *MockStore) ResolveReport(ctx context.Context, id uuid.UUID) (db.Report, error) {
 	m.ctrl.T.Helper()
@@ -1672,6 +1906,20 @@ func (mr *MockStoreMockRecorder) UnblockUser(ctx, arg any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnblockUser", reflect.TypeOf((*MockStore)(nil).UnblockUser), ctx, arg)
 }
 
+// UnlikePost mocks base method.
+func (m *MockStore) UnlikePost(ctx context.Context, arg db.UnlikePostParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnlikePost", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnlikePost indicates an expected call of UnlikePost.
+func (mr *MockStoreMockRecorder) UnlikePost(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnlikePost", reflect.TypeOf((*MockStore)(nil).UnlikePost), ctx, arg)
+}
+
 // UpdateConnectionStatus mocks base method.
 func (m *MockStore) UpdateConnectionStatus(ctx context.Context, arg db.UpdateConnectionStatusParams) (db.Connection, error) {
 	m.ctrl.T.Helper()
@@ -1685,6 +1933,21 @@ func (m *MockStore) UpdateConnectionStatus(ctx context.Context, arg db.UpdateCon
 func (mr *MockStoreMockRecorder) UpdateConnectionStatus(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConnectionStatus", reflect.TypeOf((*MockStore)(nil).UpdateConnectionStatus), ctx, arg)
+}
+
+// UpdateHighlightCover mocks base method.
+func (m *MockStore) UpdateHighlightCover(ctx context.Context, arg db.UpdateHighlightCoverParams) (db.HighlightGroup, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateHighlightCover", ctx, arg)
+	ret0, _ := ret[0].(db.HighlightGroup)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateHighlightCover indicates an expected call of UpdateHighlightCover.
+func (mr *MockStoreMockRecorder) UpdateHighlightCover(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHighlightCover", reflect.TypeOf((*MockStore)(nil).UpdateHighlightCover), ctx, arg)
 }
 
 // UpdateMessage mocks base method.

@@ -288,6 +288,22 @@ type GroupMember struct {
 	JoinedAt time.Time `json:"joined_at"`
 }
 
+type HighlightGroup struct {
+	ID        uuid.UUID      `json:"id"`
+	UserID    uuid.UUID      `json:"user_id"`
+	Title     string         `json:"title"`
+	CoverUrl  sql.NullString `json:"cover_url"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+}
+
+type HighlightStory struct {
+	ID              uuid.UUID `json:"id"`
+	HighlightID     uuid.UUID `json:"highlight_id"`
+	ArchivedStoryID uuid.UUID `json:"archived_story_id"`
+	AddedAt         time.Time `json:"added_at"`
+}
+
 type Location struct {
 	ID         uuid.UUID   `json:"id"`
 	UserID     uuid.UUID   `json:"user_id"`
@@ -331,6 +347,36 @@ type Notification struct {
 	RelatedCrossingID uuid.NullUUID    `json:"related_crossing_id"`
 	IsRead            bool             `json:"is_read"`
 	CreatedAt         time.Time        `json:"created_at"`
+}
+
+type Post struct {
+	ID            uuid.UUID      `json:"id"`
+	UserID        uuid.UUID      `json:"user_id"`
+	MediaUrl      string         `json:"media_url"`
+	MediaType     string         `json:"media_type"`
+	Caption       sql.NullString `json:"caption"`
+	LocationName  sql.NullString `json:"location_name"`
+	Geohash       sql.NullString `json:"geohash"`
+	Geom          interface{}    `json:"geom"`
+	LikesCount    int32          `json:"likes_count"`
+	CommentsCount int32          `json:"comments_count"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+}
+
+type PostComment struct {
+	ID        uuid.UUID `json:"id"`
+	PostID    uuid.UUID `json:"post_id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type PostLike struct {
+	ID        uuid.UUID `json:"id"`
+	PostID    uuid.UUID `json:"post_id"`
+	UserID    uuid.UUID `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type PrivacySetting struct {

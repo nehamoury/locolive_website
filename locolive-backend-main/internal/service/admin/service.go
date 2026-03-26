@@ -37,6 +37,7 @@ type Service interface {
 	ResolveReport(ctx context.Context, reportID string) (db.Report, error)
 	DeleteStory(ctx context.Context, storyID string) error
 	ListAllStories(ctx context.Context, pageID, pageSize int32) ([]db.ListAllStoriesRow, error)
+	UpdateUserRole(ctx context.Context, userID string, role db.UserRole) (db.User, error)
 }
 
 type ServiceImpl struct {
@@ -182,5 +183,16 @@ func (s *ServiceImpl) ListAllStories(ctx context.Context, pageID, pageSize int32
 	return s.store.ListAllStories(ctx, db.ListAllStoriesParams{
 		Limit:  pageSize,
 		Offset: (pageID - 1) * pageSize,
+	})
+}
+
+func (s *ServiceImpl) UpdateUserRole(ctx context.Context, userID string, role db.UserRole) (db.User, error) {
+	id, err := uuid.Parse(userID)
+	if err != nil {
+		return db.User{}, err
+	}
+	return s.store.UpdateUserRole(ctx, db.UpdateUserRoleParams{
+		ID:   id,
+		Role: role,
 	})
 }

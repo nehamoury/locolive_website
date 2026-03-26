@@ -122,6 +122,28 @@ func (server *Server) setupRouter() {
 	authRoutes.GET("/profile/me", server.getMyProfile)
 	authRoutes.GET("/profile/visitors", server.getProfileVisitors)
 
+	// Posts (Permanent content)
+	authRoutes.POST("/posts", server.createPost)
+	authRoutes.GET("/posts/feed", server.getConnectionsFeed)
+	authRoutes.GET("/posts/me", server.getMyPosts)
+	authRoutes.GET("/users/:id/posts", server.getUserPosts)
+	authRoutes.DELETE("/posts/:id", server.deletePost)
+	authRoutes.POST("/posts/:id/like", server.likePost)
+	authRoutes.DELETE("/posts/:id/like", server.unlikePost)
+	authRoutes.GET("/posts/:id/comments", server.listPostComments)
+	authRoutes.POST("/posts/:id/comments", server.addPostComment)
+	authRoutes.DELETE("/posts/:id/comments/:commentId", server.deletePostComment)
+
+	// Highlights (Permanent story collections)
+	authRoutes.POST("/highlights", server.createHighlight)
+	authRoutes.GET("/highlights/me", server.getMyHighlights)
+	authRoutes.GET("/users/:id/highlights", server.getHighlights)
+	authRoutes.GET("/highlights/:id", server.getHighlightDetails)
+	authRoutes.POST("/highlights/:id/stories", server.addStoryToHighlight)
+	authRoutes.DELETE("/highlights/:id/stories/:storyId", server.removeStoryFromHighlight)
+	authRoutes.DELETE("/highlights/:id", server.deleteHighlight)
+
+
 	// Groups
 	authRoutes.POST("/groups", server.createGroup)
 	authRoutes.GET("/groups", server.getMyGroups)
@@ -135,6 +157,7 @@ func (server *Server) setupRouter() {
 
 	adminRoutes.GET("/users", server.listUsers)
 	adminRoutes.POST("/users/ban", server.banUser)
+	adminRoutes.PUT("/users/:id/role", server.updateUserRole)
 	adminRoutes.DELETE("/users/:id", server.deleteUser)
 	adminRoutes.GET("/stats", server.getStats)
 	adminRoutes.GET("/reports", server.listReports)

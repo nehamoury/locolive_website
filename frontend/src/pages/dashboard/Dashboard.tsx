@@ -18,6 +18,7 @@ import UserProfileView from './UserProfileView';
 import CrossingsView from './CrossingsView';
 import CastingPage from './CastingPage';
 import MapPage from './MapPage';
+import AdminView from './AdminView';
 import { useGeolocation } from '../../hooks/useGeolocation';
 
 // Modals
@@ -26,7 +27,7 @@ import StoryViewer from '../../components/story/StoryViewer';
 import ChatList from '../../components/chat/ChatList';
 import ChatWindow from '../../components/chat/ChatWindow';
 
-type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting';
+type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting' | 'admin';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -157,7 +158,6 @@ const Dashboard = () => {
             stories={stories}
             user={user}
             loading={loadingStories}
-            onRefresh={fetchStories}
             onCreateStory={() => setIsCreateModalOpen(true)}
             onStoryClick={(userStories, index) => {
               setViewingStories(userStories);
@@ -165,6 +165,8 @@ const Dashboard = () => {
             }}
           />
         );
+      case 'admin':
+        return <AdminView />;
       case 'profile':
         return <Profile onLogout={logout} />;
       case 'notifications':

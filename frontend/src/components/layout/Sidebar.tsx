@@ -1,8 +1,8 @@
 import { type FC } from 'react';
-import { Home, Map as MapIcon, MessageSquare, User, Bell, Plus, ShieldAlert, Search, LogOut } from 'lucide-react';
+import { Home, Map as MapIcon, MessageSquare, User, Bell, Plus, Sparkles, Footprints, Users, LogOut, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting';
+type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting' | 'admin';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -63,7 +63,7 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, unreadCount,
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-2 mb-6">
+      <nav className="flex-1 space-y-1 mb-6">
         <NavItem 
           icon={<Home className="w-5 h-5" />} 
           label="Home" 
@@ -73,7 +73,7 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, unreadCount,
         />
         <NavItem 
           icon={<MapIcon className="w-5 h-5" />} 
-          label="Discover" 
+          label="Map / Explore" 
           active={activeTab === 'explore'} 
           onClick={() => setActiveTab('explore')} 
           color="text-[#FFA94D]" 
@@ -88,17 +88,31 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, unreadCount,
         />
         <NavItem 
           icon={<Bell className="w-5 h-5" />} 
-          label="Alerts" 
+          label="Notifications" 
           active={activeTab === 'notifications'} 
           onClick={() => setActiveTab('notifications')} 
           color="text-[#FF9F1A]" 
         />
         <NavItem 
-          icon={<Search className="w-5 h-5" />} 
-          label="Search" 
-          active={activeTab === 'search'} 
-          onClick={() => setActiveTab('search')} 
+          icon={<Users className="w-5 h-5" />} 
+          label="Connections" 
+          active={activeTab === 'connections'} 
+          onClick={() => setActiveTab('connections')} 
           color="text-[#4DABF7]" 
+        />
+        <NavItem 
+          icon={<Footprints className="w-5 h-5" />} 
+          label="Crossings" 
+          active={activeTab === 'crossings'} 
+          onClick={() => setActiveTab('crossings')} 
+          color="text-[#20C997]" 
+        />
+        <NavItem 
+          icon={<Sparkles className="w-5 h-5" />} 
+          label="Casting" 
+          active={activeTab === 'casting'} 
+          onClick={() => setActiveTab('casting')} 
+          color="text-[#FCC419]" 
         />
         <NavItem 
           icon={<User className="w-5 h-5" />} 
@@ -107,13 +121,15 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, unreadCount,
           onClick={() => setActiveTab('profile')} 
           color="text-[#495057]" 
         />
-        <NavItem 
-          icon={<ShieldAlert className="w-5 h-5" />} 
-          label="Settings" 
-          active={activeTab === 'settings'} 
-          onClick={() => setActiveTab('settings')} 
-          color="text-[#BEBEBE]" 
-        />
+        {user?.role === 'admin' && (
+          <NavItem 
+            icon={<Shield className="w-5 h-5" />} 
+            label="Admin Panel" 
+            active={activeTab === 'admin'} 
+            onClick={() => setActiveTab('admin')} 
+            color="text-[#7048E8]" 
+          />
+        )}
       </nav>
 
       <div className="mb-6 hidden md:block">

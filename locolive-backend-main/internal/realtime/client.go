@@ -83,6 +83,7 @@ func (c *Client) ReadPump() {
 			}
 			break
 		}
+		// ... existing typing indicator logic kept below
 
 		// Handle typing indicator messages
 		var wsMsg struct {
