@@ -1,8 +1,8 @@
 import { type FC } from 'react';
-import { Home, Map as MapIcon, MessageSquare, User, Bell, Plus, Sparkles, Footprints, Users, LogOut, Shield } from 'lucide-react';
+import { Home, Map as MapIcon, MessageSquare, User, Bell, Plus, Sparkles, Footprints, Users, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting' | 'admin';
+type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -52,8 +52,8 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, unreadCount,
         <div className="flex items-center gap-3 mb-0.5 group">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#FF3B8E] to-[#A436EE] flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:scale-110 transition-transform duration-300">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 21C16 17 20 13.4183 20 9C20 4.58172 16.4183 1 12 1C7.58172 1 4 4.58172 4 9C4 13.4183 8 17 12 21Z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="12" cy="9" r="2.5" fill="white"/>
+              <path d="M12 21C16 17 20 13.4183 20 9C20 4.58172 16.4183 1 12 1C7.58172 1 4 4.58172 4 9C4 13.4183 8 17 12 21Z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="12" cy="9" r="2.5" fill="white" />
             </svg>
           </div>
           <div className="hidden md:flex text-2xl font-black tracking-tighter">
@@ -64,72 +64,63 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, unreadCount,
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 mb-6">
-        <NavItem 
-          icon={<Home className="w-5 h-5" />} 
-          label="Home" 
-          active={activeTab === 'home'} 
-          onClick={() => setActiveTab('home')} 
-          color="text-[#FF4D97]" 
+        <NavItem
+          icon={<Home className="w-5 h-5" />}
+          label="Home"
+          active={activeTab === 'home'}
+          onClick={() => setActiveTab('home')}
+          color="text-[#FF4D97]"
         />
-        <NavItem 
-          icon={<MapIcon className="w-5 h-5" />} 
-          label="Map / Explore" 
-          active={activeTab === 'explore'} 
-          onClick={() => setActiveTab('explore')} 
-          color="text-[#FFA94D]" 
+        <NavItem
+          icon={<MapIcon className="w-5 h-5" />}
+          label="Map / Explore"
+          active={activeTab === 'explore'}
+          onClick={() => setActiveTab('explore')}
+          color="text-[#FFA94D]"
         />
-        <NavItem 
-          icon={<MessageSquare className="w-5 h-5" />} 
-          label="Messages" 
-          active={activeTab === 'messages'} 
-          badge={unreadCount} 
-          onClick={() => setActiveTab('messages')} 
-          color="text-[#9D7BFF]" 
+        <NavItem
+          icon={<MessageSquare className="w-5 h-5" />}
+          label="Messages"
+          active={activeTab === 'messages'}
+          badge={unreadCount}
+          onClick={() => setActiveTab('messages')}
+          color="text-[#9D7BFF]"
         />
-        <NavItem 
-          icon={<Bell className="w-5 h-5" />} 
-          label="Notifications" 
-          active={activeTab === 'notifications'} 
-          onClick={() => setActiveTab('notifications')} 
-          color="text-[#FF9F1A]" 
+        <NavItem
+          icon={<Bell className="w-5 h-5" />}
+          label="Notifications"
+          active={activeTab === 'notifications'}
+          onClick={() => setActiveTab('notifications')}
+          color="text-[#FF9F1A]"
         />
-        <NavItem 
-          icon={<Users className="w-5 h-5" />} 
-          label="Connections" 
-          active={activeTab === 'connections'} 
-          onClick={() => setActiveTab('connections')} 
-          color="text-[#4DABF7]" 
+        <NavItem
+          icon={<Users className="w-5 h-5" />}
+          label="Connections"
+          active={activeTab === 'connections'}
+          onClick={() => setActiveTab('connections')}
+          color="text-[#4DABF7]"
         />
-        <NavItem 
-          icon={<Footprints className="w-5 h-5" />} 
-          label="Crossings" 
-          active={activeTab === 'crossings'} 
-          onClick={() => setActiveTab('crossings')} 
-          color="text-[#20C997]" 
+        <NavItem
+          icon={<Footprints className="w-5 h-5" />}
+          label="Crossings"
+          active={activeTab === 'crossings'}
+          onClick={() => setActiveTab('crossings')}
+          color="text-[#20C997]"
         />
-        <NavItem 
-          icon={<Sparkles className="w-5 h-5" />} 
-          label="Casting" 
-          active={activeTab === 'casting'} 
-          onClick={() => setActiveTab('casting')} 
-          color="text-[#FCC419]" 
+        <NavItem
+          icon={<Sparkles className="w-5 h-5" />}
+          label="Casting"
+          active={activeTab === 'casting'}
+          onClick={() => setActiveTab('casting')}
+          color="text-[#FCC419]"
         />
-        <NavItem 
-          icon={<User className="w-5 h-5" />} 
-          label="Profile" 
-          active={activeTab === 'profile'} 
-          onClick={() => setActiveTab('profile')} 
-          color="text-[#495057]" 
+        <NavItem
+          icon={<User className="w-5 h-5" />}
+          label="Profile"
+          active={activeTab === 'profile'}
+          onClick={() => setActiveTab('profile')}
+          color="text-[#495057]"
         />
-        {user?.role === 'admin' && (
-          <NavItem 
-            icon={<Shield className="w-5 h-5" />} 
-            label="Admin Panel" 
-            active={activeTab === 'admin'} 
-            onClick={() => setActiveTab('admin')} 
-            color="text-[#7048E8]" 
-          />
-        )}
       </nav>
 
       <div className="mb-6 hidden md:block">

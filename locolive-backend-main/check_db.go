@@ -18,15 +18,15 @@ func main() {
 	defer db.Close()
 
 	fmt.Println("--- USERS ---")
-	rows, err := db.Query("SELECT id, username, email, is_ghost_mode, is_shadow_banned, role FROM users")
+	rows, err := db.Query("SELECT id, username, email, is_ghost_mode, is_shadow_banned FROM users")
 	if err != nil {
 		log.Fatal(err)
 	}
 	for rows.Next() {
-		var id, username, email, role string
+		var id, username, email string
 		var ghost, shadow bool
-		rows.Scan(&id, &username, &email, &ghost, &shadow, &role)
-		fmt.Printf("ID: %s | Username: %s | Email: %s | Ghost: %v | Shadow: %v | Role: %s\n", id, username, email, ghost, shadow, role)
+		rows.Scan(&id, &username, &email, &ghost, &shadow)
+		fmt.Printf("ID: %s | Username: %s | Email: %s | Ghost: %v | Shadow: %v\n", id, username, email, ghost, shadow)
 	}
 	rows.Close()
 

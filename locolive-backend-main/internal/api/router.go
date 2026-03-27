@@ -157,7 +157,6 @@ func (server *Server) setupRouter() {
 
 	adminRoutes.GET("/users", server.listUsers)
 	adminRoutes.POST("/users/ban", server.banUser)
-	adminRoutes.PUT("/users/:id/role", server.updateUserRole)
 	adminRoutes.DELETE("/users/:id", server.deleteUser)
 	adminRoutes.GET("/stats", server.getStats)
 	adminRoutes.GET("/reports", server.listReports)

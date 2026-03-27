@@ -1,5 +1,5 @@
 import { useState, useEffect, type FC } from 'react';
-import { MapPin, Plus } from 'lucide-react';
+import { MapPin, Plus, Search, Bell, MessageCircle } from 'lucide-react';
 import { StoryBar } from '../../components/story/StoryBar';
 import PostCard from '../../components/post/PostCard';
 import api from '../../services/api';
@@ -22,7 +22,6 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
       const res = await api.get('/posts/feed');
       setPosts(res.data?.posts || []);
     } catch {
-      // Feed may be empty on fresh install — that's OK
       setPosts([]);
     } finally {
       setLoadingPosts(false);
@@ -30,71 +29,88 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
   };
 
   useEffect(() => {
-    console.log('HomeView mounted - Auto-refreshing feed...');
     fetchPosts();
   }, []);
 
-
   return (
-    <div className="flex flex-col h-full bg-white overflow-y-auto no-scrollbar relative w-full pb-20 md:pb-0 font-poppins">
-      {/* Main Header */}
-      <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl px-10 py-8 flex items-center justify-between">
-        <div className="flex items-center justify-end w-full gap-4">
+    <div className="flex flex-col h-full bg-[#f5f4f2] overflow-y-auto no-scrollbar relative w-full pb-20 md:pb-0">
+
+      {/* ── Header ─────────────────────────────────────────────── */}
+      <div className="px-6 pt-6 pb-4 flex items-center justify-between shrink-0">
+        {/* Search bar on the left */}
+        <div className="flex-1 max-w-md relative group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-pink-500 transition-colors" />
+          <input
+            type="text"
+            placeholder="Search"
+            className="w-full pl-11 pr-4 py-2.5 bg-white border border-gray-100 rounded-full text-sm text-gray-700 placeholder-gray-400 shadow-sm focus:outline-none focus:bg-white focus:border-pink-100 focus:ring-4 focus:ring-pink-50/20 transition-all"
+          />
+        </div>
+
+        {/* Actions on the right */}
+        <div className="flex items-center gap-2">
+          <button className="w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:bg-pink-50 hover:text-pink-500 transition-all cursor-pointer">
+            <Bell className="w-5 h-5" />
+          </button>
+
+          <button className="w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:bg-pink-50 hover:text-pink-500 transition-all cursor-pointer">
+            <MessageCircle className="w-5 h-5" />
+          </button>
+
           <button
             onClick={onCreateStory}
-            className="flex items-center gap-2 px-8 py-2.5 bg-gradient-to-r from-[#FF3B8E] to-[#A436EE] text-white rounded-full text-[14px] font-bold shadow-lg shadow-pink-100 hover:scale-105 active:scale-95 transition-all"
+            className="flex items-center gap-1.5 px-6 py-2.5 bg-gradient-to-r from-[#FF3B8E] to-[#A436EE] text-white rounded-full text-sm font-black shadow-[0_8px_20px_-6px_rgba(255,59,142,0.4)] hover:scale-[1.02] transition-all cursor-pointer whitespace-nowrap ml-2"
           >
-            <Plus className="w-4 h-4 stroke-[4]" />
-            Create
+            <Plus className="w-4 h-4 stroke-[3]" />
+            Create Post
           </button>
         </div>
       </div>
 
-      {/* ── Stories Bar ─────────────────────────────────────────── */}
-      <div className="px-10 py-6 border-b border-gray-50 flex-shrink-0 min-h-[140px]">
-        <StoryBar
-          stories={stories}
-          user={user}
-          onCreateStory={onCreateStory}
-          onStoryClick={onStoryClick}
-        />
-      </div>
+      {/* ── Left-Aligned Content ─────────────────────────────── */}
+      <div className="flex-1 w-full px-6 pb-20 flex flex-col items-start translate-y-2">
 
-      {/* ── Posts Feed ──────────────────────────────────────────── */}
-      <div className="flex-1 px-10 py-4 max-w-4xl mx-auto w-full">
-
-        {(loading || loadingPosts) ? (
-          <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#FF3B8E]" />
+        {/* Stories Card */}
+        <div className="w-full bg-white rounded-[1.5rem] border border-gray-100 shadow-sm p-4 mb-4">
+          <div className="flex items-center justify-between mb-2 px-2">
+            <h2 className="text-[11px] font-black text-gray-300 uppercase tracking-[0.1em]">Stories Nearby</h2>
           </div>
-        ) : posts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center py-20 bg-gray-50 rounded-[40px] border border-dashed border-gray-200">
-            <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center text-gray-300 mb-4">
-              <MapPin className="w-8 h-8" />
+          <StoryBar
+            stories={stories}
+            user={user}
+            onCreateStory={onCreateStory}
+            onStoryClick={onStoryClick}
+          />
+        </div>
+
+        {/* Feed List */}
+        <div className="w-full flex flex-col items-start gap-6">
+          {(loading || loadingPosts) ? (
+            <div className="w-full flex justify-center py-20">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#FF3B8E]" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">No Posts Yet</h3>
-            <p className="text-gray-400 max-w-xs mb-6 text-sm font-medium">
-              Be the first to share something! Posts from people you follow will appear here.
-            </p>
-            <button
-              onClick={onCreateStory}
-              className="px-8 py-3 bg-gradient-to-r from-[#FF3B8E] to-[#A436EE] text-white rounded-full text-sm font-bold shadow-lg shadow-pink-100"
-            >
-              Create a Post
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {posts.map((post: any) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                currentUserID={user?.id}
-                onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))}
-              />
-            ))}
-          </div>
-        )}
+          ) : posts.length === 0 ? (
+            <div className="w-full flex flex-col items-center justify-center text-center py-24 bg-white rounded-[1.5rem] border border-gray-100 shadow-sm">
+              <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-300 mb-6">
+                <MapPin className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-black text-gray-800 mb-2">No updates near you</h3>
+              <p className="text-gray-400 max-w-xs mb-8 text-sm font-medium">
+                Try following more people or sharing your own moment!
+              </p>
+            </div>
+          ) : (
+            posts.map((post: any) => (
+              <div key={post.id} className="w-full max-w-3xl">
+                <PostCard
+                  post={post}
+                  currentUserID={user?.id}
+                  onDelete={(id) => setPosts(prev => prev.filter(p => p.id !== id))}
+                />
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

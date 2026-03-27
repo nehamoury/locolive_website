@@ -18,16 +18,15 @@ import UserProfileView from './UserProfileView';
 import CrossingsView from './CrossingsView';
 import CastingPage from './CastingPage';
 import MapPage from './MapPage';
-import AdminView from './AdminView';
 import { useGeolocation } from '../../hooks/useGeolocation';
 
 // Modals
-import CreateStoryModal from '../../components/story/CreateStoryModal';
+import CreatePostModal from '../../components/post/CreatePostModal';
 import StoryViewer from '../../components/story/StoryViewer';
 import ChatList from '../../components/chat/ChatList';
 import ChatWindow from '../../components/chat/ChatWindow';
 
-type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting' | 'admin';
+type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -43,6 +42,8 @@ const Dashboard = () => {
   const [activeConnectionTab, setActiveConnectionTab] = useState<'suggestions' | 'requests' | 'my-connections'>('suggestions');
   const [, setPanicSequence] = useState('');
   const [showPanicConfirm, setShowPanicConfirm] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [showRightSidebar, setShowRightSidebar] = useState(true);
 
   // Real-time Notifications Hook
   const { unreadCount: totalUnreadCount } = useNotifications();
@@ -154,7 +155,8 @@ const Dashboard = () => {
     switch (activeTab) {
       case 'home':
         return (
-          <HomeView 
+          <HomeView
+            key={`home-${refreshKey}`}
             stories={stories}
             user={user}
             loading={loadingStories}
@@ -163,10 +165,10 @@ const Dashboard = () => {
               setViewingStories(userStories);
               setViewingStoryIndex(index);
             }}
+            showPanel={showRightSidebar}
+            onTogglePanel={() => setShowRightSidebar(prev => !prev)}
           />
         );
-      case 'admin':
-        return <AdminView />;
       case 'profile':
         return <Profile onLogout={logout} />;
       case 'notifications':
@@ -175,8 +177,8 @@ const Dashboard = () => {
         return <MapPage onUserSelect={handleUserSelect} />;
       case 'connections':
         return (
-          <ConnectionsView 
-            initialTab={activeConnectionTab} 
+          <ConnectionsView
+            initialTab={activeConnectionTab}
             onUserSelect={handleUserSelect}
             onMessage={handleStartMessage}
           />
@@ -185,8 +187,8 @@ const Dashboard = () => {
         return <SettingsView onBack={() => setActiveTab('profile')} />;
       case 'search':
         return selectedUserProfileId ? (
-          <UserProfileView 
-            userId={selectedUserProfileId} 
+          <UserProfileView
+            userId={selectedUserProfileId}
             onBack={() => setSelectedUserProfileId(null)}
             onMessage={handleStartMessage}
           />
@@ -204,7 +206,7 @@ const Dashboard = () => {
             <div className="flex items-center justify-between px-6 py-3.5 border-b border-gray-100 bg-white shrink-0">
               <h2 className="text-xl font-black text-gray-900 italic tracking-tight">Messages</h2>
               <div className="flex items-center gap-2">
-                <button 
+                <button
                   onClick={() => {
                     setActiveConnectionTab('requests');
                     setActiveTab('connections');
@@ -257,23 +259,25 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-white text-gray-800 font-poppins flex overflow-hidden">
-      
+    <div className="h-screen w-full bg-[#F8F9FE] text-gray-800 font-poppins flex overflow-hidden p-0 md:p-3 md:gap-3">
+
       {/* 1. Left Sidebar (Fixed) */}
-      <Sidebar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        user={user} 
-        logout={logout} 
-        unreadCount={totalUnreadCount} 
-        onCreatePost={() => setIsCreateModalOpen(true)}
-      />
+      <div className="hidden md:flex flex-col h-full bg-white md:rounded-[32px] shadow-sm overflow-hidden flex-shrink-0">
+        <Sidebar
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          user={user}
+          logout={logout}
+          unreadCount={totalUnreadCount}
+          onCreatePost={() => setIsCreateModalOpen(true)}
+        />
+      </div>
 
       <Toaster position="top-right" reverseOrder={false} />
 
       {/* 2. Main Content Center (Scrollable) */}
-      <main className="flex-1 relative overflow-hidden flex flex-col border-r border-gray-50 z-10">
-        
+      <main className="flex-1 relative overflow-hidden flex flex-col bg-white md:rounded-[32px] shadow-sm z-10">
+
         {/* Mobile Header */}
         <div className="md:hidden sticky top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between bg-white/95 backdrop-blur-xl border-b border-gray-50">
           <div className="text-2xl font-black tracking-tighter">
@@ -297,27 +301,35 @@ const Dashboard = () => {
         <nav className="md:hidden fixed bottom-0 w-full flex items-center justify-around bg-white/95 backdrop-blur-2xl border-t border-gray-50 px-4 h-18 z-[60] shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
           <MobileNavItem icon={<Home className="w-6 h-6" />} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
           <MobileNavItem icon={<MapIcon className="w-6 h-6" />} active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} />
-          
-          <button 
+
+          <button
             onClick={() => setIsCreateModalOpen(true)}
             className="w-13 h-13 bg-gradient-to-tr from-[#FF3B8E] to-[#A436EE] rounded-full flex items-center justify-center transform -translate-y-5 shadow-lg shadow-pink-200 active:scale-90 transition-all text-white border-4 border-white"
           >
             <Plus className="w-7 h-7 stroke-[3]" />
           </button>
-          
+
           <MobileNavItem icon={<Sparkles className="w-6 h-6" />} active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} />
           <MobileNavItem icon={<User className="w-6 h-6" />} active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
         </nav>
       </main>
 
-      {/* Rightsider with data */}
-      <RightSidebar crossingsToday={crossingsCount} />
+      {/* Right Sidebar — collapsible */}
+      <div
+        className={`hidden md:flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-white md:rounded-[32px] shadow-sm ${showRightSidebar ? 'w-80 opacity-100' : 'w-0 opacity-0'
+          }`}
+      >
+        <RightSidebar crossingsToday={crossingsCount} />
+      </div>
 
       {/* Overlays / Modals */}
-      <CreateStoryModal
+      <CreatePostModal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
-        onSuccess={fetchStories}
+        onSuccess={() => {
+          fetchStories();
+          setRefreshKey(prev => prev + 1);
+        }}
       />
 
       {viewingStoryIndex !== null && (
@@ -348,13 +360,13 @@ const Dashboard = () => {
               This will permanently wipe all your data from this device and the server. This action cannot be undone.
             </p>
             <div className="space-y-3">
-              <button 
+              <button
                 onClick={handlePanic}
                 className="w-full py-4 bg-red-500 hover:bg-red-600 text-white rounded-2xl font-bold transition-all active:scale-95 shadow-lg shadow-red-100"
               >
                 Execute Purge
               </button>
-              <button 
+              <button
                 onClick={() => setShowPanicConfirm(false)}
                 className="w-full py-4 bg-gray-50 hover:bg-gray-100 text-gray-500 rounded-2xl font-bold transition-all active:scale-95"
               >
@@ -370,8 +382,8 @@ const Dashboard = () => {
 
 // Mobile Nav Item helper
 const MobileNavItem = ({ icon, active, onClick }: { icon: React.ReactNode, active: boolean, onClick: () => void }) => (
-  <button 
-    onClick={onClick} 
+  <button
+    onClick={onClick}
     className={`p-2 transition-all duration-300 ${active ? 'text-[#FF3B8E] scale-110' : 'text-gray-300 hover:text-gray-500'}`}
   >
     {icon}

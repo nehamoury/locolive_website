@@ -218,9 +218,3 @@ SET
     password_reset_token = NULL,
     password_reset_expires_at = NULL
 WHERE id = $1;
-
--- name: UpdateUserRole :one
-UPDATE users
-SET role = $2
-WHERE id = $1
-RETURNING *;

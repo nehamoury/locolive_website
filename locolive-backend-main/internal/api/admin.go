@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"privacy-social-backend/internal/repository/db"
 	"privacy-social-backend/internal/service/admin"
 	"time"
 
@@ -206,26 +205,4 @@ func (server *Server) listAllStories(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, stories)
-}
-
-// Admin: Update User Role
-type updateUserRoleRequest struct {
-	UserID string      `json:"user_id" binding:"required,uuid"`
-	Role   db.UserRole `json:"role" binding:"required,oneof=user moderator admin"`
-}
-
-func (server *Server) updateUserRole(ctx *gin.Context) {
-	var req updateUserRoleRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return
-	}
-
-	user, err := server.admin.UpdateUserRole(ctx, req.UserID, req.Role)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-
-	ctx.JSON(http.StatusOK, user)
 }

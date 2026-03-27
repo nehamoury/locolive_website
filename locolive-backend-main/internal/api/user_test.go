@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
@@ -68,17 +69,24 @@ func TestCreateUser(t *testing.T) {
 				"password":  password,
 				"full_name": user.FullName,
 				"phone":     user.Phone,
+				"email":     user.Email.String,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				arg := db.CreateUserParams{
 					Username: user.Username,
 					FullName: user.FullName,
 					Phone:    user.Phone,
+					Email:    user.Email,
 				}
 				store.EXPECT().
 					CreateUser(gomock.Any(), EqCreateUserParams(arg, password)).
 					Times(1).
 					Return(user, nil)
+
+				store.EXPECT().
+					CreateSession(gomock.Any(), gomock.Any()).
+					Times(1).
+					Return(db.Session{ID: uuid.New()}, nil)
 			},
 			checkResponse: func(rec *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusCreated, rec.Code)
@@ -92,6 +100,7 @@ func TestCreateUser(t *testing.T) {
 				"password":  password,
 				"full_name": user.FullName,
 				"phone":     user.Phone,
+				"email":     user.Email.String,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
@@ -109,6 +118,7 @@ func TestCreateUser(t *testing.T) {
 				"password":  password,
 				"full_name": user.FullName,
 				"phone":     user.Phone,
+				"email":     user.Email.String,
 			},
 			buildStubs: func(store *mockdb.MockStore) {
 				store.EXPECT().
@@ -157,6 +167,7 @@ func randomUser(t *testing.T) (user db.User, password string) {
 		PasswordHash: hashedPassword,
 		FullName:     util.RandomString(10),
 		Phone:        util.RandomString(10),
+		Email:        sql.NullString{String: util.RandomEmail(), Valid: true},
 	}
 	return
 }
@@ -172,10 +183,12 @@ func requireBodyMatchUser(t *testing.T, body *bytes.Buffer, user db.User) {
 		AvatarUrl string `json:"avatar_url"`
 	}
 
-	var gotUser userResponse
-	err = json.Unmarshal(data, &gotUser)
+	var got struct {
+		User userResponse `json:"user"`
+	}
+	err = json.Unmarshal(data, &got)
 	require.NoError(t, err)
-	require.Equal(t, user.Username, gotUser.Username)
-	require.Equal(t, user.FullName, gotUser.FullName)
+	require.Equal(t, user.Username, got.User.Username)
+	require.Equal(t, user.FullName, got.User.FullName)
 	// Password is not returned, so we can't check it directly here, but schema validation covers it.
 }

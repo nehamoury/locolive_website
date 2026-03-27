@@ -29,3 +29,8 @@ func RandomString(n int) string {
 func RandomOwner() string {
 	return RandomString(6)
 }
+
+// RandomEmail generates a random email address
+func RandomEmail() string {
+	return RandomString(8) + "@example.com"
+}
