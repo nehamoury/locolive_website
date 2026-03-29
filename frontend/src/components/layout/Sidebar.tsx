@@ -29,7 +29,7 @@ const NavItem = ({ icon, label, active, badge, onClick, color }: NavItemProps & 
         </span>
       )}
     </div>
-    <span className={`ml-3.5 hidden md:block font-bold text-[14px] tracking-tight ${active ? 'text-[#FF3B8E]' : 'text-gray-500 group-hover:text-gray-700'}`}>
+    <span className={`ml-3.5 hidden md:block font-medium text-[14px] tracking-tight ${active ? 'text-[#FF3B8E]' : 'text-gray-500 group-hover:text-gray-700'}`}>
       {label}
     </span>
   </button>
@@ -56,7 +56,7 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, unreadCount,
               <circle cx="12" cy="9" r="2.5" fill="white" />
             </svg>
           </div>
-          <div className="hidden md:flex text-2xl font-black tracking-tighter">
+          <div className="hidden md:flex text-2xl font-bold tracking-tighter">
             <span className="text-[#FF3B8E]">Locolive</span>
           </div>
         </div>
@@ -130,7 +130,7 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, unreadCount,
           onClick={onCreatePost}
           className="w-full py-3 bg-gradient-to-r from-[#FF3B8E] to-[#A436EE] rounded-full flex items-center justify-center gap-2 font-bold text-white text-[15px] shadow-[0_10px_20px_-5px_rgba(255,59,142,0.3)] transition-all"
         >
-          <Plus className="w-5 h-5 stroke-[4]" />
+          <Plus className="w-5 h-5 stroke-[3]" />
           <span>Create Post</span>
         </motion.button>
       </div>
@@ -162,8 +162,8 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, unreadCount,
             </div>
           </div>
           <div className="ml-3 hidden md:flex flex-col text-left flex-1 min-w-0 cursor-pointer" onClick={() => setActiveTab('profile')}>
-            <p className="font-bold text-sm text-gray-900 truncate">{user?.full_name || user?.username}</p>
-            <p className="text-gray-400 text-xs font-medium truncate">@{user?.username}</p>
+            <p className="font-medium text-sm text-gray-900 truncate">{user?.full_name || user?.username}</p>
+            <p className="text-gray-400 text-xs font-normal truncate">@{user?.username}</p>
           </div>
           <button onClick={logout} className="ml-auto p-2 rounded-lg hover:bg-gray-50 transition-colors text-gray-400 hover:text-gray-600">
             <LogOut className="w-4 h-4" />

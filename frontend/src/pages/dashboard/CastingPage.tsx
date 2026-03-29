@@ -154,15 +154,19 @@ const CastingPage: FC = () => {
   const handleMatch = async (id: string) => {
     const user = users.find((u) => u.id === id);
     try {
-      // ✅ Fixed: backend expects "target_user_id", not "user_id"
-      await api.post('/connections/request', { target_user_id: id });
+      const res = await api.post('/connections/request', { target_user_id: id });
       setUsers((prev) => prev.filter((u) => u.id !== id));
-      if (user) setMatchedUser(user);
+      
+      // ✅ Fixed: Only show Match popup if it's a REAL mutual match
+      if (res.data.is_match && user) {
+        setMatchedUser(user);
+      } else {
+        showToast('Request Sent! 💌', 'match');
+      }
     } catch (err: any) {
       if (err?.response?.status === 409) {
-        // Already requested — still show match and remove card
         setUsers((prev) => prev.filter((u) => u.id !== id));
-        if (user) setMatchedUser(user);
+        showToast('Already requested!', 'pass');
       } else {
         console.error('Failed to send connection request:', err);
         showToast('Could not send request. Try again!', 'pass');

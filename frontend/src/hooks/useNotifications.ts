@@ -96,6 +96,22 @@ export const useNotifications = () => {
             setUnreadCount(prev => prev + 1);
             setNotifications(prev => [notif, ...prev]);
           }
+
+          if (data.type === 'connection_accepted') {
+            const payload = data.payload;
+            toast.success(`You are now connected! 🤝`, {
+              duration: 5000,
+              style: {
+                borderRadius: '20px',
+                background: '#FFF',
+                color: '#333',
+                fontWeight: 'bold',
+                border: '1px solid #FBCFE8',
+              },
+            });
+            // Trigger a refresh event for components to listen to
+            window.dispatchEvent(new CustomEvent('connection_accepted', { detail: payload }));
+          }
         } catch (err) {
           console.error('Failed to parse WS message:', err);
         }

@@ -39,6 +39,8 @@ type ProfileResponse struct {
 	ActivityStreak    int        `json:"activity_streak"`
 	StoryCount        int64      `json:"story_count"`
 	ConnectionCount   int64      `json:"connection_count"`
+	ViewsCount        int64      `json:"views_count"`
+	CrossingsCount    int64      `json:"crossings_count"`
 	LastActiveAt      time.Time  `json:"last_active_at"`
 	CreatedAt         time.Time  `json:"created_at"`
 	VisibilityStatus  string     `json:"visibility_status"`
@@ -69,6 +71,8 @@ func mapProfileResponse(p db.GetUserProfileRow) ProfileResponse {
 		ActivityStreak:    int(streak),
 		StoryCount:        p.StoryCount,
 		ConnectionCount:   p.ConnectionCount,
+		ViewsCount:        0, // Will be populated in handlers
+		CrossingsCount:    0, // Will be populated in handlers
 		LastActiveAt:      p.LastActiveAt.Time,
 		CreatedAt:         p.CreatedAt,
 		VisibilityStatus:  p.VisibilityStatus,
@@ -128,6 +132,17 @@ func (server *Server) getUserProfile(ctx *gin.Context) {
 
 	rsp := mapProfileResponse(profile)
 
+	// Fetch Engagement Stats
+	stats, err := server.store.GetUserEngagementStats(ctx, userID)
+	if err == nil {
+		rsp.ViewsCount = stats.TotalViews
+	}
+	// Fetch Crossings Count
+	crossings, err := server.store.GetCrossingsForUser(ctx, userID)
+	if err == nil {
+		rsp.CrossingsCount = int64(len(crossings))
+	}
+
 	// Cache the result
 	responseJSON, _ := json.Marshal(rsp)
 	server.redis.Set(context.Background(), cacheKey, responseJSON, profileCacheTTL)
@@ -156,6 +171,17 @@ func (server *Server) getMyProfile(ctx *gin.Context) {
 	}
 
 	rsp := mapProfileResponse(profile)
+
+	// Fetch Engagement Stats
+	stats, err := server.store.GetUserEngagementStats(ctx, authPayload.UserID)
+	if err == nil {
+		rsp.ViewsCount = stats.TotalViews
+	}
+	// Fetch Crossings Count
+	crossings, err := server.store.GetCrossingsForUser(ctx, authPayload.UserID)
+	if err == nil {
+		rsp.CrossingsCount = int64(len(crossings))
+	}
 
 	// Cache the result
 	responseJSON, _ := json.Marshal(rsp)

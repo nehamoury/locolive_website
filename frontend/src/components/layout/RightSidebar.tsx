@@ -12,7 +12,7 @@ const RightSidebar: FC<RightSidebarProps> = ({ crossingsToday = 0 }) => {
       {/* Your Location Widget */}
       <div className="flex flex-col">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-[13px] font-black text-gray-900 uppercase tracking-[0.1em] flex items-center gap-2">
+          <h3 className="text-[13px] font-bold text-gray-900 uppercase tracking-[0.1em] flex items-center gap-2">
             <MapPin className="w-4 h-4 text-pink-500" /> Your Location
           </h3>
           <button className="text-gray-300 hover:text-pink-500 transition-colors">
@@ -22,11 +22,11 @@ const RightSidebar: FC<RightSidebarProps> = ({ crossingsToday = 0 }) => {
 
         <div className="bg-[#F0FDF4] border border-[#DCFCE7] rounded-3xl p-5 mb-6 shadow-sm flex items-center gap-3">
           <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-          <span className="text-[11px] font-black text-green-700 uppercase tracking-widest">Location Sharing Active</span>
+          <span className="text-[11px] font-bold text-green-700 uppercase tracking-widest">Location Sharing Active</span>
         </div>
 
         <div className="mb-8">
-          <p className="text-[12px] font-black text-gray-400 uppercase tracking-tight mb-1">Raipur, Chhattisgarh</p>
+          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-tight mb-1">Raipur, Chhattisgarh</p>
           <div className="h-[2px] w-12 bg-pink-100 rounded-full" />
         </div>
 
@@ -39,7 +39,7 @@ const RightSidebar: FC<RightSidebarProps> = ({ crossingsToday = 0 }) => {
             <div key={s.label}>
               <div className="flex justify-between items-center mb-2.5">
                 <span className="text-[11px] font-bold text-gray-500 uppercase tracking-tight">{s.label}</span>
-                <span className="text-sm font-black text-pink-500 italic tracking-tighter">{s.value}</span>
+                <span className="text-sm font-bold text-pink-500 italic tracking-tighter">{s.value}</span>
               </div>
               <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                 <div 
@@ -58,7 +58,7 @@ const RightSidebar: FC<RightSidebarProps> = ({ crossingsToday = 0 }) => {
       <div className="flex flex-col">
         <div className="flex items-center gap-2 mb-8">
           <TrendingUp className="w-4 h-4 text-orange-500" />
-          <h3 className="text-[13px] font-black text-gray-900 uppercase tracking-[0.1em] italic">Trending Near You</h3>
+          <h3 className="text-[13px] font-bold text-gray-900 uppercase tracking-[0.1em] italic">Trending Near You</h3>
         </div>
 
         <div className="space-y-7">
@@ -70,8 +70,8 @@ const RightSidebar: FC<RightSidebarProps> = ({ crossingsToday = 0 }) => {
             { tag: 'LocalArtsFestival', category: 'Events', posts: '412' },
           ].map((item, i) => (
             <div key={i} className="flex flex-col cursor-pointer group">
-              <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1">{item.category}</span>
-              <span className="text-[16px] font-black text-gray-900 group-hover:text-pink-500 transition-colors leading-tight tracking-tight">
+              <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mb-1">{item.category}</span>
+              <span className="text-[16px] font-bold text-gray-900 group-hover:text-pink-500 transition-colors leading-tight tracking-tight">
                 #{item.tag}
               </span>
               <span className="text-[11px] font-bold text-gray-400 mt-1.5">{item.posts} posts this week</span>

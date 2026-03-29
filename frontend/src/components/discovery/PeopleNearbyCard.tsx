@@ -14,14 +14,37 @@ interface PeopleNearbyCardProps {
   };
   onConnect?: (userId: string) => void;
   onProfileClick?: (userId: string) => void;
+  onSkip?: () => void;
+  onFavorite?: (userId: string) => void;
 }
 
-export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({ user, onConnect, onProfileClick }) => {
+export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({ 
+  user, 
+  onConnect, 
+  onProfileClick,
+  onSkip,
+  onFavorite
+}) => {
+  const isGuest = user.username === 'Guest';
+
   return (
-    <div className="relative group px-2">
-      <div 
-        onClick={() => onProfileClick?.(user.id)}
-        className="aspect-[4/5] rounded-[40px] overflow-hidden shadow-2xl relative border-[6px] border-white shadow-pink-100/50 cursor-pointer"
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="relative group px-2"
+    >
+      <motion.div 
+        drag={!isGuest}
+        dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+        onDragEnd={(_, info) => {
+          if (isGuest) return;
+          if (info.offset.x > 100) onConnect?.(user.id);
+          else if (info.offset.x < -100) onSkip?.();
+          else if (info.offset.y < -100) onFavorite?.(user.id);
+        }}
+        onClick={() => !isGuest && onProfileClick?.(user.id)}
+        className="aspect-[4/5] rounded-[40px] overflow-hidden shadow-2xl relative border-[6px] border-white shadow-pink-100/50 cursor-pointer bg-white"
+        whileDrag={{ scale: 1.05 }}
       >
         {user.avatar_url ? (
           <img 
@@ -56,11 +79,17 @@ export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({ user, onConn
              Nearby · {user.distance || 'Recently'}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Action Buttons */}
       <div className="flex items-center justify-center gap-5 mt-8">
-        <ActionButton icon={<X className="w-7 h-7" />} color="text-gray-400" bg="bg-white" shadow="shadow-gray-200/50" />
+        <ActionButton 
+          onClick={onSkip}
+          icon={<X className="w-7 h-7" />} 
+          color="text-gray-400" 
+          bg="bg-white" 
+          shadow="shadow-gray-200/50" 
+        />
         <ActionButton 
           onClick={() => onConnect?.(user.id)}
           icon={<Heart className="w-7 h-7 fill-white" />} 
@@ -69,9 +98,15 @@ export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({ user, onConn
           large 
           shadow="shadow-pink-300/50" 
         />
-        <ActionButton icon={<Star className="w-6 h-6" />} color="text-amber-400" bg="bg-white" shadow="shadow-amber-100" />
+        <ActionButton 
+          onClick={() => onFavorite?.(user.id)}
+          icon={<Star className="w-6 h-6" />} 
+          color="text-amber-400" 
+          bg="bg-white" 
+          shadow="shadow-amber-100" 
+        />
       </div>
-    </div>
+    </motion.div>
   );
 };
 

@@ -3,11 +3,32 @@ import { MapContainer, TileLayer, Marker, Circle, useMap, useMapEvents } from 'r
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Ghost, ShieldAlert, Navigation, X, MessageCircle, UserPlus } from 'lucide-react';
+import { Ghost, ShieldAlert, Navigation, X, MessageCircle, UserPlus, Star, Heart } from 'lucide-react';
 import { DiscoveryPanel } from '../../components/discovery/DiscoveryPanel';
 import CreateStoryModal from '../../components/story/CreateStoryModal';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+
+// ─── Toast Component ───────────────────────────────────────────────────────────
+interface DiscoveryToastProps { message: string; type: 'like' | 'superlike'; }
+
+const DiscoveryToast: React.FC<DiscoveryToastProps> = ({ message, type }) => (
+    <motion.div
+        initial={{ opacity: 0, y: 60, scale: 0.9 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 60, scale: 0.9 }}
+        className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[1001] flex items-center gap-3 px-8 py-4 bg-[#1a1a1a]/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/10"
+    >
+        {type === 'like' ? (
+            <Heart className="w-5 h-5 text-pink-500 fill-pink-500" />
+        ) : (
+            <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+        )}
+        <span className="text-white font-bold tracking-tight text-sm flex items-center gap-2">
+            {message}
+        </span>
+    </motion.div>
+);
 
 // ─── Custom Icons ─────────────────────────────────────────────────────────────
 
@@ -110,6 +131,8 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
     const [clusters, setClusters] = useState<any[]>([]);
     const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
     const [nearbyUsers, setNearbyUsers] = useState<any[]>([]);
+    const [userStack, setUserStack] = useState<any[]>([]);
+    const [currentStackIndex, setCurrentStackIndex] = useState(0);
     const [flyTo, setFlyTo] = useState<[number, number] | null>(null);
     const [isGhostMode, setIsGhostMode] = useState(false);
     const [isPanicActive, setIsPanicActive] = useState(false);
@@ -118,25 +141,58 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
     const [activeTab, setActiveTab] = useState<'stories' | 'heatmap' | 'both'>('stories');
     const [crossings, setCrossings] = useState<any[]>([]);
     const [locationName] = useState('Raipur, CG');
+    const [toast, setToast] = useState<{ message: string; type: 'like' | 'superlike' } | null>(null);
     const watchIdRef = useRef<number | null>(null);
 
+    const showDiscoveryToast = (message: string, type: 'like' | 'superlike') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 2500);
+    };
+
     const handleConnect = async (userId: string) => {
+        const user = userStack.find(u => u.id === userId) || (selectedUser?.stories?.[0]?.user_id === userId ? selectedUser.stories[0] : null);
+        const name = user?.full_name || user?.username || 'User';
+
         try {
+            showDiscoveryToast(`Liked ${name}!`, 'like');
+            
             if (onConnect) {
                 await onConnect(userId);
-                return;
+            } else {
+                await api.post('/connections/request', { target_user_id: userId });
             }
-            await api.post('/connections/request', { target_user_id: userId });
-            // Optionally show toast here, but onConnect usually handles it
+            
+            if (selectedUser) setSelectedUser(null);
+            else handleSkip();
         } catch (err) {
             console.error('Failed to send connection request:', err);
+        }
+    };
+
+    const handleSkip = () => {
+        setCurrentStackIndex(prev => prev + 1);
+    };
+
+    const handleFavorite = async (userId: string) => {
+        const user = userStack.find(u => u.id === userId) || (selectedUser?.stories?.[0]?.user_id === userId ? selectedUser.stories[0] : null);
+        const name = user?.full_name || user?.username || 'User';
+
+        try {
+            showDiscoveryToast(`Super-liked ${name}!`, 'superlike');
+            await handleConnect(userId);
+        } catch (err) {
+            console.error('Failed to favorite user:', err);
         }
     };
 
     const fetchNearbyUsers = async (lat: number, lng: number) => {
         try {
             const res = await api.get('/users/nearby', { params: { lat, lng } });
-            setNearbyUsers(res.data || []);
+            const users = res.data || [];
+            setNearbyUsers(users);
+            // Initialize/Update stack with new users
+            setUserStack(users);
+            setCurrentStackIndex(0);
         } catch (err) {
             console.error('Failed to fetch nearby users:', err);
         }
@@ -191,7 +247,7 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
 
     // Derive data for DiscoveryPanel
     const nearbyStories = (clusters || []).flatMap(c => c.stories || []).slice(0, 9);
-    const featuredUser = clusters[0]?.stories?.[0];
+    const featuredUser = userStack[currentStackIndex];
 
     return (
         <div className="flex h-screen w-full overflow-hidden bg-white">
@@ -298,7 +354,7 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
                     <FlyToUser position={flyTo} />
 
                     {/* User's location marker */}
-                    {userPosition && (
+                    {userPosition && (activeTab === 'heatmap' || activeTab === 'both') && (
                         <>
                             <Marker position={userPosition} icon={userIcon} />
                             <Circle
@@ -316,7 +372,7 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
                     )}
 
                     {/* Nearby Real-time Users */}
-                    {nearbyUsers.map((u) => (
+                    {(activeTab === 'heatmap' || activeTab === 'both') && nearbyUsers.map((u) => (
                         <Marker
                             key={`user-${u.id}`}
                             position={[u.latitude, u.longitude]}
@@ -326,7 +382,7 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
                     ))}
 
                     {/* Story cluster markers */}
-                    {clusters.map((cluster) => {
+                    {(activeTab === 'stories' || activeTab === 'both') && clusters.map((cluster) => {
                         const avatar = cluster.stories?.[0]?.avatar_url
                             ? (cluster.stories[0].avatar_url.startsWith('http') ? cluster.stories[0].avatar_url : `http://localhost:8080${cluster.stories[0].avatar_url}`)
                             : '';
@@ -391,6 +447,8 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
                     nearbyStories={nearbyStories}
                     onUserSelect={onUserSelect}
                     onConnect={handleConnect}
+                    onSkip={handleSkip}
+                    onFavorite={handleFavorite}
                 />
             </div>
 
@@ -457,6 +515,11 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
                     </div>
                 </div>
             )}
+
+            {/* Discovery Toast */}
+            <AnimatePresence mode="wait">
+                {toast && <DiscoveryToast key={toast.message + toast.type} message={toast.message} type={toast.type} />}
+            </AnimatePresence>
         </div>
     );
 };

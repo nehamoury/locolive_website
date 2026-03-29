@@ -125,9 +125,9 @@ const Profile: FC<ProfileProps> = ({ onLogout }) => {
             {/* ─── Stats Row (matching reference) ─── */}
             <div className="grid grid-cols-4 gap-3 mb-8">
               <StatCard icon={<Zap className="w-4 h-4 text-accent" />} value={myStories.length} label="Stories" />
-              <StatCard icon={<Footprints className="w-4 h-4 text-accent" />} value={profile?.crossings_count || visitors.length} label="Crossings" />
+              <StatCard icon={<Footprints className="w-4 h-4 text-accent" />} value={profile?.crossings_count || 0} label="Crossings" />
               <StatCard icon={<Eye className="w-4 h-4 text-accent" />} value={profile?.views_count ? formatCount(profile.views_count) : '0'} label="Views" />
-              <StatCard icon={<Users className="w-4 h-4 text-accent" />} value={profile?.connections_count || 0} label="Connections" />
+              <StatCard icon={<Users className="w-4 h-4 text-accent" />} value={profile?.connection_count || 0} label="Connections" />
             </div>
 
             {/* ─── PRIVACY Section ─── */}

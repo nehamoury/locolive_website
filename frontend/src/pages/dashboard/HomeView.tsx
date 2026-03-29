@@ -1,5 +1,5 @@
 import { useState, useEffect, type FC } from 'react';
-import { MapPin, Plus, Search, Bell, MessageCircle } from 'lucide-react';
+import { MapPin, Plus, Search, Bell, MessageCircle, PanelRight } from 'lucide-react';
 import { StoryBar } from '../../components/story/StoryBar';
 import PostCard from '../../components/post/PostCard';
 import api from '../../services/api';
@@ -10,9 +10,11 @@ interface HomeViewProps {
   loading: boolean;
   onCreateStory: () => void;
   onStoryClick: (userStories: any[], index: number) => void;
+  showPanel: boolean;
+  onTogglePanel: () => void;
 }
 
-const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, onStoryClick }) => {
+const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, onStoryClick, showPanel, onTogglePanel }) => {
   const [posts, setPosts] = useState<any[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
 
@@ -33,7 +35,7 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
   }, []);
 
   return (
-    <div className="flex flex-col h-full bg-[#f5f4f2] overflow-y-auto no-scrollbar relative w-full pb-20 md:pb-0">
+    <div className="flex flex-col h-full bg-[#ffffff] overflow-y-auto no-scrollbar relative w-full pb-20 md:pb-0">
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="px-6 pt-6 pb-4 flex items-center justify-between shrink-0">
@@ -55,6 +57,14 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
 
           <button className="w-10 h-10 flex items-center justify-center rounded-full text-gray-400 hover:bg-pink-50 hover:text-pink-500 transition-all cursor-pointer">
             <MessageCircle className="w-5 h-5" />
+          </button>
+
+          <button
+            onClick={onTogglePanel}
+            className={`w-10 h-10 flex items-center justify-center rounded-full transition-all cursor-pointer ${showPanel ? 'bg-pink-50 text-pink-500' : 'text-gray-400 hover:bg-gray-50'}`}
+            title={showPanel ? "Hide Sidebar" : "Show Sidebar"}
+          >
+            <PanelRight className="w-5 h-5" />
           </button>
 
           <button

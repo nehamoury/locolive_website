@@ -45,7 +45,16 @@ const ProfileView: React.FC<ProfileViewProps> = () => {
         setLoading(false);
       }
     };
+
     fetchAll();
+
+    const handleRefresh = () => {
+      console.log('Refreshing profile due to connection update...');
+      fetchAll();
+    };
+
+    window.addEventListener('connection_accepted', handleRefresh);
+    return () => window.removeEventListener('connection_accepted', handleRefresh);
   }, [user]);
 
   const displayProfile = profile || user;

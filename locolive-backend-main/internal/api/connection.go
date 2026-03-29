@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 
 	"privacy-social-backend/internal/repository/db"
@@ -97,21 +99,59 @@ func (server *Server) sendConnectionRequest(ctx *gin.Context) {
 		return
 	}
 
-	// Spam prevention: limit to 20 connection requests per day
-	count, err := server.store.CountConnectionRequestsToday(ctx, authPayload.UserID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
-	}
-	if count >= 20 {
-		ctx.JSON(http.StatusTooManyRequests, gin.H{"error": "daily connection request limit reached (20/day)"})
-		return
+	// 1. Check for an existing connection/request
+	existing, err := server.store.GetConnection(ctx, db.GetConnectionParams{
+		RequesterID: authPayload.UserID,
+		TargetID:    targetID,
+	})
+
+	if err == nil {
+		if existing.Status == "accepted" {
+			ctx.JSON(http.StatusOK, gin.H{"message": "already connected", "is_match": false})
+			return
+		}
+
+		// If the target user was the requester, this is a mutual match!
+		if existing.RequesterID == targetID && existing.Status == "pending" {
+			conn, err := server.store.UpdateConnectionStatus(ctx, db.UpdateConnectionStatusParams{
+				RequesterID: targetID,
+				TargetID:    authPayload.UserID,
+				Status:      "accepted",
+			})
+			if err != nil {
+				ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+				return
+			}
+
+			// Broadcast real-time match event
+			msg, _ := json.Marshal(gin.H{
+				"type": "connection_accepted",
+				"payload": gin.H{
+					"requester_id": targetID,
+					"target_id":    authPayload.UserID,
+				},
+			})
+			server.hub.SendToUser(targetID, msg)
+			server.hub.SendToUser(authPayload.UserID, msg)
+
+			ctx.JSON(http.StatusOK, gin.H{
+				"status":   conn.Status,
+				"is_match": true,
+			})
+			return
+		}
+
+		// If I was the requester, it's just a duplicate
+		if existing.RequesterID == authPayload.UserID && existing.Status == "pending" {
+			ctx.JSON(http.StatusOK, gin.H{"message": "connection request already sent", "is_match": false})
+			return
+		}
 	}
 
-	// Get requester info for notification
-	requester, err := server.store.GetUserByID(ctx, authPayload.UserID)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+	// 2. Normal Request Logic
+	count, err := server.store.CountConnectionRequestsToday(ctx, authPayload.UserID)
+	if err == nil && count >= 20 {
+		ctx.JSON(http.StatusTooManyRequests, gin.H{"error": "daily connection request limit reached (20/day)"})
 		return
 	}
 
@@ -119,15 +159,12 @@ func (server *Server) sendConnectionRequest(ctx *gin.Context) {
 		RequesterID: authPayload.UserID,
 		TargetID:    targetID,
 	})
+
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
 			switch pqErr.Code.Name() {
 			case "unique_violation":
-				// Idempotent success: if already exists, treat as success
-				ctx.JSON(http.StatusOK, gin.H{"message": "connection request already sent"})
-				return
-			case "foreign_key_violation":
-				ctx.JSON(http.StatusNotFound, gin.H{"error": "target user not found"})
+				ctx.JSON(http.StatusOK, gin.H{"message": "connection request already sent", "is_match": false})
 				return
 			}
 		}
@@ -135,19 +172,19 @@ func (server *Server) sendConnectionRequest(ctx *gin.Context) {
 		return
 	}
 
-	// Create notification for target user
-	_, err = server.store.CreateNotification(ctx, db.CreateNotificationParams{
+	// Create notification...
+	server.store.CreateNotification(ctx, db.CreateNotificationParams{
 		UserID:        targetID,
 		Type:          "connection_request",
 		Title:         "New Connection Request",
-		Message:       fmt.Sprintf("%s wants to connect with you", requester.Username),
+		Message:       "Someone wants to connect!",
 		RelatedUserID: uuid.NullUUID{UUID: authPayload.UserID, Valid: true},
 	})
-	if err != nil {
-		log.Error().Err(err).Msg("failed to create connection request notification")
-	}
 
-	ctx.JSON(http.StatusCreated, conn)
+	ctx.JSON(http.StatusCreated, gin.H{
+		"status":   conn.Status,
+		"is_match": false,
+	})
 }
 
 type updateConnectionRequest struct {
@@ -197,6 +234,19 @@ func (server *Server) updateConnection(ctx *gin.Context) {
 		// Invalidate profile caches for both users so connection count updates instantly
 		server.redis.Del(ctx, "profile:"+authPayload.UserID.String())
 		server.redis.Del(ctx, "profile:"+requesterID.String())
+
+		// Real-time WebSocket notification to both parties
+		msg, _ := json.Marshal(gin.H{
+			"type": "connection_accepted",
+			"payload": gin.H{
+				"requester_id":       requesterID,
+				"target_id":          authPayload.UserID,
+				"requester_username": "the other user", // Simplified, frontend can refetch
+				"target_username":    accepter.Username,
+			},
+		})
+		server.hub.SendToUser(requesterID, msg)
+		server.hub.SendToUser(authPayload.UserID, msg)
 	}
 
 	ctx.JSON(http.StatusOK, conn)
@@ -239,23 +289,84 @@ type suggestedConnectionResponse struct {
 func (server *Server) getSuggestedConnections(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
+	// 1. Fetch Mutual Friend Suggestions
 	suggestions, err := server.store.GetSuggestedConnections(ctx, db.GetSuggestedConnectionsParams{
 		RequesterID: authPayload.UserID,
-		Limit:       10,
+		Limit:       12,
 	})
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return
+
+	var rsp []suggestedConnectionResponse
+
+	if err == nil {
+		for _, s := range suggestions {
+			rsp = append(rsp, suggestedConnectionResponse{
+				ID:          s.ID,
+				Username:    s.Username,
+				FullName:    s.FullName,
+				AvatarUrl:   s.AvatarUrl.String,
+				MutualCount: s.MutualCount,
+			})
+		}
 	}
 
-	rsp := make([]suggestedConnectionResponse, len(suggestions))
-	for i, s := range suggestions {
-		rsp[i] = suggestedConnectionResponse{
-			ID:          s.ID,
-			Username:    s.Username,
-			FullName:    s.FullName,
-			AvatarUrl:   s.AvatarUrl.String,
-			MutualCount: s.MutualCount,
+	// 2. Proximity Fallback (Option B)
+	// If we have few mutual suggestions, add nearby users who are NOT yet connected
+	if len(rsp) < 6 {
+		// Fetch lat/lng from Redis
+		pos, err := server.redis.GeoPos(ctx, "users:locations", authPayload.UserID.String()).Result()
+		if err == nil && len(pos) > 0 && pos[0] != nil {
+			lng := pos[0].Longitude
+			lat := pos[0].Latitude
+			radius := 50.0 // 50km
+			matches, _ := server.redis.GeoRadius(ctx, "users:locations", lng, lat, &redis.GeoRadiusQuery{
+				Radius:   radius * 1000,
+				Unit:     "m",
+				Sort:     "ASC",
+			}).Result()
+
+			for _, match := range matches {
+				uid, _ := uuid.Parse(match.Name)
+				if uid == authPayload.UserID {
+					continue
+				}
+
+				// Check if already in response
+				exists := false
+				for _, r := range rsp {
+					if r.ID == uid {
+						exists = true
+						break
+					}
+				}
+				if exists {
+					continue
+				}
+
+				// Check connection status
+				_, err := server.store.GetConnection(ctx, db.GetConnectionParams{
+					RequesterID: authPayload.UserID,
+					TargetID:    uid,
+				})
+				if err == nil {
+					continue // Already requested/connected
+				}
+
+				// Get user details
+				u, err := server.store.GetUserByID(ctx, uid)
+				if err == nil && !u.IsShadowBanned {
+					rsp = append(rsp, suggestedConnectionResponse{
+						ID:          u.ID,
+						Username:    u.Username,
+						FullName:    u.FullName,
+						AvatarUrl:   u.AvatarUrl.String,
+						MutualCount: 0,
+					})
+				}
+
+				if len(rsp) >= 12 {
+					break
+				}
+			}
 		}
 	}
 

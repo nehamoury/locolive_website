@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, MoreHorizontal, Heart, Send, Trash2, Flag, Volume2, VolumeX, Eye, Clock } from 'lucide-react';
+import { X, MoreHorizontal, Send, Trash2, Flag, Volume2, VolumeX, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 
@@ -30,15 +30,6 @@ interface StoryViewerProps {
 
 const STORY_DURATION = 5000; // 5 seconds per story
 
-function timeAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
-}
 
 function timeLeft(dateStr?: string) {
   if (!dateStr) return null;
@@ -54,11 +45,9 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
   const [progress, setProgress] = useState(0);
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(true);
-  const [liked, setLiked] = useState(false);
   const [reply, setReply] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [sendingReply, setSendingReply] = useState(false);
-  const [countdown, setCountdown] = useState(STORY_DURATION / 1000);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -68,10 +57,8 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
 
   const goNext = useCallback(() => {
     if (currentIndex < stories.length - 1) {
-      setCurrentIndex(i => i + 1);
+      setCurrentIndex((i: number) => i + 1);
       setProgress(0);
-      setCountdown(STORY_DURATION / 1000);
-      setLiked(false);
       setReply('');
       setMenuOpen(false);
     } else {
@@ -81,10 +68,8 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
 
   const goPrev = () => {
     if (currentIndex > 0) {
-      setCurrentIndex(i => i - 1);
+      setCurrentIndex((i: number) => i - 1);
       setProgress(0);
-      setCountdown(STORY_DURATION / 1000);
-      setLiked(false);
       setReply('');
       setMenuOpen(false);
     }
@@ -99,11 +84,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
     const tickMs = 50; 
     const step = 100 / (STORY_DURATION / tickMs);
     intervalRef.current = setInterval(() => {
-      setProgress(prev => Math.min(prev + step, 100));
-      setCountdown(prev => {
-        const next = prev - tickMs / 1000;
-        return next < 0 ? 0 : Math.round(next * 10) / 10;
-      });
+      setProgress((prev: number) => Math.min(prev + step, 100));
     }, tickMs);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [currentIndex, paused]);
@@ -120,9 +101,8 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
     if (videoRef.current) videoRef.current.muted = muted;
   }, [muted]);
 
-  const handleLike = async () => {
-    setLiked(v => !v);
-    try { await api.post(`/stories/${story.id}/react`, { emoji: '❤️' }); } catch { /* ignore */ }
+  const handleLike = async (emoji: string = '❤️') => {
+    try { await api.post(`/stories/${story.id}/react`, { emoji }); } catch { /* ignore */ }
   };
 
   const handleReply = async () => {
@@ -161,7 +141,6 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
       }
       
       setProgress(0);
-      setCountdown(STORY_DURATION / 1000);
       setPaused(false);
     } catch (err: any) {
       console.error('Delete failed:', err);
@@ -180,17 +159,37 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[5000] bg-[#f9e8ff]/95 backdrop-blur-xl flex items-center justify-center overflow-hidden"
+        className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-2xl flex items-center justify-center overflow-hidden"
       >
+        {/* Navigation - Left Arrow */}
+        <div className="absolute left-4 md:left-10 z-[100] hidden md:block">
+            <button 
+                onClick={goPrev}
+                disabled={currentIndex === 0}
+                className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/20 transition-all disabled:opacity-0"
+            >
+                <ChevronLeft className="w-8 h-8" />
+            </button>
+        </div>
+
+        {/* Navigation - Right Arrow */}
+        <div className="absolute right-4 md:right-10 z-[100] hidden md:block">
+            <button 
+                onClick={goNext}
+                className="w-14 h-14 rounded-full bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/20 transition-all"
+            >
+                <ChevronRight className="w-8 h-8" />
+            </button>
+        </div>
 
         {/* Story Card */}
         <motion.div 
           key={currentIndex}
-          initial={{ scale: 0.8, opacity: 0, x: 100 }}
-          animate={{ scale: 1, opacity: 1, x: 0 }}
-          exit={{ scale: 0.8, opacity: 0, x: -100 }}
-          transition={{ type: "spring", damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-sm h-full md:h-[90vh] md:max-h-[780px] overflow-hidden md:rounded-3xl shadow-2xl bg-[#f9e8ff] z-20"
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          transition={{ type: "spring", damping: 20, stiffness: 200 }}
+          className="relative w-full max-w-[450px] h-full md:h-[90vh] overflow-hidden md:rounded-[40px] shadow-[0_30px_60px_-12px_rgba(0,0,0,0.5)] bg-gray-900 z-20"
         >
           {/* Media Content */}
           <div className="absolute inset-0">
@@ -211,170 +210,167 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
                 className="w-full h-full object-cover"
               />
             )}
+            {/* Dark gradient overlay for bottom text */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
           </div>
 
-          {/* Navigation Layers - Inside card but above media */}
-          <div className="absolute inset-0 flex z-10 pointer-events-none">
-            <div
-              className="w-1/3 h-full cursor-pointer pointer-events-auto"
-              onClick={goPrev}
-              onMouseDown={() => setPaused(true)}
-              onMouseUp={() => setPaused(false)}
-              onTouchStart={() => setPaused(true)}
-              onTouchEnd={() => setPaused(false)}
-            />
-            <div className="flex-1 h-full pointer-events-auto" onMouseDown={() => setPaused(true)} onMouseUp={() => setPaused(false)} onTouchStart={() => setPaused(true)} onTouchEnd={() => setPaused(false)} />
-            <div
-              className="w-1/3 h-full cursor-pointer pointer-events-auto"
-              onClick={goNext}
-              onMouseDown={() => setPaused(true)}
-              onMouseUp={() => setPaused(false)}
-              onTouchStart={() => setPaused(true)}
-              onTouchEnd={() => setPaused(false)}
-            />
-          </div>
-
-          {/* Overlays */}
-          <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#f9e8ff]/80 via-[#f9e8ff]/20 to-transparent pointer-events-none" />
-          <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-[#f9e8ff]/90 via-[#f9e8ff]/30 to-transparent pointer-events-none" />
-
-
-
-          {/* Top Bar Actions - High Z-Index */}
-          <div className="absolute top-0 inset-x-0 p-4 pt-4 space-y-4 z-[100]">
+          {/* Top Bar Section */}
+          <div className="absolute top-0 inset-x-0 p-5 pt-6 space-y-4 z-[100]">
             {/* Progress Segmented Bar */}
-            <div className="flex gap-1.5 h-1">
+            <div className="flex gap-1.5 h-1 px-1">
               {stories.map((_, idx) => (
-                <div key={idx} className="flex-1 bg-black/10 rounded-full overflow-hidden">
+                <div key={idx} className="flex-1 bg-white/20 rounded-full overflow-hidden">
                   <motion.div
                     initial={false}
                     animate={{ width: idx < currentIndex ? '100%' : idx === currentIndex ? `${progress}%` : '0%' }}
                     transition={{ duration: 0 }}
-                    className="h-full bg-black shadow-[0_0_8px_black/20]"
+                    className="h-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.5)]"
                   />
                 </div>
               ))}
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mt-2">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full p-[2px] bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]">
-                  <div className="w-full h-full rounded-full border-2 border-[#f9e8ff] bg-primary/10 flex items-center justify-center font-bold text-black text-sm">
+                <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-purple-600">
+                  <div className="w-full h-full rounded-full border-2 border-transparent overflow-hidden">
                     {story.avatar_url ? (
                       <img 
                         src={story.avatar_url.startsWith('http') ? story.avatar_url : `http://localhost:8080${story.avatar_url}`} 
                         alt={story.username} 
-                        className="w-full h-full rounded-full object-cover" 
+                        className="w-full h-full object-cover" 
                       />
                     ) : (
-                      story.username.charAt(0).toUpperCase()
+                      <div className="w-full h-full bg-gray-800 flex items-center justify-center font-bold text-white text-sm italic">
+                        {story.username.charAt(0).toUpperCase()}
+                      </div>
                     )}
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-black font-bold text-sm tracking-tight">{story.username}</h4>
+                  <h4 className="text-white font-black text-base tracking-tight italic">
+                    {story.full_name || story.username}
+                  </h4>
                   <div className="flex items-center gap-2">
-                    <p className="text-black/60 text-[10px] uppercase font-bold tracking-widest">{timeAgo(story.created_at)}</p>
                     {expiryText && (
-                      <span className="flex items-center gap-1 text-[9px] font-black text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
-                        <Clock className="w-2.5 h-2.5" />
-                        {expiryText}
+                      <span className="text-[10px] font-bold text-white/60 tracking-tight">
+                        {expiryText} left
                       </span>
                     )}
-                    <span className="text-[9px] font-bold text-black/20 bg-black/5 px-2 py-0.5 rounded-full border border-black/5">
-                      {Math.ceil(countdown)}s
-                    </span>
+                    {story.views_count !== undefined && (
+                        <>
+                            <span className="w-0.5 h-0.5 rounded-full bg-white/40" />
+                            <span className="text-[10px] font-bold text-white/60 tracking-tight">
+                                {story.views_count} views
+                            </span>
+                        </>
+                    )}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 {isVideo && (
-                  <button onClick={() => setMuted(!muted)} className="p-2 bg-black/5 backdrop-blur-md rounded-full text-black/60 transition-all hover:bg-black/10 border border-black/10">
+                  <button onClick={() => setMuted(!muted)} className="p-2.5 bg-white/10 backdrop-blur-xl rounded-full text-white/80 transition-all hover:bg-white/20 border border-white/10">
                     {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                   </button>
                 )}
                 
-                <div className="relative">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMenuOpen(!menuOpen);
-                    }} 
-                    className="p-2 bg-black/5 backdrop-blur-md rounded-full text-black/60 transition-all hover:bg-black/10 border border-black/10"
-                  >
-                    <MoreHorizontal className="w-5 h-5" />
-                  </button>
-                  
-                  {menuOpen && (
-                    <div className="absolute top-12 right-0 w-48 bg-white border border-black/10 rounded-2xl p-1.5 shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                      {isOwn && (
-                        <button 
-                          onClick={handleDelete}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" /> Delete Story
-                        </button>
-                      )}
-                      <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-black/60 hover:text-black hover:bg-black/5 rounded-xl transition-colors">
-                        <Flag className="w-4 h-4" /> Report Story
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <button 
+                  onClick={() => setMenuOpen(!menuOpen)} 
+                  className="p-2.5 bg-white/10 backdrop-blur-xl rounded-full text-white/80 transition-all hover:bg-white/20 border border-white/10"
+                >
+                  <MoreHorizontal className="w-5 h-5" />
+                </button>
 
-                <button onClick={onClose} className="p-2 bg-black/5 backdrop-blur-md rounded-full text-black/60 transition-all hover:bg-black/10 border border-black/10">
+                <button onClick={onClose} className="p-2.5 bg-white/10 backdrop-blur-xl rounded-full text-white/80 transition-all hover:bg-white/20 border border-white/10">
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Bottom Area Actions */}
-          <div className="absolute bottom-0 inset-x-0 p-6 space-y-4 z-[100]">
+          {/* Menu Dropdown */}
+          <AnimatePresence>
+            {menuOpen && (
+                <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-24 right-5 w-48 bg-gray-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-1.5 shadow-2xl z-[110] overflow-hidden"
+                >
+                    {isOwn && (
+                    <button 
+                        onClick={handleDelete}
+                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+                    >
+                        <Trash2 className="w-4 h-4" /> Delete Story
+                    </button>
+                    )}
+                    <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
+                    <Flag className="w-4 h-4" /> Report Story
+                    </button>
+                </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Caption & Reactions Bottom Area */}
+          <div className="absolute bottom-0 inset-x-0 p-8 space-y-6 z-[100]">
             {story.caption && (
-              <div className="space-y-2">
-                <p className="text-black text-sm font-medium drop-shadow-md text-center leading-relaxed">{story.caption}</p>
-                {story.views_count !== undefined && (
-                  <div className="flex justify-center">
-                    <span className="flex items-center gap-1.5 text-[10px] font-bold text-black/20 uppercase tracking-widest">
-                      <Eye className="w-3 h-3" /> {story.views_count} Views
-                    </span>
-                  </div>
-                )}
-              </div>
+               <div className="max-w-[85%]">
+                 <p className="text-white text-lg font-black leading-tight tracking-tight italic drop-shadow-xl">{story.caption}</p>
+               </div>
             )}
 
-            <div className="flex items-center gap-3">
-              <div className="flex-1 relative">
-                <input
-                  value={reply}
-                  onChange={e => setReply(e.target.value)}
-                  onFocus={() => setPaused(true)}
-                  onBlur={() => setPaused(false)}
-                  onKeyDown={e => e.key === 'Enter' && handleReply()}
-                  className="w-full bg-black/5 backdrop-blur-xl border border-black/10 rounded-full px-5 py-3 text-sm text-black focus:outline-none focus:border-black/30 transition-all placeholder:text-black/20"
-                  placeholder={`Reply to ${story.username}...`}
-                />
-                <button 
-                  onClick={handleReply}
-                  disabled={!reply.trim() || sendingReply}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-violet-600 rounded-full text-white hover:bg-violet-500 disabled:opacity-40 transition-all active:scale-90 shadow-lg shadow-violet-600/30"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-              </div>
-              <button 
-                onClick={handleLike}
-                className={`w-12 h-12 flex items-center justify-center bg-black/5 backdrop-blur-xl border border-black/10 rounded-full transition-all ${liked ? 'text-rose-500 scale-110 shadow-[0_0_20px_rgba(244,63,94,0.2)]' : 'text-black/60'}`}
-              >
-                <Heart className={`w-6 h-6 ${liked ? 'fill-current' : ''}`} />
-              </button>
+            <div className="flex flex-col gap-6">
+                {/* 4 Reactions Bar */}
+                <div className="flex items-center gap-3">
+                    {['❤️', '🔥', '😂', '😮'].map((emoji) => (
+                        <motion.button
+                            key={emoji}
+                            whileHover={{ scale: 1.15, y: -5 }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={() => handleLike(emoji)}
+                            className="w-13 h-13 rounded-full flex items-center justify-center text-2xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-xl transition-all"
+                        >
+                            {emoji}
+                        </motion.button>
+                    ))}
+                </div>
+
+                {/* Text Reply Bar */}
+                <div className="flex items-center gap-3">
+                    <div className="flex-1 relative group">
+                        <input
+                            value={reply}
+                            onChange={e => setReply(e.target.value)}
+                            onFocus={() => setPaused(true)}
+                            onBlur={() => setPaused(false)}
+                            onKeyDown={e => e.key === 'Enter' && handleReply()}
+                            className="w-full bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl px-6 py-4 text-sm text-white focus:outline-none focus:border-white/40 transition-all placeholder:text-white/40 font-bold"
+                            placeholder={`Reply to ${story.username}...`}
+                        />
+                        <button 
+                            onClick={handleReply}
+                            disabled={!reply.trim() || sendingReply}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-white rounded-full text-black hover:bg-white/90 disabled:opacity-40 transition-all active:scale-90 shadow-xl"
+                        >
+                            <Send className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
             </div>
+          </div>
+
+          {/* Navigation Click Layers */}
+          <div className="absolute inset-0 flex z-10">
+            <div className="w-1/3 h-full cursor-pointer" onClick={goPrev} />
+            <div className="flex-1 h-full" onMouseDown={() => setPaused(true)} onMouseUp={() => setPaused(false)} onTouchStart={() => setPaused(true)} onTouchEnd={() => setPaused(false)} />
+            <div className="w-1/3 h-full cursor-pointer" onClick={goNext} />
           </div>
         </motion.div>
 
-        {/* Paused Indicator Overlay */}
+        {/* Paused Indicator */}
         <AnimatePresence>
           {paused && (
             <motion.div 
@@ -383,10 +379,10 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
               exit={{ opacity: 0, scale: 0.5 }}
               className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
             >
-              <div className="bg-black/60 backdrop-blur-3xl p-8 rounded-full border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+              <div className="bg-black/60 backdrop-blur-3xl p-8 rounded-full border border-white/10 shadow-2xl">
                 <div className="flex gap-2.5">
-                  <div className="w-3 h-10 bg-white/90 rounded-full shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
-                  <div className="w-3 h-10 bg-white/90 rounded-full shadow-[0_0_15px_rgba(255,255,255,0.3)]" />
+                  <div className="w-3 h-10 bg-white rounded-full shadow-[0_0_15px_white]" />
+                  <div className="w-3 h-10 bg-white rounded-full shadow-[0_0_15px_white]" />
                 </div>
               </div>
             </motion.div>

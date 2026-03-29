@@ -113,12 +113,20 @@ const Dashboard = () => {
     fetchStories();
     fetchCrossings();
 
+    const handleConnectionAccepted = () => {
+      console.log('Connection accepted, refreshing stories...');
+      fetchStories();
+    };
+
+    window.addEventListener('connection_accepted', handleConnectionAccepted);
+
     const interval = setInterval(() => {
       fetchCrossings();
     }, 30000); // Crossings sync every 30s
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('connection_accepted', handleConnectionAccepted);
       clearInterval(interval);
     };
   }, [fetchStories, fetchCrossings]);
