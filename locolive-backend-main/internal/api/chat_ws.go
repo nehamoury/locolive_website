@@ -25,7 +25,6 @@ var upgrader = websocket.Upgrader{
 		allowedOrigins := []string{
 			"http://localhost:5173",
 			"http://localhost:3000",
-
 			"https://yourdomain.com", // Add your production domain
 		}
 
@@ -34,6 +33,8 @@ var upgrader = websocket.Upgrader{
 				return true
 			}
 		}
+
+		log.Warn().Str("origin", origin).Msg("WebSocket CheckOrigin failed: origin not allowed")
 		return false
 	},
 }

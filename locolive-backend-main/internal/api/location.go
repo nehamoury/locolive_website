@@ -6,13 +6,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/mmcloughlin/geohash"
-	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 
 	"privacy-social-backend/internal/repository/db"
-
 	"privacy-social-backend/internal/token"
 )
 
@@ -40,20 +37,17 @@ func (server *Server) updateLocation(ctx *gin.Context) {
 	user, userErr := server.store.GetUserByID(ctx, authPayload.UserID)
 	if userErr == nil && user.IsGhostMode {
 		if user.GhostModeExpiresAt.Valid && time.Now().After(user.GhostModeExpiresAt.Time) {
-			// Auto Disable
 			server.store.ToggleGhostMode(ctx, db.ToggleGhostModeParams{
 				ID:                 authPayload.UserID,
 				IsGhostMode:        false,
 				GhostModeExpiresAt: sql.NullTime{},
 			})
 		} else {
-			// Ghost Mode Active: Do not update location
 			ctx.JSON(http.StatusOK, gin.H{"status": "ghost"})
 			return
 		}
 	}
 
-	// Privacy: Convert to Geohash
 	hash := geohash.Encode(req.Latitude, req.Longitude)
 	if len(hash) > locationPrecision {
 		hash = hash[:locationPrecision]
@@ -69,23 +63,19 @@ func (server *Server) updateLocation(ctx *gin.Context) {
 			})
 			log.Warn().Str("user_id", authPayload.UserID.String()).Msg("User shadow-banned for fake GPS")
 		}
-		// Return success to maintain illusion, but do NOT save the fake location
 		ctx.JSON(http.StatusOK, gin.H{"status": "updated"})
 		return
 	}
 
-	// Privacy: Time Bucket
 	now := time.Now().UTC()
 	bucketTime := now.Truncate(bucketDuration)
-
-	// Privacy: Expiry
 	expiresAt := now.Add(locationTTL)
 
 	_, err := server.store.CreateLocation(ctx, db.CreateLocationParams{
 		UserID:     authPayload.UserID,
 		Geohash:    hash,
-		Lng:        req.Longitude, // @lng
-		Lat:        req.Latitude,  // @lat
+		Lng:        req.Longitude,
+		Lat:        req.Latitude,
 		TimeBucket: bucketTime,
 		ExpiresAt:  expiresAt,
 	})
@@ -95,14 +85,12 @@ func (server *Server) updateLocation(ctx *gin.Context) {
 		return
 	}
 
-	// Update user activity (for visibility system)
 	_, err = server.store.UpdateUserActivity(ctx, authPayload.UserID)
 	if err != nil {
-		// Log error but don't fail the request
 		log.Error().Err(err).Msg("Failed to update user activity on location ping")
 	}
 
-	// Trigger Redis Geo Crossing Detection (synchronous - Redis is fast)
+	// Redis GEO Update & Crossing Detection
 	if err := server.location.UpdateUserLocation(ctx, authPayload.UserID, req.Latitude, req.Longitude); err != nil {
 		log.Error().Err(err).Msg("Failed to update redis location service")
 	}
@@ -110,17 +98,17 @@ func (server *Server) updateLocation(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"status": "updated"})
 }
 
-type heatmapPoint struct {
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
-	Weight    int64   `json:"weight"`
-}
-
 func (server *Server) getHeatmap(ctx *gin.Context) {
 	data, err := server.store.GetHeatmapData(ctx)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
+	}
+
+	type heatmapPoint struct {
+		Latitude  float64 `json:"latitude"`
+		Longitude float64 `json:"longitude"`
+		Weight    int64   `json:"weight"`
 	}
 
 	rsp := make([]heatmapPoint, len(data))
@@ -140,18 +128,14 @@ func (server *Server) getHeatmap(ctx *gin.Context) {
 type getNearbyUsersRequest struct {
 	Latitude  float64 `form:"lat" binding:"required,min=-90,max=90"`
 	Longitude float64 `form:"lng" binding:"required,min=-180,max=180"`
-	Radius    float64 `form:"radius,default=10"` // in km
+	Radius    float64 `form:"radius,default=5"` // in km (Default 5km as per req)
 }
 
 type nearbyUserResponse struct {
-	ID        string  `json:"id"`
-	Username  string  `json:"username"`
-	FullName  string  `json:"full_name"`
-	AvatarUrl string  `json:"avatar_url"`
-	IsPremium bool    `json:"is_premium"`
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
-	Distance  float64 `json:"distance"` // in meters
+	UserID    string  `json:"userId"`
+	Distance  float64 `json:"distance"`
+	Latitude  float64 `json:"lat"`
+	Longitude float64 `json:"lng"`
 }
 
 func (server *Server) getNearbyUsers(ctx *gin.Context) {
@@ -163,73 +147,22 @@ func (server *Server) getNearbyUsers(ctx *gin.Context) {
 
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
-	// Fetch from Redis
-	radiusMeters := req.Radius * 1000
-	matches, err := server.redis.GeoRadius(ctx, "users:locations", req.Longitude, req.Latitude, &redis.GeoRadiusQuery{
-		Radius:      radiusMeters,
-		Unit:        "m",
-		WithDist:    true,
-		WithCoord:   true,
-		Sort:        "ASC",
-	}).Result()
-
+	// Fetch from Redis via Service
+	matches, err := server.location.GetNearbyUsers(ctx, authPayload.UserID, req.Latitude, req.Longitude, req.Radius)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	var rsp []nearbyUserResponse
-	for _, match := range matches {
-		if match.Name == authPayload.UserID.String() {
-			continue // Skip self
-		}
-
-		// Parse string to uuid
-		uid, parseErr := uuid.Parse(match.Name)
-		if parseErr != nil {
-			continue
-		}
-		
-		user, err := server.store.GetUserByID(ctx, uid)
-		if err != nil {
-			continue
-		}
-
-		// Filter
-		if user.IsGhostMode || user.IsShadowBanned {
-			continue
-		}
-
-		// Check blocks (simple check)
-		blocked, _ := server.store.IsUserBlocked(ctx, db.IsUserBlockedParams{
-			BlockerID: authPayload.UserID,
-			BlockedID: uid,
-		})
-		if blocked { continue }
-
-		blockedReverse, _ := server.store.IsUserBlocked(ctx, db.IsUserBlockedParams{
-			BlockerID: uid,
-			BlockedID: authPayload.UserID,
-		})
-		if blockedReverse { continue }
-
-		rsp = append(rsp, nearbyUserResponse{
-			ID:        user.ID.String(),
-			Username:  user.Username,
-			FullName:  user.FullName,
-			AvatarUrl: user.AvatarUrl.String,
-			IsPremium: user.IsPremium.Bool,
+	rsp := make([]nearbyUserResponse, len(matches))
+	for i, match := range matches {
+		rsp[i] = nearbyUserResponse{
+			UserID:    match.Name,
+			Distance:  match.Dist,
 			Latitude:  match.Latitude,
 			Longitude: match.Longitude,
-			Distance:  match.Dist,
-		})
-
-		// Max 50 users for performance on map
-		if len(rsp) >= 50 {
-			break
 		}
 	}
 
 	ctx.JSON(http.StatusOK, rsp)
 }
-

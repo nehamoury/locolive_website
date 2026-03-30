@@ -18,13 +18,9 @@ import (
 
 const (
 	// Key prefix for user locations
-	// Type: GEO (Sorted Set)
-	// Member: UserID
 	userLocationsKey = "users:locations"
 
 	// Key prefix for daily crossing duplications
-	// Type: String (with TTL)
-	// Key: crossing:<uid1>:<uid2>
 	crossingKeyPrefix = "crossing:"
 
 	// Crossing TTL (Don't trigger same crossing for 10 minutes)
@@ -61,16 +57,21 @@ func (s *RedisLocationService) UpdateUserLocation(ctx context.Context, userID uu
 	}
 
 	// 2. Find nearby users (Real-time Crossing Detection)
-	// look for users within specific radius
-	matches, err := s.redis.GeoRadius(ctx, userLocationsKey, lng, lat, &redis.GeoRadiusQuery{
-		Radius:    crossingRadiusMeters,
-		Unit:      "m",
+	// Modern GEOSEARCH command replaces GEORADIUS
+	matches, err := s.redis.GeoSearchLocation(ctx, userLocationsKey, &redis.GeoSearchLocationQuery{
+		GeoSearchQuery: redis.GeoSearchQuery{
+			Longitude:  lng,
+			Latitude:   lat,
+			Radius:     crossingRadiusMeters,
+			RadiusUnit: "m",
+			Sort:       "ASC",
+		},
 		WithDist:  true,
 		WithCoord: true,
 	}).Result()
+
 	if err != nil {
-		// Log but don't fail the request, basic location update succeeded
-		log.Error().Err(err).Msg("failed to query nearby users")
+		log.Error().Err(err).Msg("failed to query nearby users for crossings using GeoSearch")
 		return nil
 	}
 
@@ -78,6 +79,53 @@ func (s *RedisLocationService) UpdateUserLocation(ctx context.Context, userID uu
 	s.processCrossings(ctx, userID, matches)
 
 	return nil
+}
+
+// GetNearbyUsers fetches filtered users within a radius using GEOSEARCH
+func (s *RedisLocationService) GetNearbyUsers(ctx context.Context, userID uuid.UUID, lat, lng float64, radiusKm float64) ([]redis.GeoLocation, error) {
+	// 1. Fetch from Redis
+	matches, err := s.redis.GeoSearchLocation(ctx, userLocationsKey, &redis.GeoSearchLocationQuery{
+		GeoSearchQuery: redis.GeoSearchQuery{
+			Longitude:  lng,
+			Latitude:   lat,
+			Radius:     radiusKm,
+			RadiusUnit: "km",
+			Sort:       "ASC",
+			Count:      50,
+		},
+		WithDist:  true,
+		WithCoord: true,
+	}).Result()
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to search nearby users: %w", err)
+	}
+
+	// 2. Filter matches
+	var filtered []redis.GeoLocation
+	for _, match := range matches {
+		targetIDStr := match.Name
+
+		// Skip self
+		if targetIDStr == userID.String() {
+			continue
+		}
+
+		targetID, err := uuid.Parse(targetIDStr)
+		if err != nil {
+			continue
+		}
+
+		// Verify Privacy/Blocks
+		valid, err := s.validateCrossingPrivacy(ctx, userID, targetID)
+		if err != nil || !valid {
+			continue
+		}
+
+		filtered = append(filtered, match)
+	}
+
+	return filtered, nil
 }
 
 func (s *RedisLocationService) processCrossings(ctx context.Context, userID uuid.UUID, matches []redis.GeoLocation) {
@@ -94,38 +142,23 @@ func (s *RedisLocationService) processCrossings(ctx context.Context, userID uuid
 			continue
 		}
 
-		// Ensure consistent ordering for key generation (u1 < u2)
 		u1, u2 := userID, targetUserID
 		if u1.String() > u2.String() {
 			u1, u2 = u2, u1
 		}
 
-		// 4. Check De-duplication Cache (Redis)
+		// Check De-duplication
 		dedupKey := fmt.Sprintf("%s%s:%s", crossingKeyPrefix, u1.String(), u2.String())
 		exists, err := s.redis.Exists(ctx, dedupKey).Result()
 		if err == nil && exists > 0 {
-			// Already crossed recently, skip
 			continue
 		}
-
-		// 5. Verify Database Constraints (Block, Ghost Mode, etc) - Optional optimization:
-		// We could do this BEFORE DB insert, but `FindPotentialCrossings` query was complex.
-		// For now, let's assume if they are both "active" (pinging), they are candidates.
-		// We'll let the user decide if we need deep validation queries here or if we just insert.
-		// Detailed validation is safer.
-
-		// Check privacy/ghost mode for BOTH users
-		// We can reuse the extensive WHERE clause from the original SQL if we want,
-		// but checking individual user status is faster.
 
 		valid, err := s.validateCrossingPrivacy(ctx, userID, targetUserID)
 		if err != nil || !valid {
 			continue
 		}
 
-		// 6. Record Crossing in DB
-		// Calculate center geohash
-		// Note: match.Longitude/Latitude might be empty if we didn't ask WithCoord, but we did.
 		centerHash := geohash.Encode(match.Latitude, match.Longitude)
 
 		crossing, err := s.store.CreateCrossing(ctx, db.CreateCrossingParams{
@@ -139,66 +172,43 @@ func (s *RedisLocationService) processCrossings(ctx context.Context, userID uuid
 			continue
 		}
 
-		// 7. Send Notification
-		// Only notify the OTHER person "You crossed with current_user"
-		// Actually, usually both get notified or it is symmetric.
-		// Original logic notified User2 about User1.
-
-		// Notify User 1
 		s.createNotification(ctx, userID, targetUserID, crossing.ID)
-		// Notify User 2
 		s.createNotification(ctx, targetUserID, userID, crossing.ID)
 
-		// 8. Invalidate crossings cache for both users
 		s.invalidateCrossingsCache(ctx, userID)
 		s.invalidateCrossingsCache(ctx, targetUserID)
 
-		// 9. Set Dedup Key
 		s.redis.Set(ctx, dedupKey, "1", crossingTTL)
 	}
 }
 
 func (s *RedisLocationService) validateCrossingPrivacy(ctx context.Context, u1, u2 uuid.UUID) (bool, error) {
-	// Check blocks
+	// Block Check
 	blocked, err := s.store.IsUserBlocked(ctx, db.IsUserBlockedParams{
 		BlockerID: u1,
 		BlockedID: u2,
 	})
-	if err != nil {
+	if err != nil || blocked {
 		return false, err
-	}
-	if blocked {
-		return false, nil
 	}
 
 	blockedReverse, err := s.store.IsUserBlocked(ctx, db.IsUserBlockedParams{
 		BlockerID: u2,
 		BlockedID: u1,
 	})
-	if err != nil {
+	if err != nil || blockedReverse {
 		return false, err
-	}
-	if blockedReverse {
-		return false, nil
 	}
 
-	// Check Ghost Mode (using User model)
-	// Ideally we cache this "IsActive" status.
-	// For now, fetching user is safest.
+	// Status Check (Ghost/Shadow)
 	user1, err := s.store.GetUserByID(ctx, u1)
-	if err != nil {
+	if err != nil || user1.IsGhostMode || user1.IsShadowBanned {
 		return false, err
-	}
-	if user1.IsGhostMode || user1.IsShadowBanned {
-		return false, nil
 	}
 
 	user2, err := s.store.GetUserByID(ctx, u2)
-	if err != nil {
+	if err != nil || user2.IsGhostMode || user2.IsShadowBanned {
 		return false, err
-	}
-	if user2.IsGhostMode || user2.IsShadowBanned {
-		return false, nil
 	}
 
 	return true, nil
@@ -218,7 +228,6 @@ func (s *RedisLocationService) createNotification(ctx context.Context, recipient
 		return
 	}
 
-	// Trigger real-time WebSocket alert
 	if s.hub != nil {
 		s.hub.SendToUser(recipient, s.formatAlert("crossing_detected", notif))
 	}
@@ -233,7 +242,6 @@ func (s *RedisLocationService) formatAlert(msgType string, payload interface{}) 
 	return data
 }
 
-// invalidateCrossingsCache removes the cached crossings for a user
 func (s *RedisLocationService) invalidateCrossingsCache(ctx context.Context, userID uuid.UUID) {
 	cacheKey := "crossings:v3:" + userID.String()
 	s.redis.Del(ctx, cacheKey)

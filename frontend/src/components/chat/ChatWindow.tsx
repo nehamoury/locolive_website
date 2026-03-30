@@ -1,7 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Phone, Video, MoreHorizontal, Smile, Paperclip, MessageCircle, ArrowLeft } from 'lucide-react';
+import { 
+  Send,
+  MoreHorizontal,
+  Smile,
+  Paperclip,
+  MessageCircle,
+  ArrowLeft,
+  ChevronDown,
+  ShieldCheck,
+  CheckCheck
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '../../hooks/useChat';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 
 interface ChatWindowProps {
   receiverId: string;
@@ -10,8 +22,9 @@ interface ChatWindowProps {
 
 const ChatWindow = ({ receiverId, onBack }: ChatWindowProps) => {
   const { user } = useAuth();
-  const { messages, sendMessage, sendTyping, isTyping, online } = useChat(receiverId);
+  const { messages, sendMessage, sendTyping, isTyping } = useChat(receiverId);
   const [content, setContent] = useState('');
+  const [recipient, setRecipient] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -21,6 +34,18 @@ const ChatWindow = ({ receiverId, onBack }: ChatWindowProps) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
+
+  useEffect(() => {
+    const fetchRecipient = async () => {
+      try {
+        const res = await api.get(`/users/${receiverId}`);
+        setRecipient(res.data);
+      } catch (err) {
+        console.error('Failed to fetch recipient profile:', err);
+      }
+    };
+    fetchRecipient();
+  }, [receiverId]);
 
   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,132 +62,171 @@ const ChatWindow = ({ receiverId, onBack }: ChatWindowProps) => {
     }
   };
 
-  const displayName = `User ${receiverId.slice(0, 6)}`;
+  const displayName = recipient?.full_name || `@${recipient?.username || 'User'}`;
 
   return (
-    <div className="flex flex-col h-full bg-gray-50 flex-1 relative overflow-hidden">
+    <div className="flex flex-col h-full bg-[#f8f9fc] flex-1 relative overflow-hidden font-poppins">
+      
       {/* Chat Header */}
-      <header className="h-16 border-b border-gray-100 px-5 flex items-center justify-between bg-white sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center gap-3">
-          {/* Mobile Back Button */}
+      <header className="h-[70px] px-6 flex items-center justify-between bg-white border-b border-gray-100 sticky top-0 z-20 shadow-sm shadow-gray-200/5">
+        <div className="flex items-center gap-4">
           {onBack && (
             <button
               onClick={onBack}
-              className="md:hidden p-2 -ml-1 hover:bg-gray-100 rounded-xl text-gray-500 transition-all"
+              className="md:hidden p-2 bg-gray-50 rounded-xl text-gray-500 transition-all hover:bg-gray-100"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
-          <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-purple-600 flex items-center justify-center font-black text-white text-lg">
-              {displayName.charAt(0).toUpperCase()}
+          
+          <div className="flex items-center gap-2 cursor-pointer group">
+            <span className="text-xs font-medium text-gray-400 uppercase tracking-widest">Assignee</span>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50/50 rounded-lg hover:bg-gray-100 transition-all">
+                <span className="text-[13px] font-medium text-gray-700 italic">{displayName}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
             </div>
-            {online && (
-              <span className="absolute bottom-0.5 right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white" />
-            )}
-          </div>
-          <div>
-            <h4 className="font-bold text-sm text-gray-900">{displayName}</h4>
-            <p className={`text-[10px] font-semibold uppercase tracking-widest ${online ? 'text-green-500' : 'text-gray-400'}`}>
-              {online ? 'Online' : 'Offline'}
-            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
-          <button className="p-2.5 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-700 transition-all">
-            <Phone className="w-4.5 h-4.5 w-[18px] h-[18px]" />
+        <div className="flex items-center gap-3">
+          <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-tr from-[#FF3B8E] to-[#A436EE] text-white rounded-xl shadow-lg shadow-pink-100/50 hover:opacity-90 active:scale-95 transition-all">
+            <CheckCheck className="w-4 h-4" />
+            <span className="text-[11px] font-medium uppercase tracking-widest leading-none">Mark as Close</span>
           </button>
-          <button className="p-2.5 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-700 transition-all">
-            <Video className="w-[18px] h-[18px]" />
-          </button>
-          <button className="p-2.5 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-700 transition-all">
-            <MoreHorizontal className="w-[18px] h-[18px]" />
+          <button className="p-2.5 bg-gray-50 text-gray-400 hover:text-gray-900 rounded-xl transition-all">
+            <MoreHorizontal className="w-5 h-5" />
           </button>
         </div>
       </header>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-5 py-6 space-y-3">
-        {messages.length === 0 && !isTyping && (
-          <div className="flex flex-col items-center justify-center h-full text-center py-12">
-            <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-4">
-              <MessageCircle className="w-8 h-8 text-pink-400" />
-            </div>
-            <h3 className="text-base font-black text-gray-700 mb-1 italic">Start the conversation!</h3>
-            <p className="text-xs text-gray-400 max-w-[200px]">Say hello and see what's happening nearby 👋</p>
-          </div>
-        )}
+      <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8 no-scrollbar bg-white/40">
+        
+        {/* Security Badge */}
+        <div className="flex justify-center mb-6">
+           <div className="flex items-center gap-2 bg-[#e8f2ff] border border-[#d0e4ff] px-4 py-2 rounded-xl shadow-sm">
+              <span className="text-[11px] font-medium text-[#4a90e2] leading-none text-center">
+                 Hi! Feel free to talk. Tell us what you're thinking.
+                 <br />
+                 <span className="text-[10px] opacity-70">A 30-60 minute Locolive AI Demo over Zoom with me?</span>
+              </span>
+           </div>
+        </div>
 
-        {messages.map((msg, idx) => {
-          const isMe = msg.sender_id === user?.id;
-          return (
-            <div key={msg.id || idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-              <div className={`
-                max-w-[72%] px-4 py-2.5 text-sm shadow-sm
-                ${isMe
-                  ? 'bg-gradient-to-br from-pink-500 to-purple-600 text-white rounded-2xl rounded-br-md'
-                  : 'bg-white text-gray-700 border border-gray-100 rounded-2xl rounded-bl-md'}
-              `}>
-                <p className="leading-relaxed">{msg.content}</p>
-                <div className={`text-[10px] mt-1 ${isMe ? 'text-white/60 text-right' : 'text-gray-400'}`}>
-                  {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+        <AnimatePresence>
+          {messages.length === 0 && !isTyping ? (
+             <div className="flex flex-col items-center justify-center h-full text-center py-20 opacity-40">
+                <MessageCircle className="w-12 h-12 text-gray-300 mb-4" />
+                <h3 className="text-sm font-medium text-gray-800 uppercase italic">No messages yet</h3>
+             </div>
+          ) : (
+            <>
+              {messages.map((msg, idx) => {
+                const isMe = msg.sender_id === user?.id;
+                const senderName = isMe ? user?.full_name || `@${user?.username}` : recipient?.full_name || `@${recipient?.username}`;
+                const senderAvatar = isMe ? user?.avatar_url : recipient?.avatar_url;
+
+                return (
+                  <motion.div 
+                    key={msg.id || idx}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                  >
+                    {/* Header: Name and Time */}
+                    <div className="flex items-center gap-2 mb-2 px-1">
+                       <span className="text-[11px] font-medium text-gray-900 italic tracking-tight">{senderName}</span>
+                       <span className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} AM
+                       </span>
+                    </div>
+
+                    <div className={`flex gap-3 max-w-[85%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                      {/* Avatar */}
+                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 shadow-sm shrink-0 mt-1">
+                         {senderAvatar ? (
+                           <img src={senderAvatar.startsWith('http') ? senderAvatar : `http://localhost:8080${senderAvatar}`} alt="" className="w-full h-full object-cover" />
+                         ) : (
+                           <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-gray-400 uppercase">{senderName?.charAt(0)}</div>
+                         )}
+                      </div>
+
+                      {/* Bubble */}
+                      <div className={`
+                        px-4 py-3 text-[13px] font-medium shadow-sm leading-relaxed
+                        ${isMe
+                          ? 'bg-[#e8f2ff] text-gray-800 border border-[#d0e4ff] rounded-2xl rounded-tr-none'
+                          : 'bg-white text-gray-700 border border-gray-100 rounded-2xl rounded-tl-none'}
+                      `}>
+                        {msg.content}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Typing Indicator */}
         {isTyping && (
-          <div className="flex justify-start">
-            <div className="bg-white border border-gray-100 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm">
-              <div className="flex space-x-1 items-center">
-                <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce" />
-                <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce delay-75" />
-                <div className="w-1.5 h-1.5 bg-pink-400 rounded-full animate-bounce delay-150" />
-              </div>
-            </div>
-          </div>
+           <div className="flex items-center gap-2 animate-pulse px-4">
+              <span className="text-[10px] font-medium text-gray-400 italic">User is typing...</span>
+           </div>
         )}
 
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} className="h-4" />
       </div>
 
       {/* Input Area */}
-      <div className="px-5 py-4 border-t border-gray-100 bg-white">
-        <form onSubmit={handleSend} className="flex items-center gap-2">
-          <button type="button" className="p-2.5 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-600 transition-all shrink-0">
-            <Smile className="w-5 h-5" />
-          </button>
-          <button type="button" className="p-2.5 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-600 transition-all shrink-0">
-            <Paperclip className="w-5 h-5" />
-          </button>
-          <div className="flex-1 bg-gray-50 border border-gray-200 rounded-2xl flex items-center px-4 focus-within:border-pink-300 focus-within:bg-white transition-all">
-            <input
-              type="text"
-              placeholder="Type a message..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              onKeyDown={handleKeyDown}
-              className="flex-1 bg-transparent py-2.5 text-sm text-gray-700 focus:outline-none placeholder:text-gray-300"
-            />
+      <div className="px-8 py-6 bg-white border-t border-gray-100/50">
+        <form onSubmit={handleSend} className="flex items-center gap-4 bg-gray-50/50 p-2 rounded-[22px] border border-gray-100 shadow-sm focus-within:border-gray-200 transition-all">
+          
+          <div className="flex items-center">
+            <div className="relative group">
+                <button type="button" className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-medium text-gray-500 uppercase tracking-widest hover:bg-white rounded-lg transition-all border border-transparent hover:border-gray-200">
+                  <span>SMS</span>
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+            </div>
+            <div className="w-[1px] h-4 bg-gray-200 mx-1" />
           </div>
-          <button
+
+          <input
+            type="text"
+            placeholder="Let's meet or leave!"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="flex-1 bg-transparent py-2.5 text-[13px] font-medium text-gray-700 outline-none placeholder:text-gray-300"
+          />
+
+          <div className="flex items-center gap-1 px-1">
+            <button type="button" className="p-2 text-gray-400 hover:text-gray-900 rounded-xl transition-all">
+              <Smile className="w-5 h-5" />
+            </button>
+            <button type="button" className="p-2 text-gray-400 hover:text-gray-900 rounded-xl transition-all">
+              <Paperclip className="w-5 h-5" />
+            </button>
+            <button type="button" className="p-2 text-gray-400 hover:text-gray-900 rounded-xl transition-all">
+              <ShieldCheck className="w-5 h-5" />
+            </button>
+          </div>
+
+          <motion.button
             type="submit"
             disabled={!content.trim()}
-            className={`p-3 rounded-2xl flex items-center justify-center transition-all shrink-0 ${
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className={`w-11 h-11 rounded-[16px] flex items-center justify-center transition-all shrink-0 shadow-lg ${
               content.trim()
-                ? 'bg-gradient-to-br from-pink-500 to-purple-600 text-white shadow-lg shadow-pink-200 hover:scale-105 active:scale-95'
-                : 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                ? 'bg-[#4a90e2] text-white shadow-[#4a90e2]/20'
+                : 'bg-gray-100 text-gray-300 shadow-none'
             }`}
           >
-            <Send className="w-4 h-4" />
-          </button>
+            <Send className="w-4 h-4 fill-white" />
+          </motion.button>
         </form>
-        <p className="text-[9px] text-gray-300 mt-2 text-center uppercase tracking-widest font-semibold">
-          ✦ Messages expire in 24h · Snapchat mode active
-        </p>
       </div>
     </div>
   );

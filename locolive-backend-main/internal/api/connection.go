@@ -24,6 +24,16 @@ type friendResponse struct {
 	LastActiveAt *time.Time `json:"last_active_at"`
 }
 
+type connectionResponse struct {
+	RequesterID uuid.UUID `json:"requester_id"`
+	TargetID    uuid.UUID `json:"target_id"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
+	Username    string    `json:"username"`
+	FullName    string    `json:"full_name"`
+	AvatarUrl   string    `json:"avatar_url"`
+}
+
 func (server *Server) listConnections(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
@@ -60,7 +70,20 @@ func (server *Server) listPendingRequests(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, requests)
+	rsp := make([]connectionResponse, len(requests))
+	for i, r := range requests {
+		rsp[i] = connectionResponse{
+			RequesterID: r.RequesterID,
+			TargetID:    r.TargetID,
+			Status:      string(r.Status),
+			CreatedAt:   r.CreatedAt,
+			Username:    r.Username,
+			FullName:    r.FullName,
+			AvatarUrl:   r.AvatarUrl.String,
+		}
+	}
+
+	ctx.JSON(http.StatusOK, rsp)
 }
 
 func (server *Server) listSentRequests(ctx *gin.Context) {
@@ -72,7 +95,20 @@ func (server *Server) listSentRequests(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, requests)
+	rsp := make([]connectionResponse, len(requests))
+	for i, r := range requests {
+		rsp[i] = connectionResponse{
+			RequesterID: r.RequesterID,
+			TargetID:    r.TargetID,
+			Status:      string(r.Status),
+			CreatedAt:   r.CreatedAt,
+			Username:    r.Username,
+			FullName:    r.FullName,
+			AvatarUrl:   r.AvatarUrl.String,
+		}
+	}
+
+	ctx.JSON(http.StatusOK, rsp)
 }
 
 type connectionRequest struct {
@@ -279,11 +315,16 @@ func (server *Server) deleteConnection(ctx *gin.Context) {
 }
 
 type suggestedConnectionResponse struct {
-	ID          uuid.UUID `json:"id"`
-	Username    string    `json:"username"`
-	FullName    string    `json:"full_name"`
-	AvatarUrl   string    `json:"avatar_url"`
-	MutualCount int64     `json:"mutual_count"`
+	ID           uuid.UUID  `json:"id"`
+	Username     string     `json:"username"`
+	FullName     string     `json:"full_name"`
+	AvatarUrl    string     `json:"avatar_url"`
+	MutualCount  int64      `json:"mutual_count"`
+	Bio          string     `json:"bio"`
+	Distance     float64    `json:"distance_km"`
+	IsVerified   bool       `json:"is_verified"`
+	LastActiveAt *time.Time `json:"last_active_at"`
+	CreatedAt    time.Time  `json:"created_at"`
 }
 
 func (server *Server) getSuggestedConnections(ctx *gin.Context) {
@@ -299,12 +340,20 @@ func (server *Server) getSuggestedConnections(ctx *gin.Context) {
 
 	if err == nil {
 		for _, s := range suggestions {
+			var lastActive *time.Time
+			if s.LastActiveAt.Valid {
+				lastActive = &s.LastActiveAt.Time
+			}
 			rsp = append(rsp, suggestedConnectionResponse{
-				ID:          s.ID,
-				Username:    s.Username,
-				FullName:    s.FullName,
-				AvatarUrl:   s.AvatarUrl.String,
-				MutualCount: s.MutualCount,
+				ID:           s.ID,
+				Username:     s.Username,
+				FullName:     s.FullName,
+				AvatarUrl:    s.AvatarUrl.String,
+				MutualCount:  s.MutualCount,
+				Bio:          s.Bio.String,
+				IsVerified:   s.IsVerified,
+				LastActiveAt: lastActive,
+				CreatedAt:    s.CreatedAt,
 			})
 		}
 	}
@@ -319,9 +368,10 @@ func (server *Server) getSuggestedConnections(ctx *gin.Context) {
 			lat := pos[0].Latitude
 			radius := 50.0 // 50km
 			matches, _ := server.redis.GeoRadius(ctx, "users:locations", lng, lat, &redis.GeoRadiusQuery{
-				Radius:   radius * 1000,
-				Unit:     "m",
-				Sort:     "ASC",
+				Radius:      radius * 1000,
+				Unit:        "m",
+				Sort:        "ASC",
+				WithDist:    true,
 			}).Result()
 
 			for _, match := range matches {
@@ -360,6 +410,8 @@ func (server *Server) getSuggestedConnections(ctx *gin.Context) {
 						FullName:    u.FullName,
 						AvatarUrl:   u.AvatarUrl.String,
 						MutualCount: 0,
+						Bio:         u.Bio.String,
+						Distance:    match.Dist / 1000.0,
 					})
 				}
 

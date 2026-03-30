@@ -2054,21 +2054,6 @@ func (mr *MockStoreMockRecorder) UpdateUserProfile(ctx, arg any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserProfile", reflect.TypeOf((*MockStore)(nil).UpdateUserProfile), ctx, arg)
 }
 
-// UpdateUserRole mocks base method.
-func (m *MockStore) UpdateUserRole(ctx context.Context, arg db.UpdateUserRoleParams) (db.User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUserRole", ctx, arg)
-	ret0, _ := ret[0].(db.User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateUserRole indicates an expected call of UpdateUserRole.
-func (mr *MockStoreMockRecorder) UpdateUserRole(ctx, arg any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserRole", reflect.TypeOf((*MockStore)(nil).UpdateUserRole), ctx, arg)
-}
-
 // UpdateUserTrust mocks base method.
 func (m *MockStore) UpdateUserTrust(ctx context.Context, arg db.UpdateUserTrustParams) (db.User, error) {
 	m.ctrl.T.Helper()

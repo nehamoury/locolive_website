@@ -25,6 +25,7 @@ import CreatePostModal from '../../components/post/CreatePostModal';
 import StoryViewer from '../../components/story/StoryViewer';
 import ChatList from '../../components/chat/ChatList';
 import ChatWindow from '../../components/chat/ChatWindow';
+import ChatProfileSidebar from '../../components/chat/ChatProfileSidebar';
 
 type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting';
 
@@ -236,24 +237,33 @@ const Dashboard = () => {
 
             {/* Chat Split View */}
             <div className="flex flex-1 overflow-hidden">
-              <div className={`h-full border-r border-gray-100 ${selectedChatUser ? 'hidden md:flex' : 'flex'} w-full md:w-80 lg:w-96 shrink-0`}>
+              {/* Column 1: Chat List */}
+              <div className={`h-full border-r border-gray-100 ${selectedChatUser ? 'hidden md:flex' : 'flex'} w-full md:w-[350px] shrink-0 bg-white`}>
                 <ChatList onSelect={setSelectedChatUser} selectedId={selectedChatUser || undefined} />
               </div>
+
+              {/* Column 2: Chat Window */}
               {selectedChatUser ? (
-                <div className="flex-1 h-full w-full">
-                  <ChatWindow
-                    receiverId={selectedChatUser}
-                    onBack={() => setSelectedChatUser(null)}
-                  />
-                </div>
-              ) : (
-                <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-gray-50">
-                  <div className="w-20 h-20 bg-pink-50 rounded-full flex items-center justify-center mb-5">
-                    <MessageSquare className="w-9 h-9 text-pink-400" />
+                <>
+                  <div className="flex-1 h-full w-full border-r border-gray-100">
+                    <ChatWindow
+                      receiverId={selectedChatUser}
+                      onBack={() => setSelectedChatUser(null)}
+                    />
                   </div>
-                  <h3 className="text-xl font-black text-gray-800 italic tracking-tight mb-2">Your Messages</h3>
+                  {/* Column 3: Profile Info (General Info) */}
+                  <div className="hidden lg:flex h-full w-80 shrink-0 bg-white overflow-y-auto no-scrollbar">
+                    <ChatProfileSidebar userId={selectedChatUser} />
+                  </div>
+                </>
+              ) : (
+                <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-white">
+                  <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-5">
+                    <MessageSquare className="w-9 h-9 text-gray-300" />
+                  </div>
+                  <h3 className="text-xl font-medium text-gray-800 mb-2">Select a Conversation</h3>
                   <p className="max-w-xs text-sm text-gray-400 leading-relaxed">
-                    Select a conversation to start chatting with people near you
+                    Choose a chat from the list or start a new one to view messages and details
                   </p>
                 </div>
               )}

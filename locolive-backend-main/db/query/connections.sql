@@ -91,6 +91,10 @@ SELECT
     u.username, 
     u.full_name, 
     u.avatar_url,
+    u.bio,
+    u.is_verified,
+    u.last_active_at,
+    u.created_at,
     COALESCE((
         SELECT COUNT(*)
         FROM connections c

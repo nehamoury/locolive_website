@@ -1,16 +1,18 @@
 import { type FC, useState } from 'react';
-import { Heart, X, MapPin, Star, User } from 'lucide-react';
-import { motion, useMotionValue, useTransform, useAnimation } from 'framer-motion';
+import { Heart, CheckCircle2, User, Star } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface CastingUser {
   id: string;
   full_name: string;
   username: string;
-  age: number;
-  distance: string;
+  distance_km?: number;
   avatar_url?: string;
-  is_premium?: boolean;
+  is_verified?: boolean;
+  is_online?: boolean;
+  last_active_at?: string;
   bio?: string;
+  mutual_count?: number;
 }
 
 interface CastingCardProps {
@@ -21,137 +23,117 @@ interface CastingCardProps {
 }
 
 const CastingCard: FC<CastingCardProps> = ({ user, onMatch, onPass, onViewProfile }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const controls = useAnimation();
+  const [isLiked, setIsLiked] = useState(false);
 
-  const x = useMotionValue(0);
-  const rotate = useTransform(x, [-200, 200], [-18, 18]);
-  const likeOpacity = useTransform(x, [20, 120], [0, 1]);
-  const passOpacity = useTransform(x, [-120, -20], [1, 0]);
-  const cardOpacity = useTransform(x, [-300, -200, 0, 200, 300], [0, 1, 1, 1, 0]);
-
-  const handleDragEnd = async (_: any, info: any) => {
-    const threshold = 130;
-    if (info.offset.x > threshold) {
-      await controls.start({ x: 600, opacity: 0, transition: { duration: 0.3 } });
-      onMatch(user.id);
-    } else if (info.offset.x < -threshold) {
-      await controls.start({ x: -600, opacity: 0, transition: { duration: 0.3 } });
-      onPass(user.id);
-    } else {
-      controls.start({ x: 0, rotate: 0, transition: { type: 'spring', stiffness: 300 } });
-    }
-    setIsDragging(false);
-  };
-
-  const handleMatch = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    await controls.start({ x: 600, opacity: 0, rotate: 15, transition: { duration: 0.4 } });
-    onMatch(user.id);
-  };
-
-  const handlePass = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    await controls.start({ x: -600, opacity: 0, rotate: -15, transition: { duration: 0.4 } });
-    onPass(user.id);
-  };
+  // Extract hashtags from bio for interest tags
+  const tags = user.bio?.match(/#[a-z0-9]+/gi) || [];
 
   return (
     <motion.div
-      style={{ x, rotate, opacity: cardOpacity }}
-      animate={controls}
-      drag="x"
-      dragConstraints={{ left: 0, right: 0 }}
-      dragElastic={0.9}
-      onDragStart={() => setIsDragging(true)}
-      onDragEnd={handleDragEnd}
-      className="relative aspect-[3/4] rounded-[32px] overflow-hidden bg-white border border-primary/10 shadow-2xl cursor-grab active:cursor-grabbing select-none"
+      whileHover={{ y: -5 }}
+      className="bg-white rounded-[40px] p-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-50 flex flex-col gap-4 group transition-all"
     >
-      {/* User Image */}
-      <div
-        className="absolute inset-0 flex items-center justify-center"
-        onClick={() => !isDragging && onViewProfile(user.id)}
+      {/* Profile Image Container */}
+      <div 
+        className="relative aspect-square rounded-[32px] overflow-hidden bg-gray-50 cursor-pointer"
+        onClick={() => onViewProfile(user.id)}
       >
         {user.avatar_url ? (
           <img
             src={`http://localhost:8080${user.avatar_url}`}
             alt={user.full_name}
-            className="w-full h-full object-cover"
-            draggable={false}
+            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           />
         ) : (
-          <div className="w-full h-full bg-primary/5 flex flex-col items-center justify-center gap-3">
-            <div className="w-20 h-20 rounded-full bg-primary/10 border-2 border-primary/20 flex items-center justify-center">
-              <User className="w-10 h-10 text-primary/30" />
-            </div>
-            <p className="text-primary/10 font-black text-4xl italic tracking-tighter">LOCO</p>
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50">
+            <User className="w-12 h-12 text-pink-200" />
+            <span className="text-[10px] font-black italic text-pink-100 uppercase tracking-widest mt-2">Locolive</span>
           </div>
         )}
-      </div>
 
-      {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+        {/* Favorite Heart Overlay */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsLiked(!isLiked);
+          }}
+          className={`absolute top-4 right-4 w-10 h-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all active:scale-90 shadow-lg ${
+            isLiked 
+              ? 'bg-pink-500 text-white shadow-pink-200' 
+              : 'bg-white/80 text-gray-400 hover:text-pink-500'
+          }`}
+        >
+          <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
+        </button>
 
-      {/* LIKE stamp — shows when dragging right */}
-      <motion.div
-        style={{ opacity: likeOpacity }}
-        className="absolute top-12 left-6 rotate-[-20deg] border-4 border-green-400 rounded-xl px-4 py-1 z-30 pointer-events-none"
-      >
-        <span className="text-green-400 font-black text-3xl tracking-widest">MATCH</span>
-      </motion.div>
-
-      {/* NOPE stamp — shows when dragging left */}
-      <motion.div
-        style={{ opacity: passOpacity }}
-        className="absolute top-12 right-6 rotate-[20deg] border-4 border-red-400 rounded-xl px-4 py-1 z-30 pointer-events-none"
-      >
-        <span className="text-red-400 font-black text-3xl tracking-widest">NOPE</span>
-      </motion.div>
-
-      {/* Tags */}
-      <div className="absolute top-4 left-4 flex flex-wrap gap-2 z-20 pointer-events-none">
-        <div className="px-3 py-1 bg-white/80 backdrop-blur-md rounded-full border border-primary/10 text-[10px] font-bold text-black flex items-center gap-1 shadow-sm">
-          <MapPin className="w-3 h-3 text-primary" />
-          {user.distance} away
-        </div>
-        {user.is_premium && (
-          <div className="px-3 py-1 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full text-[10px] font-black text-black flex items-center gap-1 shadow-lg">
-            <Star className="w-3 h-3 fill-black" />
-            PREMIUM
+        {/* Online Status Indicator */}
+        {user.is_online && (
+          <div className="absolute top-4 left-4 flex items-center gap-1.5 px-2.5 py-1 bg-white/80 backdrop-blur-md rounded-full shadow-sm">
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            <span className="text-[10px] font-bold text-gray-700 uppercase">Online</span>
           </div>
         )}
       </div>
 
       {/* User Info */}
-      <div className="absolute inset-x-0 bottom-0 p-5 flex flex-col z-20 pointer-events-none">
-        <div className="mb-3">
-          <h3 className="text-xl font-black text-black leading-tight tracking-tight">
-            {user.full_name}{user.age && user.age !== 25 ? `, ${user.age}` : ''}
-          </h3>
-          <p className="text-black/60 text-xs font-medium">@{user.username}</p>
-          {user.bio && <p className="text-black/40 text-xs mt-1 line-clamp-2">{user.bio}</p>}
+      <div className="flex flex-col px-1">
+        <div className="flex items-center justify-between gap-2 overflow-hidden">
+          <div className="flex items-center gap-1.5 overflow-hidden">
+            <h3 className="text-[17px] font-bold text-gray-900 truncate tracking-tight leading-tight">
+              {user.full_name}
+            </h3>
+            {user.is_verified && (
+              <CheckCircle2 className="w-4 h-4 text-blue-500 fill-blue-50" />
+            )}
+            {user.mutual_count && user.mutual_count > 0 && (
+              <div className="flex items-center gap-1 px-1.5 py-0.5 bg-pink-50 rounded-md">
+                <Star className="w-3 h-3 text-pink-500 fill-pink-500" />
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-between mt-0.5">
+          <p className="text-xs font-semibold text-gray-400">@{user.username}</p>
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-50 px-2 py-0.5 rounded-md">
+            {user.distance_km ? `${user.distance_km.toFixed(1)} km away` : 'Nearby'}
+          </p>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3 pointer-events-auto">
-          <button
-            onClick={handlePass}
-            className="flex-1 h-12 rounded-2xl bg-black/5 backdrop-blur-md border border-black/10 flex items-center justify-center hover:bg-black/10 transition-all active:scale-95 group/btn"
-          >
-            <X className="w-6 h-6 text-black/60 group-hover/btn:text-red-400 transition-colors" />
-          </button>
-          <button
-            onClick={handleMatch}
-            className="flex-[2] h-12 rounded-2xl bg-gradient-to-r from-[#ee2a7b] to-[#6228d7] flex items-center justify-center gap-2 hover:shadow-[0_0_25px_rgba(238,42,123,0.5)] transition-all active:scale-95 shadow-lg group/btn"
-          >
-            <Heart className="w-5 h-5 text-white fill-white group-hover/btn:scale-125 transition-transform" />
-            <span className="text-sm font-black text-white uppercase tracking-wider">Match</span>
-          </button>
-        </div>
+        {/* Interest Tags (limited to 3) */}
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {tags.slice(0, 3).map((tag, i) => (
+              <span 
+                key={tag}
+                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-tight ${
+                  i === 0 ? 'bg-pink-50 text-pink-600' :
+                  i === 1 ? 'bg-purple-50 text-purple-600' :
+                  'bg-blue-50 text-blue-600'
+                }`}
+              >
+                {tag.replace('#', '')}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Hover glow border */}
-      <div className="absolute inset-0 border-2 border-transparent hover:border-purple-500/30 rounded-[32px] transition-all pointer-events-none" />
+      {/* Action Buttons */}
+      <div className="flex items-center gap-2 mt-1">
+        <button
+          onClick={() => onMatch(user.id)}
+          className="flex-1 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-2xl text-sm font-black shadow-lg shadow-pink-100 hover:shadow-pink-200 transition-all active:scale-95"
+        >
+          Connect
+        </button>
+        <button
+          onClick={() => onPass(user.id)}
+          className="px-4 py-3 bg-gray-50 text-gray-400 rounded-2xl hover:bg-gray-100 hover:text-gray-600 transition-all active:scale-95"
+        >
+          Skip
+        </button>
+      </div>
     </motion.div>
   );
 };

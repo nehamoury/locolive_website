@@ -1093,55 +1093,6 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 	return i, err
 }
 
-const updateUserRole = `-- name: UpdateUserRole :one
-UPDATE users
-SET role = $2
-WHERE id = $1
-RETURNING id, phone, password_hash, username, full_name, avatar_url, bio, role, trust_level, is_verified, is_shadow_banned, last_active_at, created_at, is_ghost_mode, activity_streak, streak_updated_at, is_premium, streak_freezes_remaining, boost_expires_at, banner_url, theme, profile_visibility, email, website_url, links, google_id, password_reset_token, password_reset_expires_at, ghost_mode_expires_at
-`
-
-type UpdateUserRoleParams struct {
-	ID   uuid.UUID `json:"id"`
-	Role UserRole  `json:"role"`
-}
-
-func (q *Queries) UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, updateUserRole, arg.ID, arg.Role)
-	var i User
-	err := row.Scan(
-		&i.ID,
-		&i.Phone,
-		&i.PasswordHash,
-		&i.Username,
-		&i.FullName,
-		&i.AvatarUrl,
-		&i.Bio,
-		&i.Role,
-		&i.TrustLevel,
-		&i.IsVerified,
-		&i.IsShadowBanned,
-		&i.LastActiveAt,
-		&i.CreatedAt,
-		&i.IsGhostMode,
-		&i.ActivityStreak,
-		&i.StreakUpdatedAt,
-		&i.IsPremium,
-		&i.StreakFreezesRemaining,
-		&i.BoostExpiresAt,
-		&i.BannerUrl,
-		&i.Theme,
-		&i.ProfileVisibility,
-		&i.Email,
-		&i.WebsiteUrl,
-		&i.Links,
-		&i.GoogleID,
-		&i.PasswordResetToken,
-		&i.PasswordResetExpiresAt,
-		&i.GhostModeExpiresAt,
-	)
-	return i, err
-}
-
 const updateUserTrust = `-- name: UpdateUserTrust :one
 UPDATE users
 SET trust_level = $2

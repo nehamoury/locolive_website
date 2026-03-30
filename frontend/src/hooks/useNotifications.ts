@@ -49,7 +49,7 @@ export const useNotifications = () => {
 
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
     const wsBaseUrl = baseUrl.replace('http://', 'ws://').replace('https://', 'wss://');
-    const wsUrl = `${wsBaseUrl}/ws/chat?token=${token}`; // Reusing the global hub endpoint
+    const wsUrl = `${wsBaseUrl}/ws/chat?token=${encodeURIComponent(token)}`; // Reusing the global hub endpoint
     
     let isSubscribed = true;
     let reconnectTimeout: any = null;
@@ -134,7 +134,12 @@ export const useNotifications = () => {
     return () => {
       isSubscribed = false;
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
-      if (socketRef.current) socketRef.current.close();
+      if (socketRef.current) {
+        // Only close if it's not already closing or closed
+        if (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING) {
+          socketRef.current.close();
+        }
+      }
     };
   }, [fetchUnreadCount, playAlertSound]);
 

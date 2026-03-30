@@ -1,7 +1,7 @@
-import { useState, useEffect, type FC } from 'react';
+import { useState, useEffect, useMemo, type FC } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CastingGrid from '../../components/casting/CastingGrid';
-import { Sparkles, RefreshCcw, Heart, X, CheckCircle2 } from 'lucide-react';
+import { Sparkles, RefreshCcw, Heart, X, CheckCircle2, Search, Filter, Zap, Users, ShieldCheck } from 'lucide-react';
 import api from '../../services/api';
 import UserProfileView from './UserProfileView';
 
@@ -42,66 +42,38 @@ const MatchPopup: FC<MatchPopupProps> = ({ user, onClose }) => (
       animate={{ scale: 1, y: 0, transition: { type: 'spring', stiffness: 260, damping: 20 } }}
       exit={{ scale: 0.5, opacity: 0 }}
       onClick={(e) => e.stopPropagation()}
-      className="relative bg-white border border-primary/20 rounded-[40px] p-10 flex flex-col items-center gap-6 max-w-sm w-full shadow-2xl shadow-primary/20"
+      className="relative bg-white border border-pink-100 rounded-[40px] p-10 flex flex-col items-center gap-6 max-w-sm w-full shadow-2xl shadow-pink-200"
     >
-      {/* Background glow */}
-      <div className="absolute inset-0 rounded-[40px] overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-purple-600/20" />
-        {/* Confetti dots */}
-        {[...Array(12)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 rounded-full"
-            style={{
-              background: ['#ec4899', '#8b5cf6', '#06b6d4', '#f59e0b'][i % 4],
-              left: `${10 + (i * 7.5) % 80}%`,
-              top: `${5 + (i * 11) % 30}%`,
-            }}
-            animate={{ y: [0, -20, 0], opacity: [1, 0.5, 1] }}
-            transition={{ duration: 1.5 + i * 0.1, repeat: Infinity, delay: i * 0.15 }}
-          />
-        ))}
-      </div>
-
-      {/* Hearts */}
       <motion.div
         animate={{ scale: [1, 1.2, 1] }}
         transition={{ duration: 0.6, repeat: Infinity }}
-        className="relative z-10"
       >
         <Heart className="w-16 h-16 text-pink-500 fill-pink-500 drop-shadow-[0_0_20px_rgba(236,72,153,0.8)]" />
       </motion.div>
 
-      <div className="text-center z-10">
-        <h2 className="text-4xl font-black italic text-black tracking-tight mb-1">It's a Match!</h2>
-        <p className="text-black/60 text-sm">
-          You and <span className="text-primary font-bold">@{user.username}</span> liked each other
+      <div className="text-center">
+        <h2 className="text-4xl font-black italic text-gray-900 tracking-tight mb-1 uppercase">It's a Match!</h2>
+        <p className="text-gray-500 text-sm">
+          You and <span className="text-pink-500 font-bold">@{user.username}</span> liked each other
         </p>
       </div>
 
-      {/* Avatar */}
-      <div className="w-24 h-24 rounded-full border-4 border-pink-500 overflow-hidden shadow-xl z-10 bg-black/5">
+      <div className="w-24 h-24 rounded-full border-4 border-pink-500 overflow-hidden shadow-xl bg-gray-50">
         {user.avatar_url ? (
           <img src={`http://localhost:8080${user.avatar_url}`} className="w-full h-full object-cover" alt="" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-3xl font-black text-black/20 italic">
+          <div className="w-full h-full flex items-center justify-center text-3xl font-black text-gray-200 italic">
             {user.full_name?.charAt(0) || '?'}
           </div>
         )}
       </div>
 
-      <div className="flex flex-col gap-3 w-full z-10">
+      <div className="flex flex-col gap-3 w-full">
         <button
           onClick={onClose}
-          className="w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 rounded-2xl text-white font-black text-lg shadow-[0_0_30px_rgba(236,72,153,0.4)] hover:shadow-[0_0_40px_rgba(236,72,153,0.6)] transition-all active:scale-95"
+          className="w-full py-4 bg-gradient-to-r from-pink-500 to-purple-600 rounded-2xl text-white font-bold text-lg shadow-lg shadow-pink-200 hover:shadow-pink-300 transition-all active:scale-95"
         >
-          🎉 Keep Exploring
-        </button>
-        <button
-          onClick={onClose}
-          className="w-full py-3 bg-black/5 border border-black/10 rounded-2xl text-black/60 font-bold hover:bg-black/10 transition-all"
-        >
-          Keep Swiping
+          Keep Exploring
         </button>
       </div>
     </motion.div>
@@ -110,11 +82,16 @@ const MatchPopup: FC<MatchPopupProps> = ({ user, onClose }) => (
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 const CastingPage: FC = () => {
-  const [users, setUsers] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [matchedUser, setMatchedUser] = useState<any>(null);
   const [toast, setToast] = useState<{ message: string; type: 'match' | 'pass' } | null>(null);
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  
+  // Filtering states
+  const [activeTab, setActiveTab] = useState<'popular' | 'new' | 'online' | 'all'>('popular');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedChips, setSelectedChips] = useState<string[]>(['nearby']);
 
   const showToast = (message: string, type: 'match' | 'pass') => {
     setToast({ message, type });
@@ -125,23 +102,7 @@ const CastingPage: FC = () => {
     setLoading(true);
     try {
       const res = await api.get('/connections/suggested');
-      const mapped = (res.data || []).map((u: any) => {
-        // Fallback robust mocking to ensure premium feel even with minimal DB data
-        const pseudoRandomAge = 20 + (u.id.charCodeAt(0) % 15);
-        const pseudoRandomDist = 1 + (u.id.charCodeAt(1) % 10);
-
-        return {
-          id: u.id,
-          full_name: u.full_name || u.username,
-          username: u.username,
-          age: u.age || pseudoRandomAge,
-          distance: u.distance || `${pseudoRandomDist} miles away`,
-          is_premium: u.is_premium || (pseudoRandomAge % 3 === 0), // mock premium randomly
-          avatar_url: u.avatar_url,
-          bio: u.bio || `Just exploring. Let's connect and vibe together! ✨`
-        };
-      });
-      setUsers(mapped);
+      setAllUsers(res.data || []);
     } catch (err) {
       console.error('Failed to fetch casting users:', err);
     } finally {
@@ -151,13 +112,57 @@ const CastingPage: FC = () => {
 
   useEffect(() => { fetchCastingUsers(); }, []);
 
+  // Dynamic Filtering Logic
+  const filteredUsers = useMemo(() => {
+    let result = [...allUsers];
+
+    // 1. Search filter
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(u => 
+        u.username.toLowerCase().includes(q) || 
+        u.full_name.toLowerCase().includes(q)
+      );
+    }
+
+    // 2. Chip filters
+    if (selectedChips.includes('mutuals')) {
+      result = result.filter(u => u.mutual_count > 0);
+    }
+    if (selectedChips.includes('verified')) {
+      result = result.filter(u => u.is_verified);
+    }
+    if (selectedChips.includes('nearby')) {
+      result = result.filter(u => (u.distance_km || 0) < 10);
+    }
+
+    // 3. Tab logic
+    switch (activeTab) {
+      case 'popular':
+        result.sort((a, b) => (b.mutual_count || 0) - (a.mutual_count || 0));
+        break;
+      case 'new':
+        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        break;
+      case 'online':
+        result = result.filter(u => {
+          if (!u.last_active_at) return false;
+          const lastActive = new Date(u.last_active_at).getTime();
+          const fiveMinsAgo = Date.now() - (5 * 60 * 1000);
+          return lastActive > fiveMinsAgo;
+        });
+        break;
+    }
+
+    return result;
+  }, [allUsers, activeTab, searchQuery, selectedChips]);
+
   const handleMatch = async (id: string) => {
-    const user = users.find((u) => u.id === id);
+    const user = allUsers.find((u) => u.id === id);
     try {
       const res = await api.post('/connections/request', { target_user_id: id });
-      setUsers((prev) => prev.filter((u) => u.id !== id));
+      setAllUsers((prev) => prev.filter((u) => u.id !== id));
       
-      // ✅ Fixed: Only show Match popup if it's a REAL mutual match
       if (res.data.is_match && user) {
         setMatchedUser(user);
       } else {
@@ -165,85 +170,130 @@ const CastingPage: FC = () => {
       }
     } catch (err: any) {
       if (err?.response?.status === 409) {
-        setUsers((prev) => prev.filter((u) => u.id !== id));
+        setAllUsers((prev) => prev.filter((u) => u.id !== id));
         showToast('Already requested!', 'pass');
       } else {
-        console.error('Failed to send connection request:', err);
-        showToast('Could not send request. Try again!', 'pass');
+        showToast('Failed to connect. Try again!', 'pass');
       }
     }
   };
 
   const handlePass = (id: string) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+    setAllUsers((prev) => {
+      const user = prev.find(u => u.id === id);
+      const rest = prev.filter(u => u.id !== id);
+      return user ? [...rest, user] : rest; // Move to end as requested
+    });
     showToast('Passed 👋', 'pass');
   };
 
-  const handleViewProfile = (id: string) => {
-    setProfileUserId(id);
+  const toggleChip = (chip: string) => {
+    setSelectedChips(prev => 
+      prev.includes(chip) ? prev.filter(c => c !== chip) : [...prev, chip]
+    );
   };
 
-  // Profile view
   if (profileUserId) {
-    return (
-      <UserProfileView
-        userId={profileUserId}
-        onBack={() => setProfileUserId(null)}
-        onMessage={(id) => console.log('Message clicked for user', id)}
-      />
-    );
+    return <UserProfileView userId={profileUserId} onBack={() => setProfileUserId(null)} onMessage={() => {}} />;
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#f9e8ff] overflow-y-auto no-scrollbar relative">
-      {/* Header */}
-      <div className="px-6 py-8 flex items-center justify-between sticky top-0 bg-[#f9e8ff]/80 backdrop-blur-xl z-30 border-b border-primary/10">
-        <div className="flex flex-col">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-accent" />
-            <h1 className="text-2xl font-black text-black italic tracking-tighter uppercase">User Casting</h1>
+    <div className="flex-1 flex flex-col h-full bg-white overflow-y-auto no-scrollbar relative">
+      {/* Header Section */}
+      <div className="px-8 pt-10 pb-6 flex flex-col gap-8 bg-white/80 backdrop-blur-xl sticky top-0 z-40 border-b border-gray-50">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-pink-50 rounded-2xl flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-pink-500" />
+              </div>
+              <h1 className="text-3xl font-black text-gray-900 italic tracking-tighter uppercase leading-none">User Casting</h1>
+            </div>
+            <p className="text-gray-400 text-xs font-bold tracking-widest uppercase mt-2 ml-1">
+              {loading ? 'Discovering...' : `${filteredUsers.length} people nearby`}
+            </p>
           </div>
-          <p className="text-black/40 text-xs font-bold tracking-widest uppercase mt-1 opacity-60">
-            {loading ? 'Loading...' : `${users.length} people nearby`}
-          </p>
+
+          <button
+            onClick={fetchCastingUsers}
+            className="p-3.5 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100 transition-all active:rotate-180 duration-500 shadow-sm"
+          >
+            <RefreshCcw className="w-5 h-5 text-gray-400" />
+          </button>
         </div>
 
-        <button
-          onClick={fetchCastingUsers}
-          className="p-3 bg-primary/5 hover:bg-primary/10 rounded-2xl border border-primary/10 transition-all active:rotate-180 duration-500"
-        >
-          <RefreshCcw className="w-5 h-5 text-primary" />
-        </button>
+        {/* Search & Tabs Controls */}
+        <div className="flex flex-col gap-6">
+          {/* Main Tabs */}
+          <div className="flex items-center gap-2">
+            {(['popular', 'new', 'online', 'all'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-6 py-2.5 rounded-2xl text-sm font-bold capitalize transition-all active:scale-95 ${
+                  activeTab === tab 
+                    ? 'bg-pink-500 text-white shadow-lg shadow-pink-100' 
+                    : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative group">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-pink-400 transition-colors" />
+            <input 
+              type="text"
+              placeholder="Search users..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-gray-50/50 border border-gray-100 rounded-[24px] py-4 pl-14 pr-12 text-sm font-medium focus:ring-4 focus:ring-pink-500/5 focus:border-pink-500/20 transition-all outline-none placeholder:text-gray-300"
+            />
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white rounded-xl shadow-sm border border-gray-50">
+              <Filter className="w-4 h-4 text-gray-400" />
+            </div>
+          </div>
+
+          {/* Filter Chips */}
+          <div className="flex items-center gap-3">
+            <FilterChip 
+              icon={<Zap className="w-3.5 h-3.5" />} 
+              label="Nearby" 
+              active={selectedChips.includes('nearby')} 
+              onClick={() => toggleChip('nearby')} 
+            />
+            <FilterChip 
+              icon={<Users className="w-3.5 h-3.5" />} 
+              label="Mutuals" 
+              active={selectedChips.includes('mutuals')} 
+              onClick={() => toggleChip('mutuals')} 
+            />
+            <FilterChip 
+              icon={<ShieldCheck className="w-3.5 h-3.5" />} 
+              label="Verified" 
+              active={selectedChips.includes('verified')} 
+              onClick={() => toggleChip('verified')} 
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Hint bar */}
-      {!loading && users.length > 0 && (
-        <div className="flex items-center justify-center gap-8 py-3 border-b border-primary/5 text-xs text-black/40 font-bold uppercase tracking-wider">
-          <span className="flex items-center gap-1.5 hover:text-red-500 transition-colors">
-            <X className="w-3 h-3 text-red-500" /> Pass
-          </span>
-          <span className="flex items-center gap-1.5 hover:text-pink-500 transition-colors">
-            <Heart className="w-3 h-3 text-pink-500 fill-pink-500" /> Match
-          </span>
-        </div>
-      )}
-
-      {/* Grid */}
-      <div className="flex-1">
+      {/* Grid Content */}
+      <div className="flex-1 bg-[#FDFDFF]">
         <CastingGrid
-          users={users}
+          users={filteredUsers}
           loading={loading}
           onMatch={handleMatch}
           onPass={handlePass}
-          onViewProfile={handleViewProfile}
+          onViewProfile={setProfileUserId}
         />
       </div>
 
-      {/* "It's a Match!" Popup */}
+      {/* Match Popup */}
       <AnimatePresence>
-        {matchedUser && (
-          <MatchPopup user={matchedUser} onClose={() => setMatchedUser(null)} />
-        )}
+        {matchedUser && <MatchPopup user={matchedUser} onClose={() => setMatchedUser(null)} />}
       </AnimatePresence>
 
       {/* Toast */}
@@ -253,5 +303,20 @@ const CastingPage: FC = () => {
     </div>
   );
 };
+
+// Helper Component: Filter Chip
+const FilterChip = ({ icon, label, active, onClick }: { icon: any, label: string, active: boolean, onClick: () => void }) => (
+  <button
+    onClick={onClick}
+    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
+      active 
+        ? 'bg-white border-pink-100 text-gray-900 shadow-md shadow-pink-50' 
+        : 'bg-transparent border-gray-100 text-gray-400 hover:border-gray-200'
+    }`}
+  >
+    <span className={active ? 'text-pink-500' : 'text-gray-300'}>{icon}</span>
+    {label}
+  </button>
+);
 
 export default CastingPage;

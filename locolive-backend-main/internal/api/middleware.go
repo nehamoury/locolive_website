@@ -96,12 +96,7 @@ func adminMiddleware(server *Server) gin.HandlerFunc {
 // corsMiddleware handles the CORS middleware
 func corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Skip CORS for WebSocket upgrade requests to avoid protocol interference
-		if c.GetHeader("Upgrade") == "websocket" {
-			c.Next()
-			return
-		}
-
+		// Handle standard CORS for all requests including WebSocket upgrades
 		origin := c.Request.Header.Get("Origin")
 		if origin != "" {
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)

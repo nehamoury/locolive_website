@@ -18,36 +18,8 @@ const CrossingsView: FC = () => {
           api.get('/connections/sent').catch(() => ({ data: [] })),
         ]);
         
-        // Use real data, or fallback to rich demo data if empty
-        let fetchedCrossings = crossingsRes.data || [];
-        if (fetchedCrossings.length === 0) {
-          fetchedCrossings = [
-            {
-              user_id: 'demo-1',
-              username: 'alex_walker',
-              avatar_url: 'https://i.pravatar.cc/150?u=alex',
-              location_name: 'Magnet Mall',
-              crossed_at: new Date(Date.now() - 15 * 60000).toISOString(), // 15 mins ago
-              connected: false
-            },
-            {
-              user_id: 'demo-2',
-              username: 'sarah_j',
-              avatar_url: 'https://i.pravatar.cc/150?u=sarah',
-              location_name: 'Central Park',
-              crossed_at: new Date(Date.now() - 120 * 60000).toISOString(), // 2 hrs ago
-              connected: false
-            },
-            {
-              user_id: 'demo-3',
-              username: 'mike_p',
-              avatar_url: '', // Will use initial 'M'
-              location_name: 'Downtown Cafe',
-              crossed_at: new Date(Date.now() - 1440 * 60000).toISOString(), // 1 day ago
-              connected: false
-            }
-          ];
-        }
+        // Use real data (no demo fallback)
+        const fetchedCrossings = crossingsRes.data || [];
         setCrossings(fetchedCrossings);
 
         // Mark already-requested users
@@ -141,11 +113,28 @@ const CrossingsView: FC = () => {
             <div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : crossings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100 shadow-sm">
-              <Footprints className="w-10 h-10 text-gray-300" />
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <div className="relative mb-8">
+              <div className="w-24 h-24 bg-gradient-to-tr from-gray-50 to-gray-100 rounded-[2.5rem] flex items-center justify-center border border-gray-200/50 shadow-inner relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-tr from-pink-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <Footprints className="w-10 h-10 text-gray-300 relative z-10" />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center scale-90 group-hover:scale-100 transition-transform">
+                <MapPin className="w-4 h-4 text-pink-500" />
+              </div>
             </div>
-            <p className="text-base font-bold text-gray-400 max-w-[250px]">No path crossings yet.<br/>Walk around your area and discover people nearby!</p>
+            
+            <h3 className="text-xl font-black text-gray-900 mb-2">No path crossings yet</h3>
+            <p className="text-sm font-bold text-gray-400 max-w-[280px] leading-relaxed">
+              Walk around your area and discover people nearby! Real magic happens when you bump into others.
+            </p>
+            
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-8 px-6 py-2.5 bg-gray-900 text-white rounded-2xl text-[11px] font-black tracking-widest uppercase hover:bg-gray-800 transition-colors active:scale-95 shadow-lg shadow-black/10"
+            >
+              Refresh View
+            </button>
           </div>
         ) : (
           <div className="space-y-4">

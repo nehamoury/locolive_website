@@ -130,16 +130,21 @@ func (s *ServiceImpl) CreateStory(ctx context.Context, req CreateStoryParams) (*
 
 func (s *ServiceImpl) notifyNearbyUsers(ctx context.Context, story db.CreateStoryRow) {
 	// Radius for nearby post alert: 2km
-	const alertRadius = 2000.0
+	const alertRadius = 2.0 // in km for GeoSearch
 	const userLocationsKey = "users:locations"
 
-	matches, err := s.redis.GeoRadius(ctx, userLocationsKey, story.Lng.(float64), story.Lat.(float64), &redis.GeoRadiusQuery{
-		Radius: alertRadius,
-		Unit:   "m",
+	matches, err := s.redis.GeoSearchLocation(ctx, userLocationsKey, &redis.GeoSearchLocationQuery{
+		GeoSearchQuery: redis.GeoSearchQuery{
+			Longitude:  story.Lng.(float64),
+			Latitude:   story.Lat.(float64),
+			Radius:     alertRadius,
+			RadiusUnit: "km",
+			Sort:       "ASC",
+		},
 	}).Result()
 
 	if err != nil {
-		log.Error().Err(err).Msg("failed to find nearby users for story alert")
+		log.Error().Err(err).Msg("failed to find nearby users for story alert using GeoSearch")
 		return
 	}
 

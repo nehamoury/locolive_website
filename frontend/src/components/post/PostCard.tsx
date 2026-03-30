@@ -73,37 +73,43 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col bg-white rounded-[36px] border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+      className="flex flex-col bg-white rounded-[32px] border border-gray-100/60 shadow-[0_20px_50px_rgba(0,0,0,0.03)] hover:shadow-[0_25px_60px_rgba(0,0,0,0.05)] transition-all duration-500 overflow-hidden group/card"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-6 pt-6 pb-4">
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-br from-[#FF3B8E] to-[#A436EE]">
-            <div className="w-full h-full rounded-full bg-white overflow-hidden">
-              {avatarUrl ? (
-                <img
-                  src={avatarUrl.startsWith('http') ? avatarUrl : `${BACKEND}${avatarUrl}`}
-                  className="w-full h-full object-cover"
-                  alt=""
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-50 text-[#FF3B8E] font-bold text-base">
-                  {post.username?.charAt(0)?.toUpperCase()}
-                </div>
-              )}
+          <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-[#FF3B8E] to-[#A436EE] shadow-sm">
+            <div className="w-full h-full rounded-full bg-white p-[1.5px]">
+              <div className="w-full h-full rounded-full overflow-hidden bg-gray-50 flex items-center justify-center">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl.startsWith('http') ? avatarUrl : `${BACKEND}${avatarUrl}`}
+                    className="w-full h-full object-cover"
+                    alt=""
+                  />
+                ) : (
+                  <span className="text-[#FF3B8E] font-black text-sm">
+                    {post.username?.charAt(0)?.toUpperCase()}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-          <div>
-            <p className="font-bold text-gray-900 text-sm leading-tight">{post.full_name || post.username}</p>
-            <div className="flex items-center gap-2 text-[11px] text-gray-400 font-medium mt-0.5">
-              <span>@{post.username}</span>
-              <span>·</span>
+          <div className="flex flex-col">
+            <h4 className="font-black text-gray-900 text-[14px] leading-none tracking-tight">
+              {post.full_name || post.username}
+            </h4>
+            <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-gray-400">
+              <span className="text-gray-900/40">@{post.username}</span>
+              <span className="w-0.5 h-0.5 rounded-full bg-gray-300" />
               <span>{timeAgo(post.created_at)}</span>
               {locationName && (
                 <>
-                  <span>·</span>
-                  <MapPin className="w-3 h-3" />
-                  <span>{locationName}</span>
+                  <span className="w-0.5 h-0.5 rounded-full bg-gray-300" />
+                  <div className="flex items-center gap-0.5 text-pink-500/60">
+                    <MapPin className="w-2.5 h-2.5" />
+                    <span className="max-w-[100px] truncate">{locationName}</span>
+                  </div>
                 </>
               )}
             </div>
@@ -140,28 +146,28 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
 
       {/* Caption */}
       {cleanCaption && (
-        <p className="px-6 pb-3 text-gray-800 font-medium text-sm leading-relaxed">
+        <p className="px-5 pb-3 text-gray-700 font-medium text-[14px] leading-relaxed tracking-tight">
           {cleanCaption}
         </p>
       )}
 
       {/* Text Post Bubble */}
       {isTextOnly && caption && (
-        <div className="mx-6 mb-4 p-8 rounded-[28px] bg-gradient-to-br from-pink-50 to-purple-50 border border-pink-100">
-          <p className="text-gray-800 font-medium text-xl leading-relaxed">{caption}</p>
+        <div className="mx-4 mb-4 p-10 rounded-[24px] bg-gradient-to-br from-pink-50/50 to-purple-50/50 border border-pink-100/50 flex items-center justify-center text-center">
+          <p className="text-gray-900 font-black text-xl leading-snug tracking-tight">{caption}</p>
         </div>
       )}
 
       {/* Media */}
       {!isTextOnly && post.media_url && (
         <div
-          className="mx-4 mb-4 aspect-square rounded-[28px] overflow-hidden bg-gray-50 cursor-pointer group"
+          className="mx-3 mb-3 aspect-[4/5] md:aspect-video rounded-[24px] overflow-hidden bg-gray-50 cursor-pointer relative group/media shadow-sm border border-gray-100"
           onClick={() => onImageClick?.(post)}
         >
           {post.media_type === 'video' ? (
             <video
               src={`${BACKEND}${post.media_url}`}
-              className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+              className="w-full h-full object-cover group-hover/media:scale-105 transition-transform duration-700 ease-out"
               muted
               loop
               autoPlay
@@ -171,36 +177,41 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
             <img
               src={post.media_url.startsWith('http') ? post.media_url : `${BACKEND}${post.media_url}`}
               alt=""
-              className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+              className="w-full h-full object-cover group-hover/media:scale-105 transition-transform duration-700 ease-out"
             />
           )}
+          <div className="absolute inset-0 bg-black/5 opacity-0 group-hover/media:opacity-100 transition-opacity" />
         </div>
       )}
 
       {/* Hashtags */}
       {hashtags.length > 0 && (
-        <div className="flex flex-wrap gap-x-3 gap-y-1 px-6 pb-3">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 px-5 pb-3">
           {hashtags.map((tag: string, i: number) => (
-            <span key={i} className="text-[#A436EE] font-bold text-xs italic">{tag}</span>
+            <span key={i} className="text-[#A436EE] font-black text-[10px] uppercase tracking-wider bg-purple-50 px-2 py-0.5 rounded-full">{tag}</span>
           ))}
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-6 px-6 pb-5 pt-1">
-        <button
-          onClick={handleLike}
-          className={`flex items-center gap-2 transition-all group ${liked ? 'text-[#FF3B8E]' : 'text-gray-300 hover:text-[#FF3B8E]'}`}
-        >
-          <Heart className={`w-5 h-5 transition-transform group-hover:scale-110 ${liked ? 'fill-[#FF3B8E]' : ''}`} />
-          {likeCount > 0 && <span className="text-xs font-bold">{likeCount}</span>}
-        </button>
-        <button className="flex items-center gap-2 text-gray-300 hover:text-gray-600 transition-all">
-          <MessageSquare className="w-5 h-5" />
-          {post.comments_count > 0 && <span className="text-xs font-bold">{post.comments_count}</span>}
-        </button>
-        <button className="text-gray-300 hover:text-gray-600 transition-all">
-          <Share2 className="w-5 h-5" />
+      <div className="flex items-center justify-between px-5 pb-5 pt-1">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleLike}
+            className={`flex items-center gap-2 p-2 rounded-2xl transition-all group ${liked ? 'bg-pink-50 text-[#FF3B8E]' : 'hover:bg-gray-50 text-gray-400 hover:text-gray-900'}`}
+          >
+            <Heart className={`w-5 h-5 transition-transform group-hover:scale-110 group-active:scale-90 ${liked ? 'fill-[#FF3B8E]' : ''}`} />
+            <span className="text-[12px] font-black">{likeCount}</span>
+          </button>
+          
+          <button className="flex items-center gap-2 p-2 rounded-2xl hover:bg-gray-50 text-gray-400 hover:text-gray-900 transition-all group">
+            <MessageSquare className="w-5 h-5 transition-transform group-hover:scale-110 rounded-full" />
+            <span className="text-[12px] font-black">{post.comments_count || 0}</span>
+          </button>
+        </div>
+
+        <button className="p-2 rounded-2xl hover:bg-gray-50 text-gray-400 hover:text-gray-900 transition-all group">
+          <Share2 className="w-5 h-5 transition-transform group-hover:rotate-12" />
         </button>
       </div>
     </motion.div>

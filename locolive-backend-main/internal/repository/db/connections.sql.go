@@ -114,6 +114,10 @@ SELECT
     u.username, 
     u.full_name, 
     u.avatar_url,
+    u.bio,
+    u.is_verified,
+    u.last_active_at,
+    u.created_at,
     COALESCE((
         SELECT COUNT(*)
         FROM connections c
@@ -136,11 +140,15 @@ type GetSuggestedConnectionsParams struct {
 }
 
 type GetSuggestedConnectionsRow struct {
-	ID          uuid.UUID      `json:"id"`
-	Username    string         `json:"username"`
-	FullName    string         `json:"full_name"`
-	AvatarUrl   sql.NullString `json:"avatar_url"`
-	MutualCount int64          `json:"mutual_count"`
+	ID           uuid.UUID      `json:"id"`
+	Username     string         `json:"username"`
+	FullName     string         `json:"full_name"`
+	AvatarUrl    sql.NullString `json:"avatar_url"`
+	Bio          sql.NullString `json:"bio"`
+	IsVerified   bool           `json:"is_verified"`
+	LastActiveAt sql.NullTime   `json:"last_active_at"`
+	CreatedAt    time.Time      `json:"created_at"`
+	MutualCount  int64          `json:"mutual_count"`
 }
 
 func (q *Queries) GetSuggestedConnections(ctx context.Context, arg GetSuggestedConnectionsParams) ([]GetSuggestedConnectionsRow, error) {
@@ -157,6 +165,10 @@ func (q *Queries) GetSuggestedConnections(ctx context.Context, arg GetSuggestedC
 			&i.Username,
 			&i.FullName,
 			&i.AvatarUrl,
+			&i.Bio,
+			&i.IsVerified,
+			&i.LastActiveAt,
+			&i.CreatedAt,
 			&i.MutualCount,
 		); err != nil {
 			return nil, err

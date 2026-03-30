@@ -168,7 +168,6 @@ type Querier interface {
 	UpdateUserGoogleID(ctx context.Context, arg UpdateUserGoogleIDParams) (User, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (UpdateUserProfileRow, error)
-	UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) (User, error)
 	UpdateUserTrust(ctx context.Context, arg UpdateUserTrustParams) (User, error)
 	UpsertPrivacySettings(ctx context.Context, arg UpsertPrivacySettingsParams) (PrivacySetting, error)
 }
