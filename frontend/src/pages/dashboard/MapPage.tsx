@@ -138,7 +138,7 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
     const [isPanicActive, setIsPanicActive] = useState(false);
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'stories' | 'heatmap' | 'both'>('stories');
+    const [activeTab, setActiveTab] = useState<'stories' | 'heatmap' | 'both'>('both');
     const [crossings, setCrossings] = useState<any[]>([]);
     const [locationName] = useState('Raipur, CG');
     const [toast, setToast] = useState<{ message: string; type: 'like' | 'superlike' } | null>(null);
@@ -150,7 +150,10 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
     };
 
     const handleConnect = async (userId: string) => {
-        const user = userStack.find(u => u.id === userId) || (selectedUser?.stories?.[0]?.user_id === userId ? selectedUser.stories[0] : null);
+        if (!userId) return;
+        const userInStack = userStack.find(u => (u.userId || u.id) === userId);
+        const userInSelected = selectedUser?.stories?.find((s: any) => (s.user_id || s.id || s.userId) === userId);
+        const user = userInStack || userInSelected;
         const name = user?.full_name || user?.username || 'User';
 
         try {
@@ -174,7 +177,10 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
     };
 
     const handleFavorite = async (userId: string) => {
-        const user = userStack.find(u => u.id === userId) || (selectedUser?.stories?.[0]?.user_id === userId ? selectedUser.stories[0] : null);
+        if (!userId) return;
+        const userInStack = userStack.find(u => (u.userId || u.id) === userId);
+        const userInSelected = selectedUser?.stories?.find((s: any) => (s.user_id || s.id || s.userId) === userId);
+        const user = userInStack || userInSelected;
         const name = user?.full_name || user?.username || 'User';
 
         try {
@@ -248,6 +254,13 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
     // Derive data for DiscoveryPanel
     const nearbyStories = (clusters || []).flatMap(c => c.stories || []).slice(0, 9);
     const featuredUser = userStack[currentStackIndex];
+
+    const getCoords = (item: any): [number, number] | null => {
+        const lat = item.latitude !== undefined ? item.latitude : item.lat;
+        const lng = item.longitude !== undefined ? item.longitude : item.lng;
+        if (lat == null || lng == null) return null;
+        return [Number(lat), Number(lng)];
+    };
 
     return (
         <div className="flex h-screen w-full overflow-hidden bg-white">
@@ -372,17 +385,23 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
                     )}
 
                     {/* Nearby Real-time Users */}
-                    {(activeTab === 'heatmap' || activeTab === 'both') && nearbyUsers.map((u) => (
+                    {(activeTab === 'heatmap' || activeTab === 'both') && nearbyUsers
+                        .map((u) => ({ ...u, coords: getCoords(u) }))
+                        .filter(u => u.id && u.coords)
+                        .map((u) => (
                         <Marker
                             key={`user-${u.id}`}
-                            position={[u.latitude, u.longitude]}
+                            position={u.coords!}
                             icon={createOtherUserIcon(u.avatar_url ? (u.avatar_url.startsWith('http') ? u.avatar_url : `http://localhost:8080${u.avatar_url}`) : '', u.username)}
                             eventHandlers={{ click: () => setSelectedUser({ count: 0, stories: [u], isUserOnly: true }) }}
                         />
                     ))}
 
                     {/* Story cluster markers */}
-                    {(activeTab === 'stories' || activeTab === 'both') && clusters.map((cluster) => {
+                    {(activeTab === 'stories' || activeTab === 'both') && clusters
+                        .map((c) => ({ ...c, coords: getCoords(c) }))
+                        .filter(cluster => cluster.geohash && cluster.coords)
+                        .map((cluster) => {
                         const avatar = cluster.stories?.[0]?.avatar_url
                             ? (cluster.stories[0].avatar_url.startsWith('http') ? cluster.stories[0].avatar_url : `http://localhost:8080${cluster.stories[0].avatar_url}`)
                             : '';
@@ -391,7 +410,7 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
                         return (
                             <Marker
                                 key={`story-${cluster.geohash}`}
-                                position={[cluster.latitude, cluster.longitude]}
+                                position={cluster.coords!}
                                 icon={icon}
                                 eventHandlers={{ click: () => setSelectedUser(cluster) }}
                             />

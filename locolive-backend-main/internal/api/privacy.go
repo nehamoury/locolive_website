@@ -218,14 +218,23 @@ func (server *Server) toggleGhostMode(ctx *gin.Context) {
 func (server *Server) panicMode(ctx *gin.Context) {
 	payload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
-	// Delete all user data
+	// 1. Immediate Redis Cleanup (Real-time visibility)
+	// Remove from Geo Index
+	server.redis.ZRem(ctx, "users:locations", payload.UserID.String())
+	// Clear crossings cache
+	server.redis.Del(ctx, "crossings:v3:"+payload.UserID.String())
+	// Clear profile cache
+	server.redis.Del(ctx, "profile:"+payload.UserID.String())
+
+	// 2. Clear all DB data ( CASCADE takes care of stories, crossings, connections, etc.)
 	err := server.store.DeleteAllUserData(ctx, payload.UserID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	// Invalidate token/session would be good here but handled by expiry usually
-
-	ctx.JSON(http.StatusOK, gin.H{"message": "all data deleted"})
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "Panic protocol complete. All traces scrubbed.",
+		"status": "scrubbed",
+	})
 }

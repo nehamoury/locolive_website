@@ -47,7 +47,7 @@ const Dashboard = () => {
   const [showRightSidebar, setShowRightSidebar] = useState(true);
 
   // Real-time Notifications Hook
-  const { unreadCount: totalUnreadCount } = useNotifications();
+  const { unreadCount: totalUnreadCount, unreadMessagesCount } = useNotifications();
 
   // Crossings mapping
   useGeolocation(true);
@@ -69,8 +69,27 @@ const Dashboard = () => {
         ? { latitude: position.coords.latitude, longitude: position.coords.longitude }
         : defaultCoords;
 
-      const response = await api.get('/feed', { params });
-      setStories(response.data.stories || []);
+      const [feedResponse, connResponse, meResponse] = await Promise.all([
+        api.get('/feed', { params }).catch(() => ({ data: { stories: [] } })),
+        api.get('/stories/connections').catch(() => ({ data: [] })),
+        api.get('/stories/me').catch(() => ({ data: [] }))
+      ]);
+      
+      const mapStories = feedResponse.data?.stories || [];
+      const connStories = connResponse.data || [];
+      const myStories = meResponse.data || [];
+      
+      const allStories = [...mapStories, ...connStories, ...myStories];
+      const uniqueMap = new Map();
+      allStories.forEach(s => {
+        if (!uniqueMap.has(s.id)) {
+          uniqueMap.set(s.id, s);
+        }
+      });
+      const uniqueStories = Array.from(uniqueMap.values());
+      uniqueStories.sort((a,b) => new Date(Object(b).created_at).getTime() - new Date(Object(a).created_at).getTime());
+      
+      setStories(uniqueStories);
     } catch (err: any) {
       console.error('Failed to fetch stories:', err.response?.data || err.message);
       setStories([]);
@@ -176,12 +195,15 @@ const Dashboard = () => {
             }}
             showPanel={showRightSidebar}
             onTogglePanel={() => setShowRightSidebar(prev => !prev)}
+            onNavigate={(tab) => setActiveTab(tab)}
+            unreadNotificationsCount={totalUnreadCount}
+            unreadMessagesCount={unreadMessagesCount}
           />
         );
       case 'profile':
         return <Profile onLogout={logout} />;
       case 'notifications':
-        return <NotificationsView />;
+        return <NotificationsView onUserSelect={handleUserSelect} />;
       case 'explore':
         return <MapPage onUserSelect={handleUserSelect} />;
       case 'connections':
@@ -205,7 +227,7 @@ const Dashboard = () => {
           <SearchView onUserSelect={handleUserSelect} />
         );
       case 'crossings':
-        return <CrossingsView />;
+        return <CrossingsView onUserSelect={handleUserSelect} />;
       case 'casting':
         return <CastingPage />;
       case 'messages':
@@ -280,7 +302,7 @@ const Dashboard = () => {
     <div className="h-screen w-full bg-[#F8F9FE] text-gray-800 font-poppins flex overflow-hidden p-0 md:p-3 md:gap-3">
 
       {/* 1. Left Sidebar (Fixed) */}
-      <div className="hidden md:flex flex-col h-full bg-white md:rounded-[32px] shadow-sm overflow-hidden flex-shrink-0">
+      <div className="hidden md:flex flex-col h-full bg-white md:rounded-[24px] shadow-sm overflow-hidden flex-shrink-0">
         <Sidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -294,7 +316,7 @@ const Dashboard = () => {
       <Toaster position="top-right" reverseOrder={false} />
 
       {/* 2. Main Content Center (Scrollable) */}
-      <main className="flex-1 relative overflow-hidden flex flex-col bg-white md:rounded-[32px] shadow-sm z-10">
+      <main className="flex-1 relative overflow-hidden flex flex-col bg-white md:rounded-[24px] shadow-sm z-10 w-full md:w-auto">
 
         {/* Mobile Header */}
         <div className="md:hidden sticky top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between bg-white/95 backdrop-blur-xl border-b border-gray-50">
@@ -302,10 +324,13 @@ const Dashboard = () => {
             <span className="bg-gradient-to-r from-[#FF3B8E] to-[#A436EE] bg-clip-text text-transparent">Locolive</span>
           </div>
           <div className="flex space-x-4 text-gray-400">
-            <button className="hover:text-[#FF3B8E] transition-colors"><Bell className="w-6 h-6" /></button>
+            <button className="relative hover:text-[#FF3B8E] transition-colors" onClick={() => setActiveTab('notifications')}>
+              <Bell className="w-6 h-6" />
+              {totalUnreadCount > 0 && <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-[#FF3B8E] text-white text-[9px] font-black rounded-full border-2 border-white flex items-center justify-center shadow-sm">{totalUnreadCount > 99 ? '99+' : totalUnreadCount}</span>}
+            </button>
             <button className="relative hover:text-[#FF3B8E] transition-colors" onClick={() => setActiveTab('messages')}>
               <MessageSquare className="w-6 h-6" />
-              {totalUnreadCount > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#FF3B8E] rounded-full border-2 border-white shadow-sm" />}
+              {unreadMessagesCount > 0 && <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-[#FF3B8E] text-white text-[9px] font-black rounded-full border-2 border-white flex items-center justify-center shadow-sm">{unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}</span>}
             </button>
           </div>
         </div>
@@ -322,9 +347,10 @@ const Dashboard = () => {
 
           <button
             onClick={() => setIsCreateModalOpen(true)}
+            aria-label="Create new post"
             className="w-13 h-13 bg-gradient-to-tr from-[#FF3B8E] to-[#A436EE] rounded-full flex items-center justify-center transform -translate-y-5 shadow-lg shadow-pink-200 active:scale-90 transition-all text-white border-4 border-white"
           >
-            <Plus className="w-7 h-7 stroke-[3]" />
+            <Plus className="w-7 h-7 stroke-[3]" aria-hidden="true" />
           </button>
 
           <MobileNavItem icon={<Sparkles className="w-6 h-6" />} active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} />
@@ -334,7 +360,7 @@ const Dashboard = () => {
 
       {/* Right Sidebar — collapsible */}
       <div
-        className={`hidden md:flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-white md:rounded-[32px] shadow-sm ${showRightSidebar ? 'w-80 opacity-100' : 'w-0 opacity-0'
+        className={`hidden lg:flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-transparent md:rounded-[24px] ${showRightSidebar ? 'w-80 opacity-100' : 'w-0 opacity-0'
           }`}
       >
         <RightSidebar crossingsToday={crossingsCount} />
@@ -400,12 +426,14 @@ const Dashboard = () => {
 
 // Mobile Nav Item helper
 const MobileNavItem = ({ icon, active, onClick }: { icon: React.ReactNode, active: boolean, onClick: () => void }) => (
-  <button
-    onClick={onClick}
-    className={`p-2 transition-all duration-300 ${active ? 'text-[#FF3B8E] scale-110' : 'text-gray-300 hover:text-gray-500'}`}
-  >
-    {icon}
-  </button>
+    <button
+      onClick={onClick}
+      aria-label={active ? "Current page" : "Navigate"}
+      aria-current={active ? "page" : undefined}
+      className={`p-2 transition-all duration-300 ${active ? 'text-[#FF3B8E] scale-110' : 'text-gray-300 hover:text-gray-500'}`}
+    >
+      {icon}
+    </button>
 );
 
 export default Dashboard;

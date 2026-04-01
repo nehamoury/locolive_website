@@ -29,8 +29,14 @@ export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({
 
   return (
     <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, x: 50, rotate: 5 }}
+      animate={{ opacity: 1, x: 0, rotate: 0 }}
+      exit={{ 
+        opacity: 0, 
+        x: -200, 
+        rotate: -20, 
+        transition: { duration: 0.3 } 
+      }}
       className="relative group px-2"
     >
       <motion.div 

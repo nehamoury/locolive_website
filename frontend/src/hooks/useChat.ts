@@ -29,8 +29,13 @@ export const useChat = (targetUserId?: string) => {
       
       // Mark messages as read since we just opened the chat
       await api.put(`/messages/read/${targetUserId}`);
-    } catch (err) {
-      console.error('Failed to fetch chat history or mark read:', err);
+    } catch (err: any) {
+      if (err.response?.status === 403) {
+        console.warn('Chat history forbidden: Not connected to user');
+        setMessages([]);
+      } else {
+        console.error('Failed to fetch chat history or mark read:', err);
+      }
     }
   }, [targetUserId]);
 

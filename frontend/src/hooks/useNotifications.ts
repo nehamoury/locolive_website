@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { useSound } from '../context/SoundContext';
 
 // Sound URL - Simplified approach using a public ping sound
 const CROSSING_SOUND_URL = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
@@ -15,9 +16,11 @@ interface Notification {
 
 export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { alertsEnabled, toggleAlerts } = useSound();
 
   // Initialize audio
   useEffect(() => {
@@ -33,15 +36,41 @@ export const useNotifications = () => {
     }
   }, []);
 
-  const playAlertSound = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.play().catch(e => console.log('Audio play failed:', e));
+  const fetchUnreadMessagesCount = useCallback(async () => {
+    try {
+      const res = await api.get('/messages/unread-count');
+      setUnreadMessagesCount(res.data.unread_count || 0);
+    } catch (err) {
+      console.error('Failed to fetch unread messages count:', err);
     }
   }, []);
 
+  const playAlertSound = useCallback(() => {
+    if (alertsEnabled && audioRef.current) {
+      audioRef.current.play().catch(e => {
+        console.log('Audio play failed:', e);
+        if (e.name === 'NotAllowedError') {
+           // If blocked, we might need a user gesture to retry
+           toast.error('Enable sound in settings', { id: 'audio-blocked' });
+        }
+      });
+    }
+  }, [alertsEnabled]);
+
+  const toggleAudio = useCallback(() => {
+    toggleAlerts();
+    if (!alertsEnabled) {
+      // About to enable
+       toast.success('Audio alerts enabled!', { id: 'audio-toggle' });
+    } else {
+       toast.success('Audio alerts disabled', { id: 'audio-toggle' });
+    }
+  }, [alertsEnabled, toggleAlerts]);
+
   useEffect(() => {
     fetchUnreadCount();
-  }, [fetchUnreadCount]);
+    fetchUnreadMessagesCount();
+  }, [fetchUnreadCount, fetchUnreadMessagesCount]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -66,8 +95,37 @@ export const useNotifications = () => {
           console.log('Real-time Alert:', data);
 
           if (data.type === 'new_message') {
-             // Handled by useChat usually, but we update unread badge here
-             fetchUnreadCount();
+             fetchUnreadMessagesCount();
+
+             // Extract user ID from token to check if we are the sender
+             let isMe = false;
+             try {
+                if (token) {
+                  const payloadStr = atob(token.split('.')[1]);
+                  const jwtPayload = JSON.parse(payloadStr);
+                  if (jwtPayload.user_id === data.sender_id) {
+                    isMe = true;
+                  }
+                }
+             } catch (e) {
+                console.error("Failed to decode token for sender check", e);
+             }
+
+             if (isMe) {
+               return; // Do not play sound or show toast for our own messages
+             }
+
+             playAlertSound();
+             toast(`New message received! 💬`, {
+               duration: 3000,
+               style: {
+                 borderRadius: '20px',
+                 background: '#FFF',
+                 color: '#333',
+                 fontWeight: 'bold',
+                 border: '1px solid #E5E7EB',
+               },
+             });
              return;
           }
 
@@ -134,18 +192,35 @@ export const useNotifications = () => {
     return () => {
       isSubscribed = false;
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
-      if (socketRef.current) {
-        // Only close if it's not already closing or closed
-        if (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING) {
-          socketRef.current.close();
+      
+      const socket = socketRef.current;
+      if (socket) {
+        try {
+          // Check if we can safely close
+          if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+            // Nullify handlers before closing to prevent unwanted reconnects during unmount
+            socket.onclose = null;
+            socket.onerror = null;
+            socket.onmessage = null;
+            socket.close();
+          }
+        } catch (err) {
+          console.warn('Silent WS cleanup error:', err);
         }
+        socketRef.current = null;
       }
     };
   }, [fetchUnreadCount, playAlertSound]);
 
   return {
     unreadCount,
+    unreadMessagesCount,
     notifications,
-    refreshUnread: fetchUnreadCount
+    audioEnabled: alertsEnabled,
+    toggleAudio,
+    refreshUnread: () => {
+      fetchUnreadCount();
+      fetchUnreadMessagesCount();
+    }
   };
 };

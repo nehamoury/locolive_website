@@ -1,5 +1,5 @@
 import React, { useState, useEffect, type FC } from 'react';
-import { Heart, UserPlus, MapPin, Bell, Check, Eye, MessageCircle, ThumbsUp } from 'lucide-react';
+import { Heart, UserPlus, MapPin, Bell, Eye, MessageCircle, ThumbsUp } from 'lucide-react';
 import api from '../../services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -161,7 +161,11 @@ const NotifCard = ({
 
 // ─── Main View ────────────────────────────────────────────────────────────────
 
-const NotificationsView: FC = () => {
+interface NotificationsViewProps {
+  onUserSelect?: (userId: string) => void;
+}
+
+const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -188,10 +192,15 @@ const NotificationsView: FC = () => {
     }
   };
 
-  const markRead = async (id: string) => {
+  const markRead = async (id: string, relatedUserId?: string) => {
     try {
       await api.put(`/notifications/${id}/read`);
       setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+      
+      // If it's a social notification, navigate to profile
+      if (relatedUserId && onUserSelect) {
+        onUserSelect(relatedUserId);
+      }
     } catch (err) {
       console.error('Failed to mark read:', err);
     }
@@ -205,9 +214,9 @@ const NotificationsView: FC = () => {
       {/* Header */}
       <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 bg-white border-b border-gray-100 shadow-sm">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-xl font-black text-gray-900 italic tracking-tight">Alerts</h1>
+          <h1 className="text-xl font-black text-gray-900 italic tracking-tight uppercase leading-none">System Alerts</h1>
           {unreadCount > 0 && (
-            <span className="min-w-[20px] h-5 bg-gradient-to-br from-pink-500 to-purple-600 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1.5">
+            <span className="min-w-[20px] h-5 bg-pink-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1.5">
               {unreadCount}
             </span>
           )}
@@ -215,10 +224,9 @@ const NotificationsView: FC = () => {
         {unreadCount > 0 && (
           <button
             onClick={markAllRead}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-gray-500 hover:bg-gray-50 hover:border-gray-300 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-100 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-pink-500 transition-all"
           >
-            <Check className="w-3.5 h-3.5" />
-            Mark all read
+            Clear All
           </button>
         )}
       </div>
@@ -238,18 +246,24 @@ const NotificationsView: FC = () => {
         </div>
       ) : notifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 text-center px-8">
-          <div className="w-16 h-16 bg-pink-50 rounded-full flex items-center justify-center mb-4">
-            <Bell className="w-7 h-7 text-pink-400" />
+          <div className="w-16 h-16 bg-gray-50 rounded-[24px] flex items-center justify-center mb-4">
+            <Bell className="w-7 h-7 text-black/10" />
           </div>
-          <h3 className="text-base font-black text-gray-700 italic mb-1">All caught up!</h3>
-          <p className="text-xs text-gray-400 max-w-[220px]">
-            No notifications yet. Start exploring to see activity from people nearby.
-          </p>
+          <h3 className="text-sm font-black text-gray-400 uppercase italic tracking-widest">No alerts found</h3>
         </div>
       ) : (
         <div className="divide-y divide-gray-50">
           {notifications.map(notif => (
-            <NotifCard key={notif.id} notif={notif} onRead={markRead} />
+            <NotifCard 
+              key={notif.id} 
+              notif={notif} 
+              onRead={(id) => {
+                const actorId = typeof notif.related_user_id === 'string' 
+                    ? notif.related_user_id 
+                    : notif.related_user_id?.UUID;
+                markRead(id, actorId);
+              }} 
+            />
           ))}
         </div>
       )}

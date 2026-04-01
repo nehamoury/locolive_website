@@ -4,58 +4,48 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"time"
+	"os"
 
 	_ "github.com/lib/pq"
 )
 
 func main() {
-	dbSource := "postgresql://postgres:password@127.0.0.1:5433/privacy_social?sslmode=disable"
-	db, err := sql.Open("postgres", dbSource)
+	dbUrl := os.Getenv("DB_SOURCE")
+	if dbUrl == "" {
+		dbUrl = "postgresql://postgres:password@localhost:5432/privacy_social?sslmode=disable"
+	}
+
+	db, err := sql.Open("postgres", dbUrl)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to open db: %v", err)
 	}
 	defer db.Close()
 
-	fmt.Println("--- USERS ---")
-	rows, err := db.Query("SELECT id, username, email, is_ghost_mode, is_shadow_banned FROM users")
+	var count int
+	err = db.QueryRow("SELECT COUNT(*) FROM stories").Scan(&count)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to count stories: %v", err)
 	}
-	for rows.Next() {
-		var id, username, email string
-		var ghost, shadow bool
-		rows.Scan(&id, &username, &email, &ghost, &shadow)
-		fmt.Printf("ID: %s | Username: %s | Email: %s | Ghost: %v | Shadow: %v\n", id, username, email, ghost, shadow)
-	}
-	rows.Close()
+	fmt.Printf("Total stories: %d\n", count)
 
-	fmt.Println("\n--- ACTIVE STORIES ---")
-	rows, err = db.Query("SELECT id, user_id, expires_at, created_at, lat, lng FROM (SELECT s.id, s.user_id, s.expires_at, s.created_at, ST_Y(s.geom::geometry) as lat, ST_X(s.geom::geometry) as lng FROM stories s) s WHERE expires_at > now()")
+	var activeCount int
+	err = db.QueryRow("SELECT COUNT(*) FROM stories WHERE expires_at > now()").Scan(&activeCount)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to count active stories: %v", err)
 	}
-	for rows.Next() {
-		var id, userID string
-		var expiresAt, createdAt time.Time
-		var lat, lng float64
-		rows.Scan(&id, &userID, &expiresAt, &createdAt, &lat, &lng)
-		fmt.Printf("ID: %s | UserID: %s | CreatedAt: %s | ExpiresAt: %s | Lat: %f | Lng: %f\n", id, userID, createdAt, expiresAt, lat, lng)
-	}
-	rows.Close()
+	fmt.Printf("Total active stories: %d\n", activeCount)
 
-	fmt.Println("\n--- POSTS ---")
-	rows, err = db.Query("SELECT id, user_id, media_url, media_type, caption, created_at FROM posts ORDER BY created_at DESC")
-	if err != nil {
-		log.Printf("Query error for posts: %v", err)
-	} else {
+	rows, err := db.Query("SELECT id, user_id, ST_Y(geom::geometry) as lat, ST_X(geom::geometry) as lng FROM stories WHERE expires_at > now() LIMIT 5")
+	if err == nil {
+		fmt.Println("Active stories sample:")
 		for rows.Next() {
-			var id, userID, mediaUrl, mediaType string
-			var caption sql.NullString
-			var createdAt time.Time
-			rows.Scan(&id, &userID, &mediaUrl, &mediaType, &caption, &createdAt)
-			fmt.Printf("ID: %s | UserID: %s | Type: %s | Caption: %s | CreatedAt: %s\n", id, userID, mediaType, caption.String, createdAt)
+			var id, userId string
+			var lat, lng float64
+			rows.Scan(&id, &userId, &lat, &lng)
+			fmt.Printf("- Story %s by User %s at [%f, %f]\n", id, userId, lat, lng)
 		}
 		rows.Close()
+	} else {
+		fmt.Printf("Error querying stories: %v\n", err)
 	}
 }

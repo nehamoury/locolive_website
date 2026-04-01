@@ -3,6 +3,7 @@ import { DiscoveryHeader } from './DiscoveryHeader';
 import { PeopleNearbyCard } from './PeopleNearbyCard';
 import { PathCrossingsList } from './PathCrossingsList';
 import { NearbyStoriesGrid } from './NearbyStoriesGrid';
+import { AnimatePresence } from 'framer-motion';
 
 interface DiscoveryPanelProps {
   activeTab: 'stories' | 'heatmap' | 'both';
@@ -39,17 +40,20 @@ export const DiscoveryPanel: React.FC<DiscoveryPanelProps> = ({
 
       <div className="p-8 flex flex-col gap-10">
         {/* People Nearby Section */}
-        <section className="flex flex-col gap-6">
+        <section className="flex flex-col gap-6 overflow-hidden">
            <h3 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 italic px-2">
               People Nearby <span className="text-lg">💫</span>
            </h3>
-           <PeopleNearbyCard 
-             user={nearbyUser || { username: "Guest", bio: "No more users nearby", distance: "" }} 
-             onConnect={onConnect}
-             onProfileClick={onUserSelect}
-             onSkip={onSkip}
-             onFavorite={onFavorite}
-           />
+           <AnimatePresence mode="wait">
+             <PeopleNearbyCard 
+               key={nearbyUser?.userId || nearbyUser?.id || 'guest'}
+               user={nearbyUser || { username: "Guest", bio: "No more users nearby", distance: "" }} 
+               onConnect={onConnect}
+               onProfileClick={onUserSelect}
+               onSkip={onSkip}
+               onFavorite={onFavorite}
+             />
+           </AnimatePresence>
         </section>
 
         {/* Path Crossings Section */}

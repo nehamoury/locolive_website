@@ -1,7 +1,8 @@
-import { useState, type FC } from 'react';
-import { Heart, MessageSquare, Share2, MapPin, MoreHorizontal, Trash2 } from 'lucide-react';
+import { useState, useRef, useEffect, type FC } from 'react';
+import { Heart, MessageSquare, Share2, MapPin, MoreHorizontal, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
+import { useSound } from '../../context/SoundContext';
 
 interface PostCardProps {
   post: any;
@@ -25,7 +26,10 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
   const [liked, setLiked] = useState<boolean>(post.liked_by_viewer ?? false);
   const [likeCount, setLikeCount] = useState<number>(post.likes_count ?? 0);
   const [showMenu, setShowMenu] = useState(false);
+  const isTextOnly = post.media_type === 'text' || !post.media_url || post.media_url === 'text';
   const isOwner = currentUserID && post.user_id === currentUserID;
+  const { isMuted, toggleMute } = useSound();
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Normalize NullString objects from Go backend ({ String: "...", Valid: true })
   const caption = typeof post.caption === 'object' && post.caption !== null
@@ -40,7 +44,16 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
 
   const hashtags = caption.match(/#[a-z0-9_]+/gi) || [];
   const cleanCaption = caption.replace(/#[a-z0-9_]+/gi, '').trim();
-  const isTextOnly = post.media_type === 'text' || !post.media_url || post.media_url === 'text';
+
+  // Sync muted state with DOM element to bypass React reconciliation lag on media tags
+  useEffect(() => {
+     if (videoRef.current) {
+        videoRef.current.muted = isMuted;
+        if (!isMuted) {
+           videoRef.current.play().catch(() => {});
+        }
+     }
+  }, [isMuted]);
 
   const handleLike = async () => {
     const wasLiked = liked;
@@ -73,7 +86,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col bg-white rounded-[32px] border border-gray-100/60 shadow-[0_20px_50px_rgba(0,0,0,0.03)] hover:shadow-[0_25px_60px_rgba(0,0,0,0.05)] transition-all duration-500 overflow-hidden group/card"
+      className="flex flex-col bg-white rounded-[24px] border border-gray-100/40 shadow-[0_8px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_15px_40px_rgba(0,0,0,0.05)] transition-shadow duration-500 overflow-hidden group/card"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
@@ -165,14 +178,26 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
           onClick={() => onImageClick?.(post)}
         >
           {post.media_type === 'video' ? (
-            <video
-              src={`${BACKEND}${post.media_url}`}
-              className="w-full h-full object-cover group-hover/media:scale-105 transition-transform duration-700 ease-out"
-              muted
-              loop
-              autoPlay
-              playsInline
-            />
+            <>
+              <video
+                ref={videoRef}
+                src={`${BACKEND}${post.media_url}`}
+                className="w-full h-full object-cover group-hover/media:scale-105 transition-transform duration-700 ease-out"
+                muted={isMuted}
+                loop
+                autoPlay
+                playsInline
+                onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+              />
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+                aria-label={isMuted ? "Unmute video" : "Mute video"}
+                className="absolute bottom-3 right-3 p-2.5 bg-black/50 backdrop-blur-xl rounded-full text-white transition-all duration-300 opacity-100 scale-100 hover:bg-black/70 hover:scale-110 active:scale-95 shadow-lg z-10"
+              >
+                {isMuted ? <VolumeX className="w-4.5 h-4.5" /> : <Volume2 className="w-4.5 h-4.5" />}
+              </button>
+            </>
           ) : (
             <img
               src={post.media_url.startsWith('http') ? post.media_url : `${BACKEND}${post.media_url}`}

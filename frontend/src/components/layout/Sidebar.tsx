@@ -1,5 +1,5 @@
 import { type FC } from 'react';
-import { Home, Map as MapIcon, MessageSquare, User, Bell, Plus, Sparkles, Footprints, Users, LogOut } from 'lucide-react';
+import { Home, Map as MapIcon, User, Plus, Sparkles, Footprints, Users, LogOut } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting';
@@ -39,12 +39,12 @@ interface SidebarProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   user: any;
-  unreadCount: number;
+  unreadCount?: number;
   logout: () => void;
   onCreatePost: () => void;
 }
 
-const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, unreadCount, logout, onCreatePost }) => {
+const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, logout, onCreatePost }) => {
   return (
     <aside className="w-20 md:w-72 bg-white hidden md:flex flex-col px-4 py-8 z-20 flex-shrink-0 h-full border-r border-gray-100 shadow-sm overflow-y-auto no-scrollbar font-poppins">
       {/* Logo Area */}
@@ -77,21 +77,6 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, unreadCount,
           active={activeTab === 'explore'}
           onClick={() => setActiveTab('explore')}
           color="text-[#FFA94D]"
-        />
-        <NavItem
-          icon={<MessageSquare className="w-5 h-5" />}
-          label="Messages"
-          active={activeTab === 'messages'}
-          badge={unreadCount}
-          onClick={() => setActiveTab('messages')}
-          color="text-[#9D7BFF]"
-        />
-        <NavItem
-          icon={<Bell className="w-5 h-5" />}
-          label="Notifications"
-          active={activeTab === 'notifications'}
-          onClick={() => setActiveTab('notifications')}
-          color="text-[#FF9F1A]"
         />
         <NavItem
           icon={<Users className="w-5 h-5" />}

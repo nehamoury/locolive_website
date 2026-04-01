@@ -72,7 +72,11 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-primary/10">
           <h3 className="text-lg font-bold text-black">Edit Profile</h3>
-          <button onClick={onClose} className="p-2 hover:bg-primary/5 rounded-full transition-colors">
+          <button 
+            onClick={onClose} 
+            aria-label="Close edit modal"
+            className="p-2 hover:bg-primary/5 rounded-full transition-colors"
+          >
             <X className="w-5 h-5 text-black/40" />
           </button>
         </div>
@@ -80,12 +84,12 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
         <div className="p-6 space-y-6">
           {/* Avatar */}
           <div className="flex justify-center">
-            <label className="relative cursor-pointer group">
+            <label htmlFor="avatar-upload" className="relative cursor-pointer group">
               <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-primary to-accent flex items-center justify-center text-3xl font-bold overflow-hidden text-white shadow-lg shadow-primary/20">
                 {avatarPreview ? (
-                  <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />
                 ) : user?.avatar_url ? (
-                  <img src={`http://localhost:8080${user.avatar_url}`} alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={`http://localhost:8080${user.avatar_url}`} alt="Current Avatar" className="w-full h-full object-cover" />
                 ) : (
                   user?.full_name?.charAt(0) || 'U'
                 )}
@@ -93,16 +97,18 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
               <div className="absolute inset-0 rounded-full bg-primary/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <Camera className="w-6 h-6 text-white" />
               </div>
-              <input type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+              <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
             </label>
           </div>
 
           {/* Full Name */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-black/40 uppercase tracking-widest ml-1">Name</label>
+            <label htmlFor="full-name" className="text-xs font-bold text-black/40 uppercase tracking-widest ml-1">Name</label>
             <input
+              id="full-name"
               type="text"
               value={fullName}
+              autoComplete="name"
               onChange={(e) => setFullName(e.target.value)}
               className="w-full bg-primary/5 border border-primary/10 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-primary/50 transition-colors"
               placeholder="Your full name"
@@ -111,14 +117,15 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
 
           {/* Bio */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-black/40 uppercase tracking-widest ml-1">Bio</label>
+            <label htmlFor="bio" className="text-xs font-bold text-black/40 uppercase tracking-widest ml-1">Bio</label>
             <textarea
+              id="bio"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               rows={3}
               maxLength={150}
               className="w-full bg-primary/5 border border-primary/10 rounded-xl px-4 py-3 text-sm text-black focus:outline-none focus:border-primary/50 transition-colors resize-none"
-              placeholder="Tell the world about yourself..."
+              placeholder="Tell the world about yourself…"
             />
             <p className="text-[10px] text-black/60 text-right">{bio.length}/150</p>
           </div>
