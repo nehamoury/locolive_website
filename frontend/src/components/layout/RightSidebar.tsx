@@ -1,11 +1,19 @@
 import { type FC } from 'react';
-import { MapPin, TrendingUp, Info, Users, Compass, Footprints } from 'lucide-react';
+import { MapPin, TrendingUp, Info, Users, Compass, Footprints, RotateCw } from 'lucide-react';
 
 interface RightSidebarProps {
   crossingsToday?: number;
+  nearbyCount?: number;
+  storiesCount?: number;
+  isSyncing?: boolean;
 }
 
-const RightSidebar: FC<RightSidebarProps> = ({ crossingsToday = 0 }) => {
+const RightSidebar: FC<RightSidebarProps> = ({ 
+  crossingsToday = 0, 
+  nearbyCount = 0, 
+  storiesCount = 0,
+  isSyncing = false
+}) => {
   return (
     <aside className="w-80 h-full bg-white flex flex-col p-5 overflow-y-auto no-scrollbar font-poppins gap-6">
 
@@ -31,9 +39,16 @@ const RightSidebar: FC<RightSidebarProps> = ({ crossingsToday = 0 }) => {
           </button>
         </div>
 
-        <div className="relative z-10 bg-white/90 backdrop-blur-md border border-white/60 rounded-[12px] p-2.5 mb-4 shadow-sm flex items-center gap-2 self-start">
-          <div className="w-2.5 h-2.5 bg-[#22C55E] rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-          <span className="text-[10px] font-black text-gray-700 uppercase tracking-widest">Location Sharing Active</span>
+        <div className="relative z-10 flex items-center justify-between gap-2 mb-4">
+          <div className="bg-white/90 backdrop-blur-md border border-white/60 rounded-[12px] p-2.5 shadow-sm flex items-center gap-2 self-start">
+            <div className="w-2.5 h-2.5 bg-[#22C55E] rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+            <span className="text-[10px] font-black text-gray-700 uppercase tracking-widest">Location Sharing Active</span>
+          </div>
+          {isSyncing && (
+            <div className="animate-spin text-[#FF3B8E] opacity-50 mr-2">
+              <RotateCw className="w-3.5 h-3.5" />
+            </div>
+          )}
         </div>
 
         <div className="relative z-10 mt-auto">
@@ -51,7 +66,7 @@ const RightSidebar: FC<RightSidebarProps> = ({ crossingsToday = 0 }) => {
             </div>
             <span className="text-[13px] font-bold text-gray-700 tracking-tight">Nearby People</span>
           </div>
-          <span className="text-xl font-black text-gray-900">12</span>
+          <span className="text-xl font-black text-gray-900">{nearbyCount || 0}</span>
         </div>
 
         <div className="bg-gradient-to-br from-[#F5E6FF]/80 to-white border border-purple-100/50 rounded-[20px] p-4 flex items-center justify-between shadow-sm cursor-pointer hover:shadow-md transition-shadow">
@@ -61,7 +76,7 @@ const RightSidebar: FC<RightSidebarProps> = ({ crossingsToday = 0 }) => {
             </div>
             <span className="text-[13px] font-bold text-gray-700 tracking-tight">Stories Nearby</span>
           </div>
-          <span className="text-xl font-black text-gray-900">7</span>
+          <span className="text-xl font-black text-gray-900">{storiesCount || 0}</span>
         </div>
 
         <div className="bg-gradient-to-br from-[#FFF5E6]/80 to-white border border-orange-100/50 rounded-[20px] p-4 flex items-center justify-between shadow-sm cursor-pointer hover:shadow-md transition-shadow">

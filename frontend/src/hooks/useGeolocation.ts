@@ -20,8 +20,8 @@ export const useGeolocation = (enabled: boolean = true) => {
 
     const handleSuccess = async (position: GeolocationPosition) => {
       const now = Date.now();
-      // Throttle pings to exactly once every 10 seconds to save battery and network
-      if (now - lastPingTimeRef.current < 10000) {
+      // Throttle pings to exactly once every 5 seconds to save battery and network
+      if (now - lastPingTimeRef.current < 5000) {
         return; 
       }
 

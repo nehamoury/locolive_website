@@ -52,6 +52,9 @@ const Dashboard = () => {
   // Crossings mapping
   useGeolocation(true);
   const [crossingsCount, setCrossingsCount] = useState<number>(0);
+  const [nearbyCount, setNearbyCount] = useState<number>(0);
+  const [storiesCount, setStoriesCount] = useState<number>(0);
+  const [isSyncingStats, setIsSyncingStats] = useState(false);
 
   // Core Data Fetching
   const fetchStories = useCallback(async () => {
@@ -104,14 +107,40 @@ const Dashboard = () => {
   // Removed manual message unread count (now handled by useNotifications)
 
 
-  const fetchCrossings = useCallback(async () => {
+  const fetchSidebarStats = useCallback(async () => {
+    setIsSyncingStats(true);
     try {
-      const response = await api.get('/crossings');
-      const data = response.data || [];
+      // 1. Get location for context
+      const position: any = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
+      }).catch(() => null);
+
+      // Always fetch crossings (no location needed)
+      const crossRes = await api.get('/crossings').catch(() => ({ data: [] }));
+      const data = crossRes.data || [];
       const today = new Date().toISOString().split('T')[0];
       const todayCrossings = data.filter((c: any) => c.last_crossing_at?.startsWith(today));
       setCrossingsCount(todayCrossings.length);
-    } catch (err) { }
+
+      // Only fetch nearby + feed if we have location (both require lat/lng)
+      if (position) {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        const [nearbyRes, feedRes] = await Promise.all([
+          api.get('/users/nearby', { params: { lat, lng, radius: 5 } }).catch(() => ({ data: [] })),
+          api.get('/feed', { params: { latitude: lat, longitude: lng } }).catch(() => ({ data: { stories: [] } }))
+        ]);
+
+        setNearbyCount(nearbyRes.data?.length || 0);
+        setStoriesCount(feedRes.data?.stories?.length || 0);
+      }
+
+    } catch (err) {
+      console.error('Failed to sync sidebar stats:', err);
+    } finally {
+      setTimeout(() => setIsSyncingStats(false), 1000);
+    }
   }, []);
 
   // Panic & Data Polling
@@ -131,25 +160,26 @@ const Dashboard = () => {
     window.addEventListener('keydown', handleKeyDown);
 
     fetchStories();
-    fetchCrossings();
+    fetchSidebarStats();
 
     const handleConnectionAccepted = () => {
-      console.log('Connection accepted, refreshing stories...');
+      console.log('Connection accepted, refreshing stories & stats...');
       fetchStories();
+      fetchSidebarStats();
     };
 
     window.addEventListener('connection_accepted', handleConnectionAccepted);
 
     const interval = setInterval(() => {
-      fetchCrossings();
-    }, 30000); // Crossings sync every 30s
+      fetchSidebarStats();
+    }, 10000); // Faster sync: 10 seconds for "real-time" feel
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('connection_accepted', handleConnectionAccepted);
       clearInterval(interval);
     };
-  }, [fetchStories, fetchCrossings]);
+  }, [fetchStories, fetchSidebarStats]);
 
   useEffect(() => {
     if (activeTab === 'home') {
@@ -302,7 +332,7 @@ const Dashboard = () => {
     <div className="h-screen w-full bg-[#F8F9FE] text-gray-800 font-poppins flex overflow-hidden p-0 md:p-3 md:gap-3">
 
       {/* 1. Left Sidebar (Fixed) */}
-      <div className="hidden md:flex flex-col h-full bg-white md:rounded-[24px] shadow-sm overflow-hidden flex-shrink-0">
+      <div className="hidden md:flex flex-col h-full bg-white md:rounded-[24px] shadow-sm relative flex-shrink-0">
         <Sidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -360,10 +390,16 @@ const Dashboard = () => {
 
       {/* Right Sidebar — collapsible */}
       <div
-        className={`hidden lg:flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-transparent md:rounded-[24px] ${showRightSidebar ? 'w-80 opacity-100' : 'w-0 opacity-0'
-          }`}
+        className={`hidden lg:flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-transparent md:rounded-[24px] ${
+          showRightSidebar && activeTab !== 'explore' ? 'w-80 opacity-100' : 'w-0 opacity-0'
+        }`}
       >
-        <RightSidebar crossingsToday={crossingsCount} />
+        <RightSidebar 
+          crossingsToday={crossingsCount} 
+          nearbyCount={nearbyCount}
+          storiesCount={storiesCount}
+          isSyncing={isSyncingStats}
+        />
       </div>
 
       {/* Overlays / Modals */}

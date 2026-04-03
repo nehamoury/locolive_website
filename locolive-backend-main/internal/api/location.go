@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/mmcloughlin/geohash"
 	"github.com/rs/zerolog/log"
 
@@ -132,10 +133,15 @@ type getNearbyUsersRequest struct {
 }
 
 type nearbyUserResponse struct {
-	UserID    string  `json:"userId"`
+	UserID    string  `json:"id"`
 	Distance  float64 `json:"distance"`
 	Latitude  float64 `json:"lat"`
 	Longitude float64 `json:"lng"`
+	Username  string  `json:"username"`
+	FullName  string  `json:"full_name"`
+	AvatarUrl string  `json:"avatar_url"`
+	Bio       string  `json:"bio"`
+	Online    bool    `json:"online"`
 }
 
 func (server *Server) getNearbyUsers(ctx *gin.Context) {
@@ -154,14 +160,43 @@ func (server *Server) getNearbyUsers(ctx *gin.Context) {
 		return
 	}
 
-	rsp := make([]nearbyUserResponse, len(matches))
-	for i, match := range matches {
-		rsp[i] = nearbyUserResponse{
+	rsp := make([]nearbyUserResponse, 0, len(matches))
+	for _, match := range matches {
+		targetID, err := uuid.Parse(match.Name)
+		if err != nil {
+			continue
+		}
+		user, err := server.store.GetUserByID(ctx, targetID)
+		if err != nil || user.IsGhostMode {
+			continue
+		}
+
+		avatar := ""
+		if user.AvatarUrl.Valid {
+			avatar = user.AvatarUrl.String
+		}
+		bio := ""
+		if user.Bio.Valid {
+			bio = user.Bio.String
+		}
+
+		// Calculate online status (active in last 5 mins)
+		online := false
+		if user.LastActiveAt.Valid && time.Since(user.LastActiveAt.Time) < 5*time.Minute {
+			online = true
+		}
+
+		rsp = append(rsp, nearbyUserResponse{
 			UserID:    match.Name,
 			Distance:  match.Dist,
 			Latitude:  match.Latitude,
 			Longitude: match.Longitude,
-		}
+			Username:  user.Username,
+			FullName:  user.FullName,
+			AvatarUrl: avatar,
+			Bio:       bio,
+			Online:    online,
+		})
 	}
 
 	ctx.JSON(http.StatusOK, rsp)

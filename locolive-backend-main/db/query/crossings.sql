@@ -19,11 +19,7 @@ WHERE
     (c.user_id_1 = $1 AND u2.is_ghost_mode = false) OR
     (c.user_id_2 = $1 AND u1.is_ghost_mode = false)
   )
-  -- strict streak visibility rule
-  AND (
-    (c.user_id_1 = $1 AND DATE(u2.last_active_at) >= CURRENT_DATE - INTERVAL '1 day') OR
-    (c.user_id_2 = $1 AND DATE(u1.last_active_at) >= CURRENT_DATE - INTERVAL '1 day')
-  )
+  -- (strict streak visibility rule removed for testing/discovery)
   -- Shadow Ban Filter
   AND (
     (c.user_id_1 = $1 AND u2.is_shadow_banned = false) OR
@@ -66,3 +62,7 @@ AND NOT EXISTS (
        OR (bu.blocker_id = l2.user_id AND bu.blocked_id = l1.user_id)
 )
 GROUP BY l1.user_id, l2.user_id, l1.geohash, l1.time_bucket;
+
+-- name: GetCrossingCount :one
+SELECT COUNT(*) FROM crossings 
+WHERE (user_id_1 = LEAST($1::uuid,$2::uuid) AND user_id_2 = GREATEST($1::uuid,$2::uuid));

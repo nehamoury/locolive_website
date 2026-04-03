@@ -937,6 +937,21 @@ func (mr *MockStoreMockRecorder) GetConversionStats(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConversionStats", reflect.TypeOf((*MockStore)(nil).GetConversionStats), ctx)
 }
 
+// GetCrossingCount mocks base method.
+func (m *MockStore) GetCrossingCount(ctx context.Context, arg db.GetCrossingCountParams) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCrossingCount", ctx, arg)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCrossingCount indicates an expected call of GetCrossingCount.
+func (mr *MockStoreMockRecorder) GetCrossingCount(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCrossingCount", reflect.TypeOf((*MockStore)(nil).GetCrossingCount), ctx, arg)
+}
+
 // GetCrossingsForUser mocks base method.
 func (m *MockStore) GetCrossingsForUser(ctx context.Context, userID1 uuid.UUID) ([]db.Crossing, error) {
 	m.ctrl.T.Helper()

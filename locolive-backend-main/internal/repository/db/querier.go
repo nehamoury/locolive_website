@@ -80,6 +80,7 @@ type Querier interface {
 	GetConnectionStories(ctx context.Context, userID uuid.UUID) ([]GetConnectionStoriesRow, error)
 	GetConversationList(ctx context.Context, receiverID uuid.NullUUID) ([]GetConversationListRow, error)
 	GetConversionStats(ctx context.Context) (GetConversionStatsRow, error)
+	GetCrossingCount(ctx context.Context, arg GetCrossingCountParams) (int64, error)
 	GetCrossingsForUser(ctx context.Context, userID1 uuid.UUID) ([]Crossing, error)
 	GetEngagementStats(ctx context.Context) (GetEngagementStatsRow, error)
 	GetGroupByID(ctx context.Context, id uuid.UUID) (Group, error)

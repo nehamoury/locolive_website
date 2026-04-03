@@ -1,10 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Circle, useMap, useMapEvents } from 'react-leaflet';
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, Circle, Popup, useMap, useMapEvents } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import './MapPage.css';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Ghost, ShieldAlert, Navigation, X, MessageCircle, UserPlus, Star, Heart } from 'lucide-react';
+import { Ghost, ShieldAlert, Navigation, Star, Heart, ChevronRight, Menu, MapPin } from 'lucide-react';
 import { DiscoveryPanel } from '../../components/discovery/DiscoveryPanel';
+import { MapFilters } from '../../components/map/MapFilters';
+import { UserPreviewCard } from '../../components/map/UserPreviewCard';
 import CreateStoryModal from '../../components/story/CreateStoryModal';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -51,6 +57,9 @@ const createStoryMarkerIcon = (avatarUrl: string, username: string, count: numbe
     const imgHtml = avatarUrl
         ? `<img src="${avatarUrl}" style="width:100%;height:100%;object-fit:cover;" />`
         : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:white;font-style:italic;">${initial}</div>`;
+    const badgeHtml = count > 1 
+        ? `<div class="marker-badge" style="width:24px;height:24px;font-size:12px;top:-6px;right:-6px;">${count}</div>` 
+        : '';
 
     return new L.DivIcon({
         html: `
@@ -58,7 +67,7 @@ const createStoryMarkerIcon = (avatarUrl: string, username: string, count: numbe
                 <div class="story-marker" style="width:72px;height:72px;">
                     <div class="marker-glow"></div>
                     <div class="marker-container" style="width:64px;height:64px;border-width:4px;">${imgHtml}</div>
-                    ${count > 1 ? `<div class="marker-badge" style="width:24px;height:24px;font-size:12px;top:-6px;right:-6px;">${count}</div>` : ''}
+                    ${badgeHtml}
                 </div>
                 <div style="background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);padding:4px 12px;border-radius:12px;border:2px solid #ec4899;box-shadow:0 10px 20px -5px rgba(236,72,153,0.3);transform:translateY(-8px);">
                     <span style="font-size:11px;font-weight:900;color:black;text-transform:uppercase;font-style:italic;letter-spacing:-0.5px;white-space:nowrap;">@${username}</span>
@@ -94,6 +103,21 @@ const createOtherUserIcon = (avatarUrl: string, username: string) => {
         className: '',
         iconSize: [70, 90],
         iconAnchor: [35, 56],
+    });
+};
+
+const createHeatIcon = (intensity: number) => {
+    const size = Math.min(200, 80 + intensity * 12);
+    return new L.DivIcon({
+        html: `<div style="
+            width:${size}px;height:${size}px;border-radius:50%;
+            background:radial-gradient(circle,rgba(236,72,153,0.45) 0%,rgba(168,85,247,0.2) 50%,transparent 70%);
+            filter:blur(18px);
+            animation:heatPulse 3s ease-in-out infinite;
+        "></div>`,
+        className: '',
+        iconSize: [size, size],
+        iconAnchor: [size / 2, size / 2],
     });
 };
 
@@ -140,8 +164,12 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'stories' | 'heatmap' | 'both'>('both');
     const [crossings, setCrossings] = useState<any[]>([]);
-    const [locationName] = useState('Raipur, CG');
+    const [heatmap, setHeatmap] = useState<any[]>([]);
+    const [locationName, setLocationName] = useState('India');
     const [toast, setToast] = useState<{ message: string; type: 'like' | 'superlike' } | null>(null);
+    const [isPanelVisible, setIsPanelVisible] = useState(false);
+    const [activeFilters, setActiveFilters] = useState({ distance: null, isOnline: false, hasStories: false });
+    const [connectionIds, setConnectionIds] = useState<Set<string>>(new Set());
     const watchIdRef = useRef<number | null>(null);
 
     const showDiscoveryToast = (message: string, type: 'like' | 'superlike') => {
@@ -196,7 +224,6 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
             const res = await api.get('/users/nearby', { params: { lat, lng } });
             const users = res.data || [];
             setNearbyUsers(users);
-            // Initialize/Update stack with new users
             setUserStack(users);
             setCurrentStackIndex(0);
         } catch (err) {
@@ -204,13 +231,25 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
         }
     };
 
-    // Geolocation watch
+    const fetchCity = async (lat: number, lng: number) => {
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+            const data = await res.json();
+            const city = data.address?.city || data.address?.town || data.address?.state_district || 'India';
+            setLocationName(city);
+        } catch (err) {
+            console.error('Failed to fetch city:', err);
+        }
+    };
+
     useEffect(() => {
         if (!navigator.geolocation) return;
         watchIdRef.current = navigator.geolocation.watchPosition(
             (pos) => {
-                setUserPosition([pos.coords.latitude, pos.coords.longitude]);
-                fetchNearbyUsers(pos.coords.latitude, pos.coords.longitude);
+                const { latitude, longitude } = pos.coords;
+                setUserPosition([latitude, longitude]);
+                fetchNearbyUsers(latitude, longitude);
+                fetchCity(latitude, longitude);
             },
             (err) => console.error('Geolocation error:', err),
             { enableHighAccuracy: true }
@@ -235,6 +274,15 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
         }
     };
 
+    const fetchHeatmap = async () => {
+        try {
+            const res = await api.get('/location/heatmap');
+            setHeatmap(res.data || []);
+        } catch (err) {
+            console.error('Failed to fetch heatmap:', err);
+        }
+    };
+
     const fetchCrossings = async () => {
         try {
             const res = await api.get('/crossings');
@@ -246,12 +294,17 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
 
     useEffect(() => {
         fetchCrossings();
+        fetchHeatmap();
+        
+        api.get('/connections').then(res => {
+            const ids = new Set((res.data || []).map((c: any) => c.status === 'accepted' ? c.id : c.id).filter(Boolean));
+            setConnectionIds(ids as Set<string>);
+        }).catch(() => {});
     }, []);
 
     const userIcon = createPulsingUserIcon();
-    const defaultCenter: [number, number] = userPosition || [21.2514, 81.6296]; // Default to Raipur center
+    const defaultCenter: [number, number] = userPosition || [21.2514, 81.6296];
 
-    // Derive data for DiscoveryPanel
     const nearbyStories = (clusters || []).flatMap(c => c.stories || []).slice(0, 9);
     const featuredUser = userStack[currentStackIndex];
 
@@ -262,201 +315,17 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
         return [Number(lat), Number(lng)];
     };
 
+    const filteredNearbyUsers = useMemo(() => {
+        return nearbyUsers.filter(u => {
+            if (activeFilters.isOnline && !u.online) return false;
+            return true;
+        });
+    }, [nearbyUsers, activeFilters]);
+
     return (
-        <div className="flex h-screen w-full overflow-hidden bg-white">
-            {/* Custom CSS for Leaflet markers */}
-            <style>{`
-                .leaflet-container { background: #ffffff !important; }
-                .leaflet-control-attribution { display: none !important; }
-                .leaflet-control-zoom a {
-                    background: rgba(255,255,255,0.95) !important;
-                    color: #000000 !important;
-                    border-color: rgba(0,0,0,0.05) !important;
-                    backdrop-filter: blur(20px) !important;
-                }
-
-                .user-marker-pulse {
-                    width: 48px; height: 48px;
-                    position: relative;
-                    display: flex; align-items: center; justify-content: center;
-                }
-                .inner-circle {
-                    width: 16px; height: 16px;
-                    background: #ec4899;
-                    border: 4px solid white;
-                    border-radius: 50%;
-                    position: absolute;
-                    z-index: 3;
-                    box-shadow: 0 0 15px rgba(236, 72, 153, 0.4);
-                }
-                .pulse {
-                    width: 48px; height: 48px;
-                    background: rgba(236, 72, 153, 0.2);
-                    border-radius: 50%;
-                    position: absolute;
-                    animation: pulseAnim 2s infinite ease-out;
-                }
-                .pulse-ring {
-                    width: 64px; height: 64px;
-                    border: 2px solid rgba(236, 72, 153, 0.15);
-                    border-radius: 50%;
-                    position: absolute;
-                    animation: pulseRing 3s 0.5s infinite ease-out;
-                }
-                @keyframes pulseAnim {
-                    0% { transform: scale(0.5); opacity: 1; }
-                    100% { transform: scale(1.8); opacity: 0; }
-                }
-                @keyframes pulseRing {
-                    0% { transform: scale(0.8); opacity: 0.6; }
-                    100% { transform: scale(1.6); opacity: 0; }
-                }
-
-                .story-marker { cursor: pointer; position: relative; width: 56px; height: 56px; }
-                .marker-container {
-                    width: 52px; height: 52px;
-                    border-radius: 50%;
-                    border: 3px solid #ec4899;
-                    background: #1a1a2e;
-                    overflow: hidden;
-                    position: absolute;
-                    top: 2px; left: 2px;
-                    z-index: 2;
-                    transition: transform 0.2s;
-                }
-                .story-marker:hover .marker-container { transform: scale(1.15); }
-                .marker-glow {
-                    position: absolute; inset: -8px;
-                    background: radial-gradient(circle, rgba(236,72,153,0.5) 0%, transparent 70%);
-                    filter: blur(8px);
-                    animation: spinGlow 4s linear infinite;
-                    z-index: 1;
-                }
-                @keyframes spinGlow {
-                    from { transform: rotate(0deg); }
-                    to { transform: rotate(360deg); }
-                }
-                .marker-badge {
-                    position: absolute; top: -4px; right: -4px;
-                    background: #ec4899; color: white;
-                    font-size: 10px; font-weight: 900;
-                    width: 20px; height: 20px;
-                    border-radius: 50%;
-                    display: flex; align-items: center; justify-content: center;
-                    border: 2px solid white;
-                    z-index: 5;
-                }
-            `}</style>
-
-            {/* Left Column: Map (65%) */}
-            <div className="flex-[2.5] relative h-full bg-white overflow-hidden border-r border-gray-100">
-                <MapContainer
-                    center={defaultCenter}
-                    zoom={14}
-                    zoomControl={false}
-                    className="absolute inset-0 w-full h-full z-0"
-                    style={{ background: '#ffffff' }}
-                >
-                    <TileLayer
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution=""
-                        maxZoom={19}
-                    />
-
-                    <MapEventHandler onBoundsChange={fetchStories} />
-                    <FlyToUser position={flyTo} />
-
-                    {/* User's location marker */}
-                    {userPosition && (activeTab === 'heatmap' || activeTab === 'both') && (
-                        <>
-                            <Marker position={userPosition} icon={userIcon} />
-                            <Circle
-                                center={userPosition}
-                                radius={150}
-                                pathOptions={{
-                                    color: '#6b21a8',
-                                    fillColor: '#6b21a8',
-                                    fillOpacity: 0.08,
-                                    weight: 2,
-                                    opacity: 0.5,
-                                }}
-                            />
-                        </>
-                    )}
-
-                    {/* Nearby Real-time Users */}
-                    {(activeTab === 'heatmap' || activeTab === 'both') && nearbyUsers
-                        .map((u) => ({ ...u, coords: getCoords(u) }))
-                        .filter(u => u.id && u.coords)
-                        .map((u) => (
-                        <Marker
-                            key={`user-${u.id}`}
-                            position={u.coords!}
-                            icon={createOtherUserIcon(u.avatar_url ? (u.avatar_url.startsWith('http') ? u.avatar_url : `http://localhost:8080${u.avatar_url}`) : '', u.username)}
-                            eventHandlers={{ click: () => setSelectedUser({ count: 0, stories: [u], isUserOnly: true }) }}
-                        />
-                    ))}
-
-                    {/* Story cluster markers */}
-                    {(activeTab === 'stories' || activeTab === 'both') && clusters
-                        .map((c) => ({ ...c, coords: getCoords(c) }))
-                        .filter(cluster => cluster.geohash && cluster.coords)
-                        .map((cluster) => {
-                        const avatar = cluster.stories?.[0]?.avatar_url
-                            ? (cluster.stories[0].avatar_url.startsWith('http') ? cluster.stories[0].avatar_url : `http://localhost:8080${cluster.stories[0].avatar_url}`)
-                            : '';
-                        const username = cluster.stories?.[0]?.username || 'User';
-                        const icon = createStoryMarkerIcon(avatar, username, cluster.count);
-                        return (
-                            <Marker
-                                key={`story-${cluster.geohash}`}
-                                position={cluster.coords!}
-                                icon={icon}
-                                eventHandlers={{ click: () => setSelectedUser(cluster) }}
-                            />
-                        );
-                    })}
-                </MapContainer>
-
-                {/* Map Floating Actions */}
-                <div className="absolute top-6 left-6 z-[600]">
-                    <div className="flex items-center gap-3 px-4 py-2 bg-white/80 backdrop-blur-xl border border-gray-100 rounded-full shadow-lg">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-ping" />
-                        <span className="text-[10px] font-black text-gray-900 uppercase tracking-widest leading-none mt-0.5">Live Discovery Active</span>
-                    </div>
-                </div>
-
-                <div className="absolute bottom-10 left-10 z-[600] flex flex-col gap-5">
-                    <motion.button
-                        whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                        onClick={() => setIsPanicActive(!isPanicActive)}
-                        className={`w-14 h-14 rounded-full flex items-center justify-center backdrop-blur-xl border-4 border-white transition-all shadow-[0_15px_30px_-5px_rgba(239,68,68,0.3)] ${
-                            isPanicActive ? 'bg-red-500 text-white' : 'bg-white/95 text-red-500 hover:bg-white'
-                        }`}
-                    >
-                        <ShieldAlert className="w-6 h-6" />
-                    </motion.button>
-                    <motion.button
-                        whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                        onClick={() => setIsGhostMode(!isGhostMode)}
-                        className={`w-14 h-14 rounded-full flex items-center justify-center backdrop-blur-xl border-4 border-white transition-all shadow-[0_15px_30px_-5px_rgba(168,85,247,0.3)] ${
-                            isGhostMode ? 'bg-purple-500 text-white' : 'bg-white/95 text-purple-500 hover:bg-white'
-                        }`}
-                    >
-                        <Ghost className="w-6 h-6" />
-                    </motion.button>
-                    <motion.button
-                        whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                        onClick={() => { if (userPosition) setFlyTo([...userPosition]); }}
-                        className="w-14 h-14 bg-white/95 backdrop-blur-xl border-4 border-white rounded-full flex items-center justify-center shadow-[0_15px_30px_-5px_rgba(0,0,0,0.1)] hover:bg-white transition-all text-black"
-                    >
-                        <Navigation className="w-6 h-6" />
-                    </motion.button>
-                </div>
-            </div>
-
-            {/* Right Column: Discovery Panel (35%) */}
-            <div className="flex-1 min-w-[380px] max-w-[450px] flex flex-col h-full bg-white relative">
+        <div className="flex h-screen w-screen overflow-hidden bg-white">
+            {/* LEFT SIDEBAR: Discovery Features */}
+            <div className="hidden md:flex w-[450px] h-full border-r border-gray-100 flex-col bg-white shadow-2xl z-10">
                 <DiscoveryPanel 
                     activeTab={activeTab}
                     setActiveTab={setActiveTab}
@@ -471,74 +340,242 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
                 />
             </div>
 
-            {/* Selection Overlays */}
-            <AnimatePresence>
-                {selectedUser && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1000] w-full max-w-sm pointer-events-auto"
+            <div className="relative flex-1 h-full overflow-hidden group/map">
+
+                <MapContainer
+                    center={defaultCenter}
+                    zoom={14}
+                    zoomControl={false}
+                    className="absolute inset-0 w-full h-full z-0"
+                    style={{ background: '#f8fafc' }}
+                >
+                    <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution=""
+                        maxZoom={19}
+                    />
+
+                    <MapEventHandler onBoundsChange={fetchStories} />
+                    <FlyToUser position={flyTo} />
+
+                    <MarkerClusterGroup
+                        chunkedLoading
+                        maxClusterRadius={40}
+                        iconCreateFunction={(cluster: any) => {
+                            return L.divIcon({
+                                html: `<span>${cluster.getChildCount()}</span>`,
+                                className: 'custom-cluster-icon',
+                                iconSize: L.point(40, 40, true),
+                            });
+                        }}
                     >
-                         <div className="bg-white/95 backdrop-blur-2xl border border-gray-100 rounded-[32px] p-6 shadow-2xl relative">
-                            <button onClick={() => setSelectedUser(null)} className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full text-gray-400">
-                                <X className="w-5 h-5" />
-                            </button>
-                            <div className="flex flex-col items-center text-center">
-                                <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-pink-500 to-purple-600 mb-4 shadow-xl">
-                                    <div className="w-full h-full rounded-full bg-white overflow-hidden flex items-center justify-center border-4 border-white">
-                                        {selectedUser.stories?.[0]?.avatar_url ? (
-                                            <img src={`http://localhost:8080${selectedUser.stories[0].avatar_url}`} className="w-full h-full object-cover" alt="" />
-                                        ) : (
-                                            <span className="text-3xl font-black text-pink-500 italic">{(selectedUser.stories?.[0]?.username || 'U').charAt(0).toUpperCase()}</span>
-                                        )}
-                                    </div>
-                                </div>
-                                <h3 className="text-2xl font-black text-gray-900 italic tracking-tight mb-1">@{selectedUser.stories?.[0]?.username}</h3>
-                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6">
-                                    {selectedUser.isUserOnly ? 'Nearby User' : `Nearby Raipur · ${selectedUser.count} stories`}
-                                </p>
-                                
-                                <div className="flex gap-3 w-full">
-                                    <button 
-                                        onClick={() => handleConnect(selectedUser.stories?.[0]?.user_id || selectedUser.stories?.[0]?.id)}
-                                        className="flex-1 py-3 bg-pink-500 text-white font-bold rounded-2xl shadow-lg shadow-pink-200 active:scale-95 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <UserPlus className="w-4 h-4" /> Follow
-                                    </button>
-                                    <button 
-                                        onClick={() => onUserSelect?.(selectedUser.stories?.[0]?.user_id || selectedUser.stories?.[0]?.id)}
-                                        className="flex-1 py-3 bg-gray-50 border border-gray-100 text-gray-900 font-bold rounded-2xl active:scale-95 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <MessageCircle className="w-4 h-4" /> Profile
-                                    </button>
-                                </div>
-                            </div>
-                         </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                        {(activeTab === 'heatmap' || activeTab === 'both') && filteredNearbyUsers
+                            .map((u) => ({ ...u, coords: getCoords(u) }))
+                            .filter(u => u.id && u.coords)
+                            .map((u) => (
+                            <Marker
+                                key={`user-${u.id}`}
+                                position={u.coords!}
+                                icon={createOtherUserIcon(u.avatar_url ? (u.avatar_url.startsWith('http') ? u.avatar_url : `http://localhost:8080${u.avatar_url}`) : '', u.username)}
+                                eventHandlers={{ click: () => setSelectedUser({ count: 0, stories: [u], isUserOnly: true }) }}
+                            >
+                                <Popup className="custom-popup">
+                                    <div className="font-bold text-gray-900 leading-tight">@{u.username}</div>
+                                    <div className="text-[10px] text-gray-500 uppercase">{u.distance ? `${Number(u.distance).toFixed(1)} km` : 'Nearby'}</div>
+                                    {connectionIds.has(u.id) && <div className="text-[10px] text-pink-500 font-bold mt-1 uppercase">Connection</div>}
+                                </Popup>
+                            </Marker>
+                        ))}
 
-            {/* Create Story Modal */}
-            <CreateStoryModal
-                isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
-                onSuccess={() => setIsCreateModalOpen(false)}
-            />
+                        {(activeTab === 'stories' || activeTab === 'both') && clusters
+                            .map((c) => ({ ...c, coords: getCoords(c) }))
+                            .filter(cluster => cluster.geohash && cluster.coords)
+                            .map((cluster) => {
+                            const avatar = cluster.stories?.[0]?.avatar_url
+                                ? (cluster.stories[0].avatar_url.startsWith('http') ? cluster.stories[0].avatar_url : `http://localhost:8080${cluster.stories[0].avatar_url}`)
+                                : '';
+                            const username = cluster.stories?.[0]?.username || 'User';
+                            const icon = createStoryMarkerIcon(avatar, username, cluster.count);
+                            return (
+                                <Marker
+                                    key={`story-${cluster.geohash}`}
+                                    position={cluster.coords!}
+                                    icon={icon}
+                                    eventHandlers={{ click: () => setSelectedUser(cluster) }}
+                                />
+                            );
+                        })}
+                    </MarkerClusterGroup>
 
-            {/* Ghost Mode UI */}
-            {isGhostMode && (
-                <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[700]">
-                    <div className="px-6 py-2 bg-gray-900/90 backdrop-blur-md rounded-full text-white text-[11px] font-black uppercase tracking-[2px] border border-white/10 shadow-2xl flex items-center gap-2">
-                        <Ghost className="w-4 h-4 text-pink-400" /> Ghost Mode Active
+                    {userPosition && (
+                        <>
+                            <Marker position={userPosition} icon={userIcon} />
+                            <Circle
+                                center={userPosition}
+                                radius={150}
+                                pathOptions={{
+                                    color: '#ff3b8e',
+                                    fillColor: '#ff3b8e',
+                                    fillOpacity: 0.1,
+                                    weight: 2,
+                                    opacity: 0.5,
+                                }}
+                            />
+                        </>
+                    )}
+
+                    {(activeTab === 'heatmap' || activeTab === 'both') && heatmap
+                        .filter(pt => (pt.lat || pt.latitude) && (pt.lng || pt.longitude))
+                        .map((pt, idx) => (
+                            <Marker 
+                                key={`heat-${idx}`}
+                                position={[pt.lat || pt.latitude, pt.lng || pt.longitude]}
+                                icon={createHeatIcon(pt.intensity || pt.count || 5)}
+                                interactive={false}
+                            />
+                        ))
+                    }
+                </MapContainer>
+
+                <div className="absolute top-6 left-6 right-6 z-[600] flex items-center justify-between pointer-events-none">
+                    <div className="flex items-center gap-3 pointer-events-auto">
+                        <div className="flex items-center gap-3 px-4 py-2.5 bg-white/95 backdrop-blur-2xl border border-gray-100 rounded-2xl shadow-xl">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-ping" />
+                            <span className="text-[10px] font-black text-gray-900 uppercase tracking-[2px] leading-none mt-0.5">Live Live</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 px-4 py-2.5 bg-white/95 backdrop-blur-2xl border border-gray-100 rounded-2xl shadow-xl">
+                            <MapPin size={14} className="text-pink-500" />
+                            <span className="text-[11px] font-bold text-gray-900 uppercase tracking-wider">{locationName}</span>
+                        </div>
+
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => setIsPanelVisible(true)}
+                            className="p-3 bg-white/90 backdrop-blur-2xl border border-gray-100 rounded-2xl shadow-xl flex md:hidden pointer-events-auto"
+                        >
+                            <Menu className="w-5 h-5 text-gray-900" />
+                        </motion.button>
                     </div>
                 </div>
-            )}
 
-            {/* Discovery Toast */}
-            <AnimatePresence mode="wait">
-                {toast && <DiscoveryToast key={toast.message + toast.type} message={toast.message} type={toast.type} />}
-            </AnimatePresence>
+                <MapFilters onFilterChange={setActiveFilters} activeFilters={activeFilters} />
+
+                <div className="absolute bottom-10 left-10 z-[600] flex flex-col gap-4">
+                    <motion.button
+                        whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                        onClick={() => setIsPanicActive(!isPanicActive)}
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center backdrop-blur-2xl border border-white/20 transition-all shadow-2xl ${
+                            isPanicActive ? 'bg-red-500 text-white' : 'bg-white/90 text-red-500 hover:bg-white'
+                        }`}
+                    >
+                        <ShieldAlert className="w-6 h-6" />
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                        onClick={() => setIsGhostMode(!isGhostMode)}
+                        className={`w-14 h-14 rounded-2xl flex items-center justify-center backdrop-blur-2xl border border-white/20 transition-all shadow-2xl ${
+                            isGhostMode ? 'bg-purple-500 text-white' : 'bg-white/90 text-purple-500 hover:bg-white'
+                        }`}
+                    >
+                        <Ghost className="w-6 h-6" />
+                    </motion.button>
+                    <motion.button
+                        whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                        onClick={() => { if (userPosition) setFlyTo([...userPosition]); }}
+                        className="w-14 h-14 bg-white/90 backdrop-blur-2xl border border-white/20 rounded-2xl flex items-center justify-center shadow-2xl hover:bg-white transition-all text-black"
+                    >
+                        <Navigation className="w-6 h-6" />
+                    </motion.button>
+                </div>
+
+                <AnimatePresence>
+                    {isPanelVisible && (
+                        <>
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setIsPanelVisible(false)}
+                                className="absolute inset-0 bg-black/10 backdrop-blur-sm z-[800]"
+                            />
+                            <motion.div
+                                initial={{ x: '100%' }}
+                                animate={{ x: 0 }}
+                                exit={{ x: '100%' }}
+                                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                                className="absolute top-0 right-0 h-full w-full max-w-[450px] bg-white z-[900] shadow-[-20px_0_60px_rgba(0,0,0,0.1)] border-l border-gray-100 overflow-hidden"
+                            >
+                                <button 
+                                    onClick={() => setIsPanelVisible(false)}
+                                    className="absolute top-6 left-6 z-[1000] p-2 h-10 w-10 flex items-center justify-center bg-gray-50/80 hover:bg-gray-100 rounded-full text-gray-600 transition-all shadow-md group"
+                                >
+                                    <ChevronRight className="w-6 h-6 group-hover:translate-x-0.5 transition-transform" />
+                                </button>
+                                <div className="h-full w-full">
+                                    <DiscoveryPanel 
+                                        activeTab={activeTab}
+                                        setActiveTab={setActiveTab}
+                                        locationName={locationName}
+                                        nearbyUser={featuredUser}
+                                        crossings={crossings}
+                                        nearbyStories={nearbyStories}
+                                        onUserSelect={onUserSelect}
+                                        onConnect={handleConnect}
+                                        onSkip={handleSkip}
+                                        onFavorite={handleFavorite}
+                                    />
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
+
+                <div className="md:hidden">
+                    {!isPanelVisible && (
+                        <motion.div
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            whileHover={{ x: -10 }}
+                            onClick={() => setIsPanelVisible(true)}
+                            className="absolute top-1/2 right-0 -translate-y-1/2 z-[500] h-32 w-8 bg-white/90 backdrop-blur-xl border border-r-0 border-gray-100 rounded-l-[24px] cursor-pointer flex items-center justify-center shadow-[-10px_0_30px_rgba(0,0,0,0.05)] transition-all overflow-hidden"
+                        >
+                            <ChevronRight className="w-5 h-5 text-gray-400 rotate-180" />
+                        </motion.div>
+                    )}
+                </div>
+
+                <AnimatePresence>
+                    {selectedUser && (
+                        <UserPreviewCard 
+                            user={selectedUser} 
+                            isConnection={connectionIds.has(selectedUser?.stories?.[0]?.user_id || selectedUser?.stories?.[0]?.id || selectedUser?.id)}
+                            onClose={() => setSelectedUser(null)}
+                            onConnect={handleConnect}
+                            onProfileOpen={onUserSelect!}
+                        />
+                    )}
+                </AnimatePresence>
+
+                <CreateStoryModal
+                    isOpen={isCreateModalOpen}
+                    onClose={() => setIsCreateModalOpen(false)}
+                    onSuccess={() => setIsCreateModalOpen(false)}
+                />
+
+                {isGhostMode && (
+                    <div className="absolute top-6 left-1/2 -translate-x-1/2 z-[700]">
+                        <div className="px-6 py-2 bg-gray-900/95 backdrop-blur-md rounded-full text-white text-[11px] font-black uppercase tracking-[2px] border border-white/10 shadow-2xl flex items-center gap-2">
+                            <Ghost className="w-4 h-4 text-pink-400" /> Ghost Mode Active
+                         </div>
+                     </div>
+                )}
+
+                <AnimatePresence mode="wait">
+                    {toast && <DiscoveryToast key={toast.message + toast.type} message={toast.message} type={toast.type} />}
+                </AnimatePresence>
+            </div>
         </div>
     );
 };

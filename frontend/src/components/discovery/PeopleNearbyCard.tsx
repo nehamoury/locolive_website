@@ -52,7 +52,17 @@ export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({
         className="aspect-[4/5] rounded-[40px] overflow-hidden shadow-2xl relative border-[6px] border-white shadow-pink-100/50 cursor-pointer bg-white"
         whileDrag={{ scale: 1.05 }}
       >
-        {user.avatar_url ? (
+        {isGuest ? (
+          <div className="w-full h-full bg-gradient-to-br from-[#f8fafc] to-[#f1f5f9] flex flex-col items-center justify-center text-center p-8 border-[6px] border-white shadow-inner">
+            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-xl shadow-gray-200/50">
+              <MapPin className="w-10 h-10 text-gray-300" />
+            </div>
+            <h3 className="text-2xl font-black text-gray-800 mb-3 tracking-tight">Nobody Nearby</h3>
+            <p className="text-sm font-medium text-gray-400 leading-relaxed max-w-xs">
+              We couldn't find any explorers around you right now. Try wandering a bit or check back later!
+            </p>
+          </div>
+        ) : user.avatar_url ? (
           <img 
             src={`http://localhost:8080${user.avatar_url}`} 
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
@@ -64,27 +74,29 @@ export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({
           </div>
         )}
         
-        {/* Gradient Overlay */}
-        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none" />
+        {/* Gradient Overlay & Info (Only if not guest) */}
+        {!isGuest && (
+          <>
+            <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none" />
+            <div className="absolute bottom-0 left-0 right-0 p-8 text-white pointer-events-none">
+              <div className="flex flex-wrap gap-2 mb-3">
+                {(user.tags || ['Explorer 📍', 'Coffee Lover ☕']).map((tag, i) => (
+                  <span key={i} className="px-3 py-1.5 bg-black/20 backdrop-blur-md rounded-full text-[10px] font-black border border-white/20 uppercase tracking-tighter shadow-lg">
+                    {tag}
+                  </span>
+                ))}
+              </div>
 
-        {/* User Info Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-8 text-white pointer-events-none">
-          <div className="flex flex-wrap gap-2 mb-3">
-            {(user.tags || ['Explorer 📍', 'Coffee Lover ☕']).map((tag, i) => (
-              <span key={i} className="px-3 py-1.5 bg-black/20 backdrop-blur-md rounded-full text-[10px] font-black border border-white/20 uppercase tracking-tighter shadow-lg">
-                {tag}
-              </span>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-3xl font-black italic tracking-tighter uppercase">{user.full_name || user.username}</h3>
-          </div>
-          <div className="flex items-center gap-2 text-white/70 text-[10px] font-black uppercase tracking-widest">
-             <MapPin className="w-3 h-3 text-pink-400" />
-             Nearby · {user.distance || 'Recently'}
-          </div>
-        </div>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="text-3xl font-black italic tracking-tighter uppercase">{user.full_name || user.username}</h3>
+              </div>
+              <div className="flex items-center gap-2 text-white/70 text-[10px] font-black uppercase tracking-widest">
+                 <MapPin className="w-3 h-3 text-pink-400" />
+                 Nearby · {user.distance || 'Recently'}
+              </div>
+            </div>
+          </>
+        )}
       </motion.div>
 
       {/* Action Buttons */}

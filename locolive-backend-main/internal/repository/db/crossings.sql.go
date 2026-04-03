@@ -128,6 +128,23 @@ func (q *Queries) FindPotentialCrossings(ctx context.Context, arg FindPotentialC
 	return items, nil
 }
 
+const getCrossingCount = `-- name: GetCrossingCount :one
+SELECT COUNT(*) FROM crossings 
+WHERE (user_id_1 = LEAST($1::uuid,$2::uuid) AND user_id_2 = GREATEST($1::uuid,$2::uuid))
+`
+
+type GetCrossingCountParams struct {
+	Column1 uuid.UUID `json:"column_1"`
+	Column2 uuid.UUID `json:"column_2"`
+}
+
+func (q *Queries) GetCrossingCount(ctx context.Context, arg GetCrossingCountParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getCrossingCount, arg.Column1, arg.Column2)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const getCrossingsForUser = `-- name: GetCrossingsForUser :many
 SELECT c.id, c.user_id_1, c.user_id_2, c.location_center, c.occurred_at, c.created_at FROM crossings c
 JOIN users u1 ON c.user_id_1 = u1.id
@@ -139,11 +156,7 @@ WHERE
     (c.user_id_1 = $1 AND u2.is_ghost_mode = false) OR
     (c.user_id_2 = $1 AND u1.is_ghost_mode = false)
   )
-  -- strict streak visibility rule
-  AND (
-    (c.user_id_1 = $1 AND DATE(u2.last_active_at) >= CURRENT_DATE - INTERVAL '1 day') OR
-    (c.user_id_2 = $1 AND DATE(u1.last_active_at) >= CURRENT_DATE - INTERVAL '1 day')
-  )
+  -- (strict streak visibility rule removed for testing/discovery)
   -- Shadow Ban Filter
   AND (
     (c.user_id_1 = $1 AND u2.is_shadow_banned = false) OR

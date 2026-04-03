@@ -1,0 +1,111 @@
+.leaflet-container { 
+    background: #f8fafc !important; 
+}
+
+.leaflet-control-attribution { 
+    display: none !important; 
+}
+
+/* User Marker Styles */
+.user-marker-pulse {
+    width: 48px;
+    height: 48px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.inner-circle {
+    width: 14px;
+    height: 14px;
+    background: #ff3b8e;
+    border: 3px solid white;
+    border-radius: 50%;
+    position: absolute;
+    z-index: 3;
+    box-shadow: 0 0 15px rgba(255, 59, 142, 0.4);
+}
+
+.pulse {
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 59, 142, 0.15);
+    border-radius: 50%;
+    position: absolute;
+    animation: pulseAnim 2.5s infinite ease-out;
+}
+
+@keyframes pulseAnim {
+    0% { transform: scale(0.5); opacity: 1; }
+    100% { transform: scale(2); opacity: 0; }
+}
+
+/* Cluster Icon Styles */
+.custom-cluster-icon {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(8px);
+    border: 2px solid #ff3b8e;
+    color: #000;
+    font-weight: 900;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 20px -5px rgba(255, 59, 142, 0.3);
+}
+
+/* Heatmap Pulse */
+@keyframes heatPulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; }
+}
+
+/* Story Marker Styles */
+.story-marker-refined {
+    filter: drop-shadow(0 10px 15px rgba(236, 72, 153, 0.4));
+}
+
+.story-marker {
+    position: relative;
+    border-radius: 50%;
+    padding: 2px;
+}
+
+.marker-glow {
+    position: absolute;
+    inset: -4px;
+    background: linear-gradient(135deg, #ec4899, #8b5cf6);
+    border-radius: 50%;
+    z-index: -1;
+    animation: rotateMarker 4s linear infinite;
+}
+
+@keyframes rotateMarker {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.marker-container {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 3px solid white;
+    background: #000;
+}
+
+.marker-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: #ec4899;
+    color: white;
+    font-weight: 900;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    box-shadow: 0 4px 10px rgba(236, 72, 153, 0.4);
+}

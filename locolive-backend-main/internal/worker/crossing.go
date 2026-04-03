@@ -5,8 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/google/uuid"
 	"privacy-social-backend/internal/repository/db"
+
+	"github.com/google/uuid"
 )
 
 func (worker *CleanupWorker) StartCrossingDetector() {
@@ -58,12 +59,28 @@ func (worker *CleanupWorker) detectCrossings() {
 			continue
 		}
 
-		// Create notifications for both users
+		// Connection-aware notifications
+		conn, err := worker.store.GetConnection(ctx, db.GetConnectionParams{
+			RequesterID: c.User1,
+			TargetID:    c.User2,
+		})
+		isConnected := err == nil && conn.Status == "accepted"
+		title := "Path Crossed!"
+		message := "You crossed paths with someone nearby"
+		if isConnected {
+			title = "Crossed Again!"
+			message = "You crossed paths with a connection again!"
+		} else {
+			title = "Connection Suggestion!"
+			message = "Send a connection request to someone you crossed paths with!"
+		}
+
+		// Notification for user1
 		_, err = worker.store.CreateNotification(ctx, db.CreateNotificationParams{
 			UserID:            c.User1,
 			Type:              "crossing_detected",
-			Title:             "Path Crossed!",
-			Message:           "You crossed paths with someone nearby",
+			Title:             title,
+			Message:           message,
 			RelatedUserID:     uuid.NullUUID{UUID: c.User2, Valid: true},
 			RelatedCrossingID: uuid.NullUUID{UUID: crossing.ID, Valid: true},
 		})
@@ -71,11 +88,12 @@ func (worker *CleanupWorker) detectCrossings() {
 			log.Printf("failed to create crossing notification for user1: %v", err)
 		}
 
+		// Notification for user2
 		_, err = worker.store.CreateNotification(ctx, db.CreateNotificationParams{
 			UserID:            c.User2,
 			Type:              "crossing_detected",
-			Title:             "Path Crossed!",
-			Message:           "You crossed paths with someone nearby",
+			Title:             title,
+			Message:           message,
 			RelatedUserID:     uuid.NullUUID{UUID: c.User1, Valid: true},
 			RelatedCrossingID: uuid.NullUUID{UUID: crossing.ID, Valid: true},
 		})

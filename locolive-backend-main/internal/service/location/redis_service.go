@@ -26,8 +26,8 @@ const (
 	// Crossing TTL (Don't trigger same crossing for 10 minutes)
 	crossingTTL = 10 * time.Minute
 
-	// Radius for "crossing paths" (approx 76m to match Geohash precision)
-	crossingRadiusMeters = 80.0
+	// Radius for "crossing paths" (50m as per spec)
+	crossingRadiusMeters = 50.0
 )
 
 type RedisLocationService struct {
@@ -172,8 +172,51 @@ func (s *RedisLocationService) processCrossings(ctx context.Context, userID uuid
 			continue
 		}
 
-		s.createNotification(ctx, userID, targetUserID, crossing.ID)
-		s.createNotification(ctx, targetUserID, userID, crossing.ID)
+		// Connection-aware notifications
+		conn, err := s.store.GetConnection(ctx, db.GetConnectionParams{
+			RequesterID: userID,
+			TargetID:    targetUserID,
+		})
+		isConnected := err == nil && conn.Status == "accepted"
+		title := "Path Crossed!"
+		message := "You crossed paths with someone nearby"
+		if isConnected {
+			title = "Crossed Again!"
+			message = "You crossed paths with a connection again!"
+		} else {
+			title = "Connection Suggestion!"
+			message = "Send a connection request to someone you crossed paths with!"
+		}
+
+		// Notification for user1
+		notif1, err := s.store.CreateNotification(ctx, db.CreateNotificationParams{
+			UserID:            userID,
+			Type:              "crossing_detected",
+			Title:             title,
+			Message:           message,
+			RelatedUserID:     uuid.NullUUID{UUID: targetUserID, Valid: true},
+			RelatedCrossingID: uuid.NullUUID{UUID: crossing.ID, Valid: true},
+		})
+		if err != nil {
+			log.Error().Err(err).Msg("failed to create notification for user1")
+		} else if s.hub != nil {
+			s.hub.SendToUser(userID, s.formatAlert("crossing_detected", notif1))
+		}
+
+		// Notification for user2
+		notif2, err := s.store.CreateNotification(ctx, db.CreateNotificationParams{
+			UserID:            targetUserID,
+			Type:              "crossing_detected",
+			Title:             title,
+			Message:           message,
+			RelatedUserID:     uuid.NullUUID{UUID: userID, Valid: true},
+			RelatedCrossingID: uuid.NullUUID{UUID: crossing.ID, Valid: true},
+		})
+		if err != nil {
+			log.Error().Err(err).Msg("failed to create notification for user2")
+		} else if s.hub != nil {
+			s.hub.SendToUser(targetUserID, s.formatAlert("crossing_detected", notif2))
+		}
 
 		s.invalidateCrossingsCache(ctx, userID)
 		s.invalidateCrossingsCache(ctx, targetUserID)
@@ -214,24 +257,7 @@ func (s *RedisLocationService) validateCrossingPrivacy(ctx context.Context, u1, 
 	return true, nil
 }
 
-func (s *RedisLocationService) createNotification(ctx context.Context, recipient, crossedWith uuid.UUID, crossingID uuid.UUID) {
-	notif, err := s.store.CreateNotification(ctx, db.CreateNotificationParams{
-		UserID:            recipient,
-		Type:              "crossing_detected",
-		Title:             "Path Crossed!",
-		Message:           "You crossed paths with someone nearby",
-		RelatedUserID:     uuid.NullUUID{UUID: crossedWith, Valid: true},
-		RelatedCrossingID: uuid.NullUUID{UUID: crossingID, Valid: true},
-	})
-	if err != nil {
-		log.Error().Err(err).Msg("failed to create notification for crossing")
-		return
-	}
-
-	if s.hub != nil {
-		s.hub.SendToUser(recipient, s.formatAlert("crossing_detected", notif))
-	}
-}
+// createNotification removed - logic inlined with connection awareness
 
 func (s *RedisLocationService) formatAlert(msgType string, payload interface{}) []byte {
 	wsMsg := realtime.WSMessage{
