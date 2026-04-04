@@ -7,7 +7,7 @@
 ---
 
 **Project:** Locolive
-**Generated:** 2026-03-27 14:25:22
+**Generated:** 2026-04-04 12:46:45
 **Category:** Social Media App
 
 ---
@@ -163,11 +163,11 @@
 
 ### Page Pattern
 
-**Pattern Name:** Marketplace / Directory
+**Pattern Name:** Hero + Testimonials + CTA
 
-- **Conversion Strategy:**  map hover pins
-- **CTA Placement:** Hero Search Bar + Navbar 'List your item'
-- **Section Order:** 1. Hero (Search focused), 2. Categories, 3. Featured Listings, 4. Trust/Safety, 5. CTA (Become a host/seller)
+- **Conversion Strategy:** Social proof before CTA. Use 3-5 testimonials. Include photo + name + role. CTA after social proof.
+- **CTA Placement:** Hero (sticky) + Post-testimonials
+- **Section Order:** 1. Hero, 2. Problem statement, 3. Solution overview, 4. Testimonials carousel, 5. CTA
 
 ---
 

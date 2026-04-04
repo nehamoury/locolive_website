@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, Mail, Lock, AtSign, User, Eye, EyeOff, Check, MapPin, Zap, Phone } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Mail, Lock, AtSign, User, Eye, EyeOff, Check, MapPin, Zap, Phone, Footprints } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
@@ -35,11 +35,11 @@ const Stepper = ({ step }: { step: Step }) => (
           {idx > 0 && (
             <div className={`flex-1 h-[2px] rounded-full transition-all duration-500 ${done ? 'bg-primary' : 'bg-primary/10'}`} />
           )}
-          <div className="flex items-center gap-1.5">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 ${done ? 'bg-primary border-primary text-black' : active ? 'bg-primary border-primary text-black' : 'bg-transparent border-slate-200 text-black/40'}`}>
+          <div className="flex items-center gap-1.5 font-sans">
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 ${done ? 'bg-primary border-primary text-white' : active ? 'bg-primary border-primary text-white' : 'bg-transparent border-border-base text-text-muted/40'}`}>
               {done ? <Check className="w-3.5 h-3.5" /> : num}
             </div>
-            <span className={`text-xs font-semibold hidden sm:block ${active ? 'text-black' : done ? 'text-black/60' : 'text-black/40'}`}>{label}</span>
+            <span className={`text-xs font-semibold hidden sm:block ${active ? 'text-text-base' : done ? 'text-text-muted' : 'text-text-muted/40'}`}>{label}</span>
           </div>
         </React.Fragment>
       );
@@ -130,7 +130,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-[#f9e8ff] relative overflow-hidden font-sans px-4 py-12">
+    <div className="min-h-screen w-full flex items-center justify-center bg-bg-base relative overflow-hidden font-sans px-4 py-12 transition-colors duration-300">
       {/* Background glow */}
       <div className="absolute top-[-300px] left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-primary/20 rounded-full blur-[130px] pointer-events-none" />
       <div className="absolute bottom-[-300px] right-0 w-[500px] h-[500px] bg-accent/15 rounded-full blur-[100px] pointer-events-none" />
@@ -139,7 +139,8 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
       {onBack && (
         <button
           onClick={onBack}
-          className="absolute top-6 left-6 flex items-center gap-1.5 text-sm text-black/60 hover:text-black transition-colors"
+          className="absolute top-6 left-6 flex items-center gap-1.5 text-sm text-text-muted hover:text-primary transition-colors cursor-pointer"
+          aria-label="Back to previous page"
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
@@ -151,7 +152,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
           <div className="w-9 h-9 bg-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/20">
             <MapPin className="w-4 h-4 text-white" />
           </div>
-          <span className="text-xl font-black tracking-tight text-black">Locolive</span>
+          <span className="text-xl font-black tracking-tight text-text-base">Locolive</span>
         </div>
 
         {/* Stepper */}
@@ -186,21 +187,21 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
               className="space-y-5"
             >
               <div>
-                <h2 className="text-2xl font-black text-black">Create your account</h2>
-                <p className="text-sm text-black/60 mt-1">Start discovering your neighborhood</p>
+                <h2 className="text-2xl font-black text-text-base">Create your account</h2>
+                <p className="text-sm text-text-muted mt-1">Start discovering your neighborhood</p>
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
                   <input
                     type="email"
                     required
                     value={form.email}
                     onChange={(e) => set('email', e.target.value)}
                     placeholder="you@example.com"
-                    className="w-full h-12 glass-input border border-primary/10 rounded-xl pl-11 pr-4 text-black text-sm placeholder:text-black/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-4 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
                   />
                 </div>
               </div>
@@ -208,19 +209,20 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Password</label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted/40" />
                   <input
                     type={showPass ? 'text' : 'password'}
                     required
                     value={form.password}
                     onChange={(e) => set('password', e.target.value)}
                     placeholder="Min. 8 characters"
-                    className="w-full h-12 glass-input border border-primary/10 rounded-xl pl-11 pr-11 text-black text-sm placeholder:text-black/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-11 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPass(v => !v)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-black/40 hover:text-black transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted/40 hover:text-text-base transition-colors cursor-pointer"
+                    aria-label={showPass ? "Hide password" : "Show password"}
                   >
                     {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -229,7 +231,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
 
               <button
                 type="submit"
-                className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-black font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 transition-all text-sm mt-2"
+                className="w-full h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 transition-all text-sm mt-2 cursor-pointer"
               >
                 Continue <ArrowRight className="w-4 h-4" />
               </button>
@@ -359,51 +361,61 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
               className="space-y-5"
             >
               <div>
-                <h2 className="text-2xl font-black text-black">Privacy Settings</h2>
-                <p className="text-sm text-black/60 mt-1">You control your data, always.</p>
+                <h2 className="text-2xl font-black text-text-base">Privacy Settings</h2>
+                <p className="text-sm text-text-muted mt-1">You control your data, always.</p>
               </div>
 
               {/* Ghost Mode Toggle */}
-              <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-start justify-between gap-4">
+              <div className="p-4 rounded-2xl bg-primary/5 border border-border-base flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <span className="text-xl">👻</span>
+                  <span className="text-xl">
+                    <motion.div animate={{ opacity: form.ghostMode ? 1 : 0.5 }}>
+                      <Zap className={`w-5 h-5 ${form.ghostMode ? 'text-primary' : 'text-text-muted'}`} />
+                    </motion.div>
+                  </span>
                   <div>
-                    <p className="text-sm font-bold text-black">Ghost Mode</p>
-                    <p className="text-xs text-black/40 mt-0.5">Hide your location from everyone. You can still browse the map.</p>
+                    <p className="text-sm font-bold text-text-base">Ghost Mode</p>
+                    <p className="text-xs text-text-muted/60 mt-0.5">Hide your location from everyone. You can still browse the map.</p>
                   </div>
                 </div>
                 <button
                   onClick={() => set('ghostMode', !form.ghostMode)}
-                  className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-all duration-300 ${form.ghostMode ? 'bg-primary' : 'bg-primary/20'}`}
+                  className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-all duration-300 cursor-pointer ${form.ghostMode ? 'bg-primary' : 'bg-border-base'}`}
+                  aria-label="Toggle Ghost Mode"
                 >
-                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-300 ${form.ghostMode ? 'left-5' : 'left-0.5'}`} />
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300 ${form.ghostMode ? 'left-6' : 'left-1'}`} />
                 </button>
               </div>
 
               {/* Allow Crossings Toggle */}
-              <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-start justify-between gap-4">
+              <div className="p-4 rounded-2xl bg-primary/5 border border-border-base flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
-                  <span className="text-xl">🤝</span>
+                  <span className="text-xl">
+                    <Footprints className={`w-5 h-5 ${form.allowCrossings ? 'text-primary' : 'text-text-muted'}`} />
+                  </span>
                   <div>
-                    <p className="text-sm font-bold text-black">Allow Crossings</p>
-                    <p className="text-xs text-black/40 mt-0.5">Let the app notify you when you cross paths with someone.</p>
+                    <p className="text-sm font-bold text-text-base">Allow Crossings</p>
+                    <p className="text-xs text-text-muted/60 mt-0.5">Let the app notify you when you cross paths with someone.</p>
                   </div>
                 </div>
                 <button
                   onClick={() => set('allowCrossings', !form.allowCrossings)}
-                  className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-all duration-300 ${form.allowCrossings ? 'bg-primary' : 'bg-primary/20'}`}
+                  className={`relative w-11 h-6 rounded-full flex-shrink-0 transition-all duration-300 cursor-pointer ${form.allowCrossings ? 'bg-primary' : 'bg-border-base'}`}
+                  aria-label="Toggle Crossings"
                 >
-                  <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-300 ${form.allowCrossings ? 'left-5' : 'left-0.5'}`} />
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-300 ${form.allowCrossings ? 'left-6' : 'left-1'}`} />
                 </button>
               </div>
 
               {/* Panic Mode (info only) */}
-              <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
+              <div className="p-4 rounded-2xl bg-primary/5 border border-border-base">
                 <div className="flex items-start gap-3">
-                  <span className="text-xl">🚨</span>
+                  <span className="text-xl">
+                    <Check className="w-5 h-5 text-primary" />
+                  </span>
                   <div>
-                    <p className="text-sm font-bold text-black">Panic Mode</p>
-                    <p className="text-xs text-black/40 mt-0.5">Triple-tap the screen to instantly delete all your data and go offline. Always available in Settings.</p>
+                    <p className="text-sm font-bold text-text-base">Panic Mode</p>
+                    <p className="text-xs text-text-muted/60 mt-0.5">Triple-tap the screen to instantly delete all your data and go offline. Always available in Settings.</p>
                   </div>
                 </div>
               </div>
@@ -421,14 +433,15 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
               <div className="flex gap-3 mt-2">
                 <button
                   onClick={() => setStep(2)}
-                  className="h-12 w-12 flex items-center justify-center bg-primary/5 border border-primary/10 rounded-xl text-black/40 hover:text-black hover:bg-primary/10 transition-all"
+                  className="h-12 w-12 flex items-center justify-center bg-primary/5 border border-border-base rounded-xl text-text-muted/40 hover:text-text-base hover:bg-primary/10 transition-all cursor-pointer"
+                  aria-label="Go back to step 2"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
                 <button
                   onClick={handleFinalSubmit}
                   disabled={isLoading}
-                  className="flex-1 h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-black font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm"
+                  className="flex-1 h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm cursor-pointer"
                 >
                   {isLoading ? (
                     <>

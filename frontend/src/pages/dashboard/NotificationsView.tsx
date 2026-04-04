@@ -33,24 +33,24 @@ const getTypeConfig = (type: string): { emoji: string; color: string; bg: string
   switch (type) {
     case 'like':
     case 'post_like':
-      return { emoji: '👍', color: 'text-blue-500', bg: 'bg-blue-50', icon: <ThumbsUp className="w-4 h-4 text-blue-500" /> };
+      return { emoji: '👍', color: 'text-blue-500', bg: 'bg-blue-500/10', icon: <ThumbsUp className="w-4 h-4 text-blue-500" /> };
     case 'story_reaction':
     case 'reaction':
-      return { emoji: '❤️', color: 'text-red-500', bg: 'bg-red-50', icon: <Heart className="w-4 h-4 text-red-500" /> };
+      return { emoji: '❤️', color: 'text-red-500', bg: 'bg-red-500/10', icon: <Heart className="w-4 h-4 text-red-500" /> };
     case 'follow':
     case 'connection_request':
-      return { emoji: '👤', color: 'text-purple-500', bg: 'bg-purple-50', icon: <UserPlus className="w-4 h-4 text-purple-500" /> };
+      return { emoji: '👤', color: 'text-primary', bg: 'bg-primary/10', icon: <UserPlus className="w-4 h-4 text-primary" /> };
     case 'connection_accepted':
-      return { emoji: '🤝', color: 'text-green-600', bg: 'bg-green-50', icon: <UserPlus className="w-4 h-4 text-green-600" /> };
+      return { emoji: '🤝', color: 'text-green-500', bg: 'bg-green-500/10', icon: <UserPlus className="w-4 h-4 text-green-500" /> };
     case 'crossing':
     case 'nearby':
-      return { emoji: '📍', color: 'text-pink-500', bg: 'bg-pink-50', icon: <MapPin className="w-4 h-4 text-pink-500" /> };
+      return { emoji: '📍', color: 'text-accent', bg: 'bg-accent/10', icon: <MapPin className="w-4 h-4 text-accent" /> };
     case 'story_view':
-      return { emoji: '👁️', color: 'text-indigo-500', bg: 'bg-indigo-50', icon: <Eye className="w-4 h-4 text-indigo-500" /> };
+      return { emoji: '👁️', color: 'text-indigo-500', bg: 'bg-indigo-500/10', icon: <Eye className="w-4 h-4 text-indigo-500" /> };
     case 'comment':
-      return { emoji: '💬', color: 'text-amber-600', bg: 'bg-amber-50', icon: <MessageCircle className="w-4 h-4 text-amber-600" /> };
+      return { emoji: '💬', color: 'text-orange-500', bg: 'bg-orange-500/10', icon: <MessageCircle className="w-4 h-4 text-orange-500" /> };
     default:
-      return { emoji: '🔔', color: 'text-gray-400', bg: 'bg-gray-50', icon: <Bell className="w-4 h-4 text-gray-400" /> };
+      return { emoji: '🔔', color: 'text-text-muted', bg: 'bg-border-base', icon: <Bell className="w-4 h-4 text-text-muted" /> };
   }
 };
 
@@ -63,7 +63,7 @@ const parseMessage = (notif: Notification): React.ReactNode => {
     const parts = raw.split(actor);
     return (
       <>
-        <span className="font-black text-gray-900">{actor}</span>
+        <span className="font-black text-text-base">{actor}</span>
         {parts.slice(1).join(actor)}
       </>
     );
@@ -86,10 +86,10 @@ const NotifCard = ({
   return (
     <div
       onClick={() => !notif.is_read && onRead(notif.id)}
-      className={`flex items-start gap-3.5 px-5 py-4 transition-all group relative
+      className={`flex items-start gap-3.5 px-5 py-4 transition-all group relative cursor-pointer
         ${!notif.is_read
-          ? 'bg-pink-50/60 border-l-4 border-pink-400 hover:bg-pink-50 cursor-pointer'
-          : 'bg-white border-l-4 border-transparent hover:bg-gray-50'
+          ? 'bg-primary/5 border-l-4 border-primary hover:bg-primary/10'
+          : 'bg-bg-base border-l-4 border-transparent hover:bg-bg-sidebar'
         }`}
     >
       {/* Avatar */}
@@ -106,17 +106,17 @@ const NotifCard = ({
           ) : initial}
         </div>
         {/* Type badge */}
-        <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full ${cfg.bg} border-2 border-white flex items-center justify-center text-[10px]`}>
+        <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full ${cfg.bg} border-2 border-bg-base flex items-center justify-center text-[10px] transform group-hover:scale-110 transition-transform`}>
           {cfg.emoji}
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 min-w-0 pr-6">
-        <p className="text-sm text-gray-600 leading-snug">
+        <p className="text-sm text-text-muted leading-snug">
           {parseMessage(notif)}
         </p>
-        <p className="text-[11px] text-gray-400 mt-1 font-medium">{timeAgo(notif.created_at)}</p>
+        <p className="text-[11px] text-text-muted/40 mt-1 font-medium italic">{timeAgo(notif.created_at)}</p>
         
         {/* Inline Actions for Connection Requests */}
         {notif.type === 'connection_request' && notif.related_user_id && (
@@ -130,7 +130,7 @@ const NotifCard = ({
                   .then(() => onRead(notif.id)) // Mark as read or visually update
                   .catch(err => console.error('Failed to accept:', err));
               }}
-              className="px-4 py-1.5 bg-pink-500 hover:bg-pink-600 text-white rounded-full text-xs font-bold transition-all shadow-sm shadow-pink-200 active:scale-95"
+              className="px-4 py-1.5 bg-primary text-white rounded-full text-xs font-bold transition-all shadow-sm shadow-primary/20 active:scale-95 cursor-pointer"
             >
               Accept
             </button>
@@ -143,7 +143,7 @@ const NotifCard = ({
                   .then(() => onRead(notif.id)) // Mark as read or visually update
                   .catch(err => console.error('Failed to decline:', err));
               }}
-              className="px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full text-xs font-bold transition-all active:scale-95"
+              className="px-4 py-1.5 bg-border-base hover:bg-border-base/80 text-text-base rounded-full text-xs font-bold transition-all active:scale-95 cursor-pointer"
             >
               Decline
             </button>
@@ -153,7 +153,7 @@ const NotifCard = ({
 
       {/* Unread dot */}
       {!notif.is_read && (
-        <div className="absolute right-5 top-1/2 -translate-y-1/2 shrink-0 w-2.5 h-2.5 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.6)]" />
+        <div className="absolute right-5 top-1/2 -translate-y-1/2 shrink-0 w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_var(--color-primary-glow)]" />
       )}
     </div>
   );
@@ -209,14 +209,14 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className="h-full bg-white overflow-y-auto no-scrollbar pb-24 md:pb-0">
+    <div className="h-full bg-bg-base overflow-y-auto no-scrollbar pb-24 md:pb-0 transition-colors duration-300">
 
       {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 bg-white border-b border-gray-100 shadow-sm">
+      <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-4 bg-bg-base/80 backdrop-blur-md border-b border-border-base shadow-sm">
         <div className="flex items-center gap-2.5">
-          <h1 className="text-xl font-black text-gray-900 italic tracking-tight uppercase leading-none">System Alerts</h1>
+          <h1 className="text-xl font-black text-text-base italic tracking-tight uppercase leading-none">System Alerts</h1>
           {unreadCount > 0 && (
-            <span className="min-w-[20px] h-5 bg-pink-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1.5">
+            <span className="min-w-[20px] h-5 bg-primary text-white text-[10px] font-black rounded-full flex items-center justify-center px-1.5">
               {unreadCount}
             </span>
           )}
@@ -224,7 +224,7 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
         {unreadCount > 0 && (
           <button
             onClick={markAllRead}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-100 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-pink-500 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border-base text-[10px] font-black uppercase tracking-widest text-text-muted/40 hover:text-primary transition-all cursor-pointer"
           >
             Clear All
           </button>
@@ -246,13 +246,13 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
         </div>
       ) : notifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 text-center px-8">
-          <div className="w-16 h-16 bg-gray-50 rounded-[24px] flex items-center justify-center mb-4">
-            <Bell className="w-7 h-7 text-black/10" />
+          <div className="w-16 h-16 bg-bg-sidebar rounded-[24px] flex items-center justify-center mb-4">
+            <Bell className="w-7 h-7 text-text-muted/10" />
           </div>
-          <h3 className="text-sm font-black text-gray-400 uppercase italic tracking-widest">No alerts found</h3>
+          <h3 className="text-sm font-black text-text-muted/40 uppercase italic tracking-widest">No alerts found</h3>
         </div>
       ) : (
-        <div className="divide-y divide-gray-50">
+        <div className="divide-y divide-border-base">
           {notifications.map(notif => (
             <NotifCard 
               key={notif.id} 

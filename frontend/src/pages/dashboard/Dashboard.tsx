@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ShieldAlert, Home, Map as MapIcon, User, Sparkles, MessageSquare, Plus, Bell } from 'lucide-react';
+import { ShieldAlert, Home, Map as MapIcon, User, MessageSquare, Plus, Bell, Sun, Moon, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
 import { Toaster } from 'react-hot-toast';
 import { useNotifications } from '../../hooks/useNotifications';
@@ -18,6 +19,7 @@ import UserProfileView from './UserProfileView';
 import CrossingsView from './CrossingsView';
 import CastingPage from './CastingPage';
 import MapPage from './MapPage';
+import DiscoveryPage from './DiscoveryPage';
 import { useGeolocation } from '../../hooks/useGeolocation';
 
 // Modals
@@ -27,10 +29,11 @@ import ChatList from '../../components/chat/ChatList';
 import ChatWindow from '../../components/chat/ChatWindow';
 import ChatProfileSidebar from '../../components/chat/ChatProfileSidebar';
 
-type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting';
+type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting' | 'discovery';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [stories, setStories] = useState<any[]>([]);
@@ -55,6 +58,10 @@ const Dashboard = () => {
   const [nearbyCount, setNearbyCount] = useState<number>(0);
   const [storiesCount, setStoriesCount] = useState<number>(0);
   const [isSyncingStats, setIsSyncingStats] = useState(false);
+
+  // Router-aware visibility
+  const showSidebarRoutes = ['home', 'discovery']; // Tab IDs where sidebar is visible
+  const isSidebarVisible = showSidebarRoutes.includes(activeTab);
 
   // Core Data Fetching
   const fetchStories = useCallback(async () => {
@@ -260,6 +267,8 @@ const Dashboard = () => {
         return <CrossingsView onUserSelect={handleUserSelect} />;
       case 'casting':
         return <CastingPage />;
+      case 'discovery':
+        return <DiscoveryPage onUserSelect={handleUserSelect} />;
       case 'messages':
         return (
           <div className="flex flex-col h-full w-full overflow-hidden bg-white">
@@ -329,10 +338,10 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-[#F8F9FE] text-gray-800 font-poppins flex overflow-hidden p-0 md:p-3 md:gap-3">
+    <div className="h-screen w-full bg-bg-base text-text-base font-poppins flex overflow-hidden p-0 md:p-3 md:gap-3 transition-colors duration-300">
 
-      {/* 1. Left Sidebar (Fixed) */}
-      <div className="hidden md:flex flex-col h-full bg-white md:rounded-[24px] shadow-sm relative flex-shrink-0">
+      {/* 1. Left Sidebar */}
+      <div className="hidden md:flex flex-col h-full bg-bg-sidebar md:rounded-[24px] shadow-sm relative flex-shrink-0 border border-border-base transition-all duration-300 overflow-hidden">
         <Sidebar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -346,21 +355,29 @@ const Dashboard = () => {
       <Toaster position="top-right" reverseOrder={false} />
 
       {/* 2. Main Content Center (Scrollable) */}
-      <main className="flex-1 relative overflow-hidden flex flex-col bg-white md:rounded-[24px] shadow-sm z-10 w-full md:w-auto">
+      <main className="flex-1 relative overflow-hidden flex flex-col bg-bg-card md:rounded-[24px] shadow-sm z-10 w-full md:w-auto border border-border-base transition-colors duration-300">
 
         {/* Mobile Header */}
-        <div className="md:hidden sticky top-0 left-0 right-0 z-50 px-6 py-4 flex items-center justify-between bg-white/95 backdrop-blur-xl border-b border-gray-50">
-          <div className="text-2xl font-black tracking-tighter">
-            <span className="bg-gradient-to-r from-[#FF3B8E] to-[#A436EE] bg-clip-text text-transparent">Locolive</span>
+        <div className="md:hidden sticky top-0 left-0 right-0 z-50 px-5 py-4 flex items-center justify-between bg-bg-card/95 backdrop-blur-xl border-b border-border-base">
+          <div className="text-2xl font-black tracking-tighter italic">
+            <span className="text-primary">Locolive</span>
           </div>
-          <div className="flex space-x-4 text-gray-400">
-            <button className="relative hover:text-[#FF3B8E] transition-colors" onClick={() => setActiveTab('notifications')}>
-              <Bell className="w-6 h-6" />
-              {totalUnreadCount > 0 && <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-[#FF3B8E] text-white text-[9px] font-black rounded-full border-2 border-white flex items-center justify-center shadow-sm">{totalUnreadCount > 99 ? '99+' : totalUnreadCount}</span>}
+          <div className="flex items-center gap-3">
+            {/* Theme Toggle — always visible, not inside collapsible sidebar */}
+            <button
+              onClick={toggleTheme}
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-bg-base border border-border-base text-text-muted hover:text-primary hover:border-primary/30 transition-all"
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             </button>
-            <button className="relative hover:text-[#FF3B8E] transition-colors" onClick={() => setActiveTab('messages')}>
+            <button className="relative hover:text-primary transition-colors text-text-muted" onClick={() => setActiveTab('notifications')}>
+              <Bell className="w-6 h-6" />
+              {totalUnreadCount > 0 && <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-primary text-white text-[9px] font-black rounded-full border-2 border-bg-card flex items-center justify-center shadow-sm">{totalUnreadCount > 99 ? '99+' : totalUnreadCount}</span>}
+            </button>
+            <button className="relative hover:text-primary transition-colors text-text-muted" onClick={() => setActiveTab('messages')}>
               <MessageSquare className="w-6 h-6" />
-              {unreadMessagesCount > 0 && <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-[#FF3B8E] text-white text-[9px] font-black rounded-full border-2 border-white flex items-center justify-center shadow-sm">{unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}</span>}
+              {unreadMessagesCount > 0 && <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-primary text-white text-[9px] font-black rounded-full border-2 border-bg-card flex items-center justify-center shadow-sm">{unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}</span>}
             </button>
           </div>
         </div>
@@ -370,36 +387,38 @@ const Dashboard = () => {
           {renderView()}
         </div>
 
-        {/* Mobile Bottom Navigation */}
-        <nav className="md:hidden fixed bottom-0 w-full flex items-center justify-around bg-white/95 backdrop-blur-2xl border-t border-gray-50 px-4 h-18 z-[60] shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
-          <MobileNavItem icon={<Home className="w-6 h-6" />} active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
-          <MobileNavItem icon={<MapIcon className="w-6 h-6" />} active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} />
+        {/* Mobile Bottom Navigation — 5 core tabs + floating create */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around bg-bg-card/95 backdrop-blur-2xl border-t border-border-base px-2 h-18 z-[60] shadow-[0_-8px_24px_rgba(255,0,110,0.06)]">
+          <MobileNavItem icon={<Home className="w-5 h-5" />} label="Home" active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
+          <MobileNavItem icon={<MapIcon className="w-5 h-5" />} label="Map" active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} />
 
           <button
             onClick={() => setIsCreateModalOpen(true)}
             aria-label="Create new post"
-            className="w-13 h-13 bg-gradient-to-tr from-[#FF3B8E] to-[#A436EE] rounded-full flex items-center justify-center transform -translate-y-5 shadow-lg shadow-pink-200 active:scale-90 transition-all text-white border-4 border-white"
+            className="w-14 h-14 bg-brand-gradient rounded-full flex items-center justify-center transform -translate-y-4 shadow-xl shadow-primary/30 active:scale-90 transition-all text-white border-4 border-bg-card"
           >
-            <Plus className="w-7 h-7 stroke-[3]" aria-hidden="true" />
+            <Plus className="w-6 h-6 stroke-[3]" aria-hidden="true" />
           </button>
 
-          <MobileNavItem icon={<Sparkles className="w-6 h-6" />} active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} />
-          <MobileNavItem icon={<User className="w-6 h-6" />} active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
+          <MobileNavItem icon={<Users className="w-5 h-5" />} label="People" active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} />
+          <MobileNavItem icon={<User className="w-5 h-5" />} label="Profile" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
         </nav>
       </main>
 
       {/* Right Sidebar — collapsible */}
       <div
         className={`hidden lg:flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-transparent md:rounded-[24px] ${
-          showRightSidebar && activeTab !== 'explore' ? 'w-80 opacity-100' : 'w-0 opacity-0'
+          showRightSidebar && isSidebarVisible ? 'w-80 opacity-100 px-0' : 'w-0 opacity-0 px-0 invisible'
         }`}
       >
-        <RightSidebar 
-          crossingsToday={crossingsCount} 
-          nearbyCount={nearbyCount}
-          storiesCount={storiesCount}
-          isSyncing={isSyncingStats}
-        />
+        <div className="h-full bg-bg-sidebar border border-border-base md:rounded-[24px] overflow-hidden transition-colors duration-300">
+          <RightSidebar 
+            crossingsToday={crossingsCount} 
+            nearbyCount={nearbyCount}
+            storiesCount={storiesCount}
+            isSyncing={isSyncingStats}
+          />
+        </div>
       </div>
 
       {/* Overlays / Modals */}
@@ -461,14 +480,15 @@ const Dashboard = () => {
 };
 
 // Mobile Nav Item helper
-const MobileNavItem = ({ icon, active, onClick }: { icon: React.ReactNode, active: boolean, onClick: () => void }) => (
+const MobileNavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, label?: string, active: boolean, onClick: () => void }) => (
     <button
       onClick={onClick}
-      aria-label={active ? "Current page" : "Navigate"}
-      aria-current={active ? "page" : undefined}
-      className={`p-2 transition-all duration-300 ${active ? 'text-[#FF3B8E] scale-110' : 'text-gray-300 hover:text-gray-500'}`}
+      aria-label={label || 'Navigate'}
+      aria-current={active ? 'page' : undefined}
+      className={`flex flex-col items-center gap-0.5 py-2 px-3 transition-all duration-300 ${active ? 'text-primary scale-105' : 'text-text-muted hover:text-primary/60'}`}
     >
       {icon}
+      {label && <span className={`text-[9px] font-black uppercase tracking-widest ${active ? 'text-primary' : 'text-text-muted'}`}>{label}</span>}
     </button>
 );
 

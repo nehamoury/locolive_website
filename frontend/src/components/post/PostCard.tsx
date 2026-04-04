@@ -86,14 +86,14 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col bg-white rounded-[24px] border border-gray-100/40 shadow-[0_8px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_15px_40px_rgba(0,0,0,0.05)] transition-shadow duration-500 overflow-hidden group/card"
+      className="flex flex-col bg-bg-card rounded-[24px] border border-border-base/50 shadow-[0_8px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_15px_40px_rgba(0,0,0,0.05)] transition-all duration-500 overflow-hidden group/card"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 pt-5 pb-3">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-[#FF3B8E] to-[#A436EE] shadow-sm">
-            <div className="w-full h-full rounded-full bg-white p-[1.5px]">
-              <div className="w-full h-full rounded-full overflow-hidden bg-gray-50 flex items-center justify-center">
+          <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-primary to-accent shadow-sm">
+            <div className="w-full h-full rounded-full bg-bg-card p-[1.5px]">
+              <div className="w-full h-full rounded-full overflow-hidden bg-bg-sidebar flex items-center justify-center">
                 {avatarUrl ? (
                   <img
                     src={avatarUrl.startsWith('http') ? avatarUrl : `${BACKEND}${avatarUrl}`}
@@ -101,7 +101,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
                     alt=""
                   />
                 ) : (
-                  <span className="text-[#FF3B8E] font-black text-sm">
+                  <span className="text-primary font-black text-sm">
                     {post.username?.charAt(0)?.toUpperCase()}
                   </span>
                 )}
@@ -109,17 +109,17 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
             </div>
           </div>
           <div className="flex flex-col">
-            <h4 className="font-black text-gray-900 text-[14px] leading-none tracking-tight">
+            <h4 className="font-black text-text-base text-[14px] leading-none tracking-tight">
               {post.full_name || post.username}
             </h4>
-            <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-gray-400">
-              <span className="text-gray-900/40">@{post.username}</span>
-              <span className="w-0.5 h-0.5 rounded-full bg-gray-300" />
+            <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-text-muted/60">
+              <span className="text-text-base/40">@{post.username}</span>
+              <span className="w-0.5 h-0.5 rounded-full bg-border-base" />
               <span>{timeAgo(post.created_at)}</span>
               {locationName && (
                 <>
-                  <span className="w-0.5 h-0.5 rounded-full bg-gray-300" />
-                  <div className="flex items-center gap-0.5 text-pink-500/60">
+                  <span className="w-0.5 h-0.5 rounded-full bg-border-base" />
+                  <div className="flex items-center gap-0.5 text-primary/60">
                     <MapPin className="w-2.5 h-2.5" />
                     <span className="max-w-[100px] truncate">{locationName}</span>
                   </div>
@@ -131,16 +131,16 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
         <div className="relative">
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className="p-2 text-gray-300 hover:text-gray-600 transition-colors rounded-full hover:bg-gray-50"
+            className="p-2 text-text-muted/40 hover:text-text-base transition-colors rounded-full hover:bg-bg-sidebar cursor-pointer"
           >
             <MoreHorizontal className="w-5 h-5" />
           </button>
           {showMenu && (
-            <div className="absolute right-0 top-10 bg-white border border-gray-100 rounded-2xl shadow-xl z-20 py-1 min-w-[140px]">
+            <div className="absolute right-0 top-10 bg-bg-card border border-border-base rounded-2xl shadow-xl z-20 py-1 min-w-[140px] transition-colors duration-300">
               {isOwner && (
                 <button
                   onClick={() => { setShowMenu(false); handleDelete(); }}
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-red-500 hover:bg-red-50 text-sm font-medium transition-colors"
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-red-500 hover:bg-red-500/10 text-sm font-medium transition-colors cursor-pointer"
                 >
                   <Trash2 className="w-4 h-4" />
                   Delete Post
@@ -148,7 +148,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
               )}
               <button
                 onClick={() => setShowMenu(false)}
-                className="flex items-center gap-2 w-full px-4 py-2.5 text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors"
+                className="flex items-center gap-2 w-full px-4 py-2.5 text-text-base hover:bg-bg-sidebar text-sm font-medium transition-colors cursor-pointer"
               >
                 Share
               </button>
@@ -159,22 +159,22 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
 
       {/* Caption */}
       {cleanCaption && (
-        <p className="px-5 pb-3 text-gray-700 font-medium text-[14px] leading-relaxed tracking-tight">
+        <p className="px-5 pb-3 text-text-base/80 font-medium text-[14px] leading-relaxed tracking-tight">
           {cleanCaption}
         </p>
       )}
 
       {/* Text Post Bubble */}
       {isTextOnly && caption && (
-        <div className="mx-4 mb-4 p-10 rounded-[24px] bg-gradient-to-br from-pink-50/50 to-purple-50/50 border border-pink-100/50 flex items-center justify-center text-center">
-          <p className="text-gray-900 font-black text-xl leading-snug tracking-tight">{caption}</p>
+        <div className="mx-4 mb-4 p-10 rounded-[24px] bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/10 flex items-center justify-center text-center">
+          <p className="text-text-base font-black text-xl leading-snug tracking-tight">{caption}</p>
         </div>
       )}
 
       {/* Media */}
       {!isTextOnly && post.media_url && (
         <div
-          className="mx-3 mb-3 aspect-[4/5] md:aspect-video rounded-[24px] overflow-hidden bg-gray-50 cursor-pointer relative group/media shadow-sm border border-gray-100"
+          className="mx-3 mb-3 aspect-[4/5] md:aspect-video rounded-[24px] overflow-hidden bg-bg-sidebar cursor-pointer relative group/media shadow-sm border border-border-base transition-colors duration-300"
           onClick={() => onImageClick?.(post)}
         >
           {post.media_type === 'video' ? (
@@ -213,7 +213,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
       {hashtags.length > 0 && (
         <div className="flex flex-wrap gap-x-3 gap-y-1 px-5 pb-3">
           {hashtags.map((tag: string, i: number) => (
-            <span key={i} className="text-[#A436EE] font-black text-[10px] uppercase tracking-wider bg-purple-50 px-2 py-0.5 rounded-full">{tag}</span>
+            <span key={i} className="text-accent font-black text-[10px] uppercase tracking-wider bg-accent/10 px-2 py-0.5 rounded-full">{tag}</span>
           ))}
         </div>
       )}
@@ -223,19 +223,19 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
         <div className="flex items-center gap-1">
           <button
             onClick={handleLike}
-            className={`flex items-center gap-2 p-2 rounded-2xl transition-all group ${liked ? 'bg-pink-50 text-[#FF3B8E]' : 'hover:bg-gray-50 text-gray-400 hover:text-gray-900'}`}
+            className={`flex items-center gap-2 p-2 rounded-2xl transition-all group cursor-pointer ${liked ? 'bg-primary/10 text-primary' : 'hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base'}`}
           >
-            <Heart className={`w-5 h-5 transition-transform group-hover:scale-110 group-active:scale-90 ${liked ? 'fill-[#FF3B8E]' : ''}`} />
+            <Heart className={`w-5 h-5 transition-transform group-hover:scale-110 group-active:scale-90 ${liked ? 'fill-primary' : ''}`} />
             <span className="text-[12px] font-black">{likeCount}</span>
           </button>
           
-          <button className="flex items-center gap-2 p-2 rounded-2xl hover:bg-gray-50 text-gray-400 hover:text-gray-900 transition-all group">
+          <button className="flex items-center gap-2 p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer">
             <MessageSquare className="w-5 h-5 transition-transform group-hover:scale-110 rounded-full" />
             <span className="text-[12px] font-black">{post.comments_count || 0}</span>
           </button>
         </div>
 
-        <button className="p-2 rounded-2xl hover:bg-gray-50 text-gray-400 hover:text-gray-900 transition-all group">
+        <button className="p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer">
           <Share2 className="w-5 h-5 transition-transform group-hover:rotate-12" />
         </button>
       </div>

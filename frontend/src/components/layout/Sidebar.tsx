@@ -1,8 +1,8 @@
 import { useState, type FC } from 'react';
-import { Home, Map as MapIcon, User, Plus, Sparkles, Footprints, Users, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, Map as MapIcon, User, Plus, Sparkles, Footprints, Users, LogOut, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting';
+type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting' | 'discovery';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -16,23 +16,28 @@ interface NavItemProps {
 const NavItem = ({ icon, label, active, badge, onClick, color, isCollapsed }: NavItemProps & { color?: string }) => (
   <button
     onClick={onClick}
-    className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-center md:justify-start'} px-4 py-3 rounded-2xl transition-all duration-300 relative group
+    className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} px-4 py-3 rounded-2xl transition-all duration-300 relative group cursor-pointer
       ${active
-        ? 'bg-[#FFF0F6] text-[#FF3B8E]'
-        : 'text-gray-500 hover:bg-gray-50'
+        ? 'bg-brand-gradient text-white shadow-lg shadow-primary/20'
+        : 'text-text-muted hover:bg-primary/5 hover:text-primary'
       }`}
   >
-    <div className={`relative flex-shrink-0 transition-transform duration-300 group-hover:scale-110 ${active ? 'text-[#FF3B8E]' : color || 'text-gray-400 group-hover:text-gray-600'}`}>
+    <div className={`relative flex-shrink-0 transition-transform duration-300 group-hover:scale-110 ${active ? 'text-white' : color || 'text-text-muted group-hover:text-primary'}`}>
       {icon}
       {badge !== undefined && badge > 0 && (
-        <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 bg-[#FF3B8E] rounded-full text-[10px] font-bold text-white flex items-center justify-center border-2 border-white">
+        <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-primary rounded-full text-[10px] font-bold text-white flex items-center justify-center border-2 border-bg-sidebar">
           {badge > 99 ? '99+' : badge}
         </span>
       )}
     </div>
-    <span className={`ml-3.5 hidden ${isCollapsed ? '' : 'md:block'} font-medium text-[14px] tracking-tight ${active ? 'text-[#FF3B8E]' : 'text-gray-500 group-hover:text-gray-700'}`}>
-      {label}
-    </span>
+    {!isCollapsed && (
+      <span className={`ml-3.5 font-semibold text-[14px] tracking-tight ${active ? 'text-white' : 'text-text-muted group-hover:text-primary'}`}>
+        {label}
+      </span>
+    )}
+    {active && !isCollapsed && (
+      <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white/80" />
+    )}
   </button>
 );
 
@@ -49,28 +54,33 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, logout, onCr
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <aside className={`w-20 ${isCollapsed ? 'md:w-24' : 'md:w-72'} bg-white hidden md:flex flex-col px-4 py-8 z-20 flex-shrink-0 h-full border-r border-gray-100 shadow-sm overflow-y-auto no-scrollbar font-poppins transition-all duration-300`}>
-      {/* Logo Area */}
-      <div className={`mb-10 px-3 flex flex-col ${isCollapsed ? 'items-center' : 'items-center md:items-start'} cursor-default select-none`}>
-        <div className="flex items-center gap-3 mb-0.5 group w-full justify-between">
+    <div className={`relative flex flex-col h-full transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-72'}`}>
+
+      <aside className="flex-1 flex flex-col px-3 py-6 z-20 h-full overflow-y-auto no-scrollbar font-brand">
+
+      {/* Logo Area + Collapse Toggle inside the card */}
+      <div className={`mb-8 px-2 flex flex-col ${isCollapsed ? 'items-center' : 'items-start'} cursor-default select-none`}>
+        <div className={`flex items-center gap-3 w-full ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#FF3B8E] to-[#A436EE] flex items-center justify-center shadow-lg shadow-pink-500/30 group-hover:scale-110 transition-transform duration-300 flex-shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-brand-gradient flex items-center justify-center shadow-lg shadow-primary/30 flex-shrink-0">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 21C16 17 20 13.4183 20 9C20 4.58172 16.4183 1 12 1C7.58172 1 4 4.58172 4 9C4 13.4183 8 17 12 21Z" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 <circle cx="12" cy="9" r="2.5" fill="white" />
               </svg>
             </div>
             {!isCollapsed && (
-              <div className="hidden md:flex text-2xl font-bold tracking-tighter">
-                <span className="text-[#FF3B8E]">Locolive</span>
+              <div className="flex flex-col">
+                <span className="text-[22px] font-black tracking-tighter text-primary leading-none">Locolive</span>
+                <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Discover Nearby</span>
               </div>
             )}
           </div>
 
-          {/* Toggle Button - INSIDE the sidebar card */}
+          {/* Collapse Toggle — always inside the card */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="flex items-center justify-center w-6 h-6 rounded-md bg-gray-50 text-gray-400 hover:text-[#FF3B8E] hover:bg-pink-50 transition-colors flex-shrink-0 cursor-pointer"
+            className="w-8 h-8 rounded-xl bg-bg-base border border-border-base text-text-muted hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all flex items-center justify-center cursor-pointer flex-shrink-0"
+            title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
@@ -81,46 +91,38 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, logout, onCr
       <nav className="flex-1 space-y-1 mb-6">
         <NavItem icon={<Home className="w-5 h-5" />} label="Home" active={activeTab === 'home'} onClick={() => setActiveTab('home')} color="text-[#FF4D97]" isCollapsed={isCollapsed} />
         <NavItem icon={<MapIcon className="w-5 h-5" />} label="Map / Explore" active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} color="text-[#FFA94D]" isCollapsed={isCollapsed} />
+        <NavItem icon={<Sparkles className="w-5 h-5" />} label="Discovery" active={activeTab === 'discovery'} onClick={() => setActiveTab('discovery')} color="text-[#A436EE]" isCollapsed={isCollapsed} />
         <NavItem icon={<Users className="w-5 h-5" />} label="Connections" active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} color="text-[#4DABF7]" isCollapsed={isCollapsed} />
         <NavItem icon={<Footprints className="w-5 h-5" />} label="Crossings" active={activeTab === 'crossings'} onClick={() => setActiveTab('crossings')} color="text-[#20C997]" isCollapsed={isCollapsed} />
-        <NavItem icon={<Sparkles className="w-5 h-5" />} label="Casting" active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} color="text-[#FCC419]" isCollapsed={isCollapsed} />
+        <NavItem icon={<Zap className="w-5 h-5" />} label="Casting" active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} color="text-[#FCC419]" isCollapsed={isCollapsed} />
         <NavItem icon={<User className="w-5 h-5" />} label="Profile" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} color="text-[#495057]" isCollapsed={isCollapsed} />
       </nav>
 
       {/* Create Post Button */}
-      <div className="mb-6 hidden md:flex justify-center">
+      <div className="mb-6 flex justify-center px-1">
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onCreatePost}
-          className={`${isCollapsed ? 'w-11 h-11 p-0 rounded-full' : 'w-full py-3 px-4 rounded-[24px]'} bg-gradient-to-r from-[#FF3B8E] to-[#A436EE] flex items-center justify-center gap-2 font-bold text-white text-[15px] shadow-[0_10px_20px_-5px_rgba(255,59,142,0.3)] transition-all`}
+          className={`${isCollapsed ? 'w-11 h-11 p-0 rounded-full' : 'w-full py-3 px-4 rounded-[20px]'} bg-brand-gradient flex items-center justify-center gap-2 font-bold text-white text-[14px] shadow-[0_10px_20px_-5px_rgba(255,0,110,0.3)] cursor-pointer transition-all`}
         >
           <Plus className="w-5 h-5 stroke-[3] shrink-0" />
           {!isCollapsed && <span>Create Post</span>}
         </motion.button>
       </div>
 
-      {/* Mobile Create Post (Icon only) */}
-      <div className="mb-4 md:hidden flex justify-center">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onCreatePost}
-          className="w-11 h-11 bg-gradient-to-r from-[#FF3B8E] to-[#A436EE] rounded-full flex items-center justify-center text-white shadow-lg"
-        >
-          <Plus className="w-5 h-5 stroke-[4]" />
-        </motion.button>
-      </div>
-
-      {/* Profile Snippet at Bottom */}
-      <div className="mt-auto border-t border-gray-100 pt-6">
-        <div className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start px-2 py-3'} rounded-2xl group select-none relative`}>
-          <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-br from-[#FF3B8E] to-[#A436EE] flex-shrink-0 cursor-pointer" onClick={() => setActiveTab('profile')}>
-            <div className="w-full h-full rounded-full bg-white overflow-hidden p-[1px]">
+      {/* Profile Snippet */}
+      <div className="border-t border-border-base pt-4">
+        <div className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start px-1 py-2'} rounded-2xl group select-none relative gap-3`}>
+          <div 
+            className="w-10 h-10 rounded-full p-[2px] bg-brand-gradient flex-shrink-0 cursor-pointer hover:scale-105 transition-transform"
+            onClick={() => setActiveTab('profile')}
+          >
+            <div className="w-full h-full rounded-full bg-bg-sidebar overflow-hidden">
               {user?.avatar_url ? (
                 <img src={`http://localhost:8080${user.avatar_url}`} alt="avatar" className="w-full h-full rounded-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-50 text-[#FF3B8E] font-bold text-sm">
+                <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary font-black text-sm">
                   {user?.username?.charAt(0)?.toUpperCase()}
                 </div>
               )}
@@ -129,24 +131,19 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, logout, onCr
 
           {!isCollapsed && (
             <>
-              <div className="ml-3 hidden md:flex flex-col text-left flex-1 min-w-0 cursor-pointer" onClick={() => setActiveTab('profile')}>
-                <p className="font-medium text-sm text-gray-900 truncate">{user?.full_name || user?.username}</p>
-                <p className="text-gray-400 text-xs font-normal truncate">@{user?.username}</p>
+              <div className="flex flex-col text-left flex-1 min-w-0 cursor-pointer" onClick={() => setActiveTab('profile')}>
+                <p className="font-bold text-sm text-text-base truncate leading-tight">{user?.full_name || user?.username}</p>
+                <p className="text-text-muted text-xs truncate">@{user?.username}</p>
               </div>
-              <button onClick={logout} className="ml-auto p-2 rounded-lg hover:bg-gray-50 transition-colors text-gray-400 hover:text-gray-600">
+              <button onClick={logout} className="p-2 rounded-lg hover:bg-primary/5 transition-colors text-text-muted hover:text-primary cursor-pointer flex-shrink-0" title="Logout">
                 <LogOut className="w-4 h-4" />
               </button>
             </>
           )}
-
-          {isCollapsed && (
-            <button onClick={logout} className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white p-2 border border-gray-100 shadow-sm rounded-full text-gray-400 hover:text-[#FF3B8E] transition-all opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto">
-              <LogOut className="w-4 h-4" />
-            </button>
-          )}
         </div>
       </div>
-    </aside>
+      </aside>
+    </div>
   );
 };
 

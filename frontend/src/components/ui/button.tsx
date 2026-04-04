@@ -4,9 +4,9 @@ import { cn } from "../../utils/helpers"
 const Button = React.forwardRef<HTMLButtonElement, React.ComponentProps<"button"> & { variant?: 'primary' | 'secondary' | 'ghost' }>(
   ({ className, variant = 'primary', ...props }, ref) => {
     const variants = {
-      primary: "bg-gradient-to-r from-primary to-accent text-black hover:opacity-90 shadow-lg shadow-primary/20",
-      secondary: "bg-primary/5 text-primary hover:bg-primary/10 border border-primary/10 backdrop-blur-md",
-      ghost: "bg-transparent text-primary/60 hover:text-primary hover:bg-primary/5"
+      primary: "bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 shadow-lg shadow-primary/20",
+      secondary: "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/10 backdrop-blur-md",
+      ghost: "bg-transparent text-text-muted hover:text-primary hover:bg-primary/5"
     }
     
     return (

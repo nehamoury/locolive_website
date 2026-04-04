@@ -28,9 +28,9 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
       >
         <div className={`
           w-[76px] h-[76px] rounded-full p-[2.5px] transition-all duration-300 group-hover:scale-105 active:scale-95 relative
-          ${hasMyStories ? 'bg-gradient-to-tr from-[#FF3B8E] to-[#A436EE] group-hover:shadow-[0_0_15px_rgba(255,59,142,0.5)]' : 'bg-gradient-to-tr from-pink-100 to-purple-100'}
+          ${hasMyStories ? 'bg-gradient-to-tr from-primary to-accent group-hover:shadow-primary/20' : 'bg-gradient-to-tr from-primary/10 to-accent/10'}
         `}>
-          <div className="w-full h-full rounded-full border-[3px] border-white bg-white overflow-hidden flex items-center justify-center">
+          <div className="w-full h-full rounded-full border-[3px] border-bg-card bg-bg-card overflow-hidden flex items-center justify-center">
             {user?.avatar_url || (hasMyStories && myStories[0].avatar_url) ? (
               <img 
                 src={user?.avatar_url?.startsWith('http') ? user.avatar_url : `http://localhost:8080${user?.avatar_url || myStories[0].avatar_url}`} 
@@ -38,7 +38,7 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
                 className="w-full h-full object-cover" 
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-50 text-[#FF3B8E] font-black text-xl uppercase">
+              <div className="w-full h-full flex items-center justify-center bg-bg-sidebar text-primary font-black text-xl uppercase">
                 {user?.username?.charAt(0) || 'Y'}
               </div>
             )}
@@ -47,14 +47,14 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
           {/* Blue Plus Overlay */}
           <div 
             onClick={(e) => { e.stopPropagation(); onCreateStory(); }}
-            className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-[22px] h-[22px] rounded-full bg-[#38BDF8] border-[2px] border-white flex items-center justify-center text-white shadow-sm hover:scale-110 transition-transform"
+            className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-[22px] h-[22px] rounded-full bg-primary border-[2px] border-bg-card flex items-center justify-center text-white shadow-sm hover:scale-110 transition-transform cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5 stroke-[4]" />
           </div>
         </div>
         <div className="flex flex-col items-center text-center mt-1">
-          <span className="text-[12.5px] font-bold text-gray-800 transition-colors tracking-tight leading-none text-center">Your Story</span>
-          <span className="text-[10px] text-gray-400 mt-1 font-medium">Your Story</span>
+          <span className="text-[12.5px] font-bold text-text-base transition-colors tracking-tight leading-none text-center">Your Story</span>
+          <span className="text-[10px] text-text-muted mt-1 font-medium">Your Story</span>
         </div>
       </div>
 
@@ -75,13 +75,13 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
           >
             <div className={`
               w-[76px] h-[76px] rounded-full p-[2.5px] transition-all duration-300 group-hover:scale-105 active:scale-95 relative
-              ${isViewed ? 'bg-gray-200' : 'bg-gradient-to-tr from-[#FF3B8E] to-[#A436EE] group-hover:shadow-[0_0_15px_rgba(255,59,142,0.4)]'}
+              ${isViewed ? 'bg-border-base' : 'bg-gradient-to-tr from-primary to-accent group-hover:shadow-primary/20'}
             `}>
-              <div className="w-full h-full rounded-full border-[3px] border-white bg-white overflow-hidden">
+              <div className="w-full h-full rounded-full border-[3px] border-bg-card bg-bg-card overflow-hidden">
                 {story?.avatar_url ? (
                   <img src={story.avatar_url.startsWith('http') ? story.avatar_url : `http://localhost:8080${story.avatar_url}`} alt={story.username} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gray-50 text-[#FF3B8E] font-black text-xl uppercase">
+                  <div className="w-full h-full flex items-center justify-center bg-bg-sidebar text-primary font-black text-xl uppercase">
                     {story?.username?.charAt(0) || '?'}
                   </div>
                 )}
@@ -89,11 +89,11 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
             </div>
             
             <div className="flex flex-col items-center text-center mt-1">
-              <span className={`text-[12.5px] font-bold max-w-[76px] truncate transition-colors tracking-tight leading-none text-center ${isViewed ? 'text-gray-400' : 'text-gray-800'}`}>
+              <span className={`text-[12.5px] font-bold max-w-[76px] truncate transition-colors tracking-tight leading-none text-center ${isViewed ? 'text-text-muted/60' : 'text-text-base'}`}>
                 {story?.full_name?.split(' ')[0] || story?.username || 'User'}
               </span>
-              <span className="text-[10px] text-gray-400 mt-1 font-medium whitespace-nowrap flex items-center gap-0.5">
-                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300">
+              <span className="text-[10px] text-text-muted/40 mt-1 font-medium whitespace-nowrap flex items-center gap-0.5">
+                <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-text-muted/30">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                   <circle cx="12" cy="10" r="3"></circle>
                 </svg>

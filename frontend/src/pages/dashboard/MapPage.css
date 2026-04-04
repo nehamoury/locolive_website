@@ -19,18 +19,18 @@
 .inner-circle {
     width: 14px;
     height: 14px;
-    background: #ff3b8e;
-    border: 3px solid white;
+    background: var(--color-primary);
+    border: 3px solid var(--bg-card);
     border-radius: 50%;
     position: absolute;
     z-index: 3;
-    box-shadow: 0 0 15px rgba(255, 59, 142, 0.4);
+    box-shadow: 0 0 15px rgba(var(--color-primary-rgb), 0.4);
 }
 
 .pulse {
     width: 48px;
     height: 48px;
-    background: rgba(255, 59, 142, 0.15);
+    background: rgba(var(--color-primary-rgb), 0.15);
     border-radius: 50%;
     position: absolute;
     animation: pulseAnim 2.5s infinite ease-out;
@@ -43,16 +43,49 @@
 
 /* Cluster Icon Styles */
 .custom-cluster-icon {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(8px);
-    border: 2px solid #ff3b8e;
-    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+}
+
+.cluster-inner {
+    width: 40px;
+    height: 40px;
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border: 3px solid var(--color-primary);
+    color: var(--text-base);
+    font-size: 14px;
     font-weight: 900;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 10px 20px -5px rgba(255, 59, 142, 0.3);
+    box-shadow: 0 10px 25px -5px rgba(var(--color-primary-rgb), 0.4);
+    z-index: 5;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-cluster-icon:hover .cluster-inner {
+    transform: scale(1.15) rotate(5deg);
+    box-shadow: 0 15px 35px -5px rgba(var(--color-primary-rgb), 0.6);
+    border-width: 4px;
+}
+
+.cluster-pulse {
+    position: absolute;
+    inset: 0;
+    background: rgba(var(--color-primary-rgb), 0.3);
+    border-radius: 50%;
+    z-index: 1;
+    animation: clusterPulseAnim 2s infinite ease-out;
+}
+
+@keyframes clusterPulseAnim {
+    0% { transform: scale(0.6); opacity: 1; }
+    100% { transform: scale(1.8); opacity: 0; }
 }
 
 /* Heatmap Pulse */
@@ -63,7 +96,13 @@
 
 /* Story Marker Styles */
 .story-marker-refined {
-    filter: drop-shadow(0 10px 15px rgba(236, 72, 153, 0.4));
+    filter: drop-shadow(0 10px 15px rgba(var(--color-primary-rgb), 0.3));
+    animation: markerFloat 4s ease-in-out infinite;
+}
+
+@keyframes markerFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
 }
 
 .story-marker {
@@ -75,7 +114,7 @@
 .marker-glow {
     position: absolute;
     inset: -4px;
-    background: linear-gradient(135deg, #ec4899, #8b5cf6);
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
     border-radius: 50%;
     z-index: -1;
     animation: rotateMarker 4s linear infinite;
@@ -99,13 +138,13 @@
     position: absolute;
     top: -4px;
     right: -4px;
-    background: #ec4899;
+    background: var(--color-primary);
     color: white;
     font-weight: 900;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid white;
-    box-shadow: 0 4px 10px rgba(236, 72, 153, 0.4);
+    border: 2px solid var(--bg-card);
+    box-shadow: 0 4px 10px rgba(var(--color-primary-rgb), 0.4);
 }

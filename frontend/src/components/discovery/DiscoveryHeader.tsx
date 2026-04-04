@@ -2,55 +2,58 @@ import React from 'react';
 import { MapPin } from 'lucide-react';
 
 interface DiscoveryHeaderProps {
-  activeTab: 'stories' | 'heatmap' | 'both';
-  setActiveTab: (tab: 'stories' | 'heatmap' | 'both') => void;
+  activeTab: string;
+  setActiveTab: (tab: any) => void;
   locationName: string;
 }
 
 export const DiscoveryHeader: React.FC<DiscoveryHeaderProps> = ({ activeTab, setActiveTab, locationName }) => {
   return (
-    <div className="p-6 bg-white/80 backdrop-blur-xl border-b border-gray-100 flex flex-col gap-6 sticky top-0 z-20">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-black text-black tracking-tighter italic">Discover</h2>
-        <div className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-100 rounded-full shadow-sm">
-          <MapPin className="w-3.5 h-3.5 text-pink-500" />
-          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{locationName || "Raipur, CG"}</span>
-        </div>
+    <div className="p-8 pb-4 flex flex-col gap-6 sticky top-0 z-20 bg-bg-base/80 backdrop-blur-2xl transition-all duration-500">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-4xl font-black text-text-base tracking-tight italic uppercase">Connect</h1>
+        <p className="text-sm font-medium text-text-muted italic">Discover vibrant souls around you.</p>
       </div>
 
-      <div className="flex items-center gap-2">
-        <TabButton 
-          label="Stories" 
-          active={activeTab === 'stories'} 
-          onClick={() => setActiveTab('stories')}
-          icon="📸"
-        />
-        <TabButton 
-          label="Heatmap" 
-          active={activeTab === 'heatmap'} 
-          onClick={() => setActiveTab('heatmap')}
-          icon="🔥"
-        />
-        <TabButton 
-          label="Both" 
-          active={activeTab === 'both'} 
-          onClick={() => setActiveTab('both')}
-          icon="✨"
-        />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center p-1 bg-bg-sidebar/50 backdrop-blur-md border border-border-base rounded-2xl shadow-sm">
+          <TabButton 
+            label="Suggestions" 
+            active={activeTab === 'suggestions' || activeTab === 'both' || activeTab === 'stories'} 
+            onClick={() => setActiveTab('suggestions')} 
+          />
+          <TabButton 
+            label="Requests" 
+            active={activeTab === 'requests'} 
+            onClick={() => setActiveTab('requests')} 
+          />
+          <TabButton 
+            label="Following" 
+            active={activeTab === 'following'} 
+            onClick={() => setActiveTab('following')} 
+          />
+        </div>
+
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-white border border-border-base rounded-full shadow-lg shadow-pink-500/5 group hover:border-primary/30 transition-all cursor-pointer">
+          <MapPin className="w-3.5 h-3.5 text-primary animate-bounce" />
+          <span className="text-[11px] font-bold text-text-muted uppercase tracking-[0.1em]">{locationName || "Raipur, CG"}</span>
+        </div>
       </div>
     </div>
   );
 };
 
-const TabButton = ({ label, active, onClick, icon }: { label: string, active: boolean, onClick: () => void, icon?: string }) => (
+const TabButton = ({ label, active, onClick }: { label: string, active: boolean, onClick: () => void }) => (
   <button
     onClick={onClick}
-    className={`px-5 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all active:scale-95 whitespace-nowrap shadow-sm
+    className={`px-6 py-2.5 rounded-xl text-xs font-black transition-all duration-300 relative overflow-hidden group cursor-pointer
       ${active 
-        ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-pink-200' 
-        : 'bg-white border border-gray-100 text-gray-500 hover:bg-gray-50'}`}
+        ? 'text-white bg-brand-gradient shadow-lg shadow-primary/25' 
+        : 'text-text-muted hover:text-text-base'}`}
   >
-    {icon && <span className="text-sm">{icon}</span>}
-    {label}
+    {active && (
+      <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+    )}
+    <span className="relative z-10">{label}</span>
   </button>
 );

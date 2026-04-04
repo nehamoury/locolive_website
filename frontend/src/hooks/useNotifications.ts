@@ -20,6 +20,7 @@ export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const socketRef = useRef<WebSocket | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const seenNotifIds = useRef<Set<string>>(new Set()); // Dedup guard
   const { alertsEnabled, toggleAlerts } = useSound();
 
   // Initialize audio
@@ -131,9 +132,18 @@ export const useNotifications = () => {
 
           if (data.type === 'crossing_detected' || data.type === 'nearby_story') {
             const notif = data.payload;
-            
+
+            // --- Dedup Guard: skip if we've shown this notification before ---
+            const notifId = notif?.id || notif?.message;
+            if (notifId && seenNotifIds.current.has(notifId)) return;
+            if (notifId) seenNotifIds.current.add(notifId);
+            // Keep set size bounded
+            if (seenNotifIds.current.size > 50) seenNotifIds.current.clear();
+            // -------------------------------------------------------------------
+
             // Show Toast
             toast(notif.message, {
+              id: notifId, // react-hot-toast also deduplicates by id
               icon: data.type === 'crossing_detected' ? '📍' : '✨',
               duration: 5000,
               style: {

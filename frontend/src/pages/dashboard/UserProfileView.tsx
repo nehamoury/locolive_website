@@ -48,7 +48,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-white">
+      <div className="h-full flex items-center justify-center bg-bg-base transition-colors duration-300">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -56,9 +56,9 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
 
   if (!profile) {
     return (
-      <div className="p-8 text-center bg-white h-full flex flex-col items-center justify-center">
-        <p className="text-black/60 font-bold uppercase tracking-widest">User not found</p>
-        <button onClick={onBack} className="mt-4 text-primary font-black uppercase tracking-[2px] text-xs">Return Home</button>
+      <div className="p-8 text-center bg-bg-base h-full flex flex-col items-center justify-center transition-colors duration-300">
+        <p className="text-text-muted font-bold uppercase tracking-widest">User not found</p>
+        <button onClick={onBack} className="mt-4 text-primary font-black uppercase tracking-[2px] text-xs cursor-pointer">Return Home</button>
       </div>
     );
   }
@@ -69,7 +69,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="h-full bg-white text-black overflow-y-auto no-scrollbar"
+      className="h-full bg-bg-base text-text-base overflow-y-auto no-scrollbar transition-colors duration-300"
     >
       {/* ─── Hero Header ─── */}
       <div className="relative h-64 w-full bg-gradient-to-br from-[#f0f9ff] to-[#e0f2fe] overflow-hidden">
@@ -81,15 +81,15 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
         
         {/* Top Navigation */}
         <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-10">
-          <button onClick={onBack} className="p-2.5 bg-white/40 backdrop-blur-md rounded-2xl border border-white/20 hover:bg-white/60 transition-all">
-            <ArrowLeft className="w-5 h-5" />
+          <button onClick={onBack} className="p-2.5 bg-bg-card/40 backdrop-blur-md rounded-2xl border border-border-base hover:bg-bg-card/60 transition-all cursor-pointer" aria-label="Back">
+            <ArrowLeft className="w-5 h-5 text-text-base" />
           </button>
           <div className="flex gap-2">
-            <button className="p-2.5 bg-white/40 backdrop-blur-md rounded-2xl border border-white/20 hover:bg-white/60 transition-all">
-              <Share2 className="w-5 h-5" />
+            <button className="p-2.5 bg-bg-card/40 backdrop-blur-md rounded-2xl border border-border-base hover:bg-bg-card/60 transition-all cursor-pointer" aria-label="Share">
+              <Share2 className="w-5 h-5 text-text-base" />
             </button>
-            <button className="p-2.5 bg-white/40 backdrop-blur-md rounded-2xl border border-white/20 hover:bg-white/60 transition-all">
-              <MoreHorizontal className="w-5 h-5" />
+            <button className="p-2.5 bg-bg-card/40 backdrop-blur-md rounded-2xl border border-border-base hover:bg-bg-card/60 transition-all cursor-pointer" aria-label="More">
+              <MoreHorizontal className="w-5 h-5 text-text-base" />
             </button>
           </div>
         </div>
@@ -101,9 +101,9 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
           {/* Avatar & Action Buttons */}
           <div className="flex items-end justify-between mb-6">
             <div className="relative">
-              <div className="w-32 h-32 rounded-[32px] bg-white p-1 shadow-2xl shadow-black/5">
+              <div className="w-32 h-32 rounded-[32px] bg-bg-card p-1 shadow-2xl shadow-black/5">
                 <div className="w-full h-full rounded-[28px] bg-gradient-to-tr from-primary to-accent p-1">
-                  <div className="w-full h-full rounded-[24px] bg-white overflow-hidden flex items-center justify-center">
+                  <div className="w-full h-full rounded-[24px] bg-bg-card overflow-hidden flex items-center justify-center">
                     {profile.avatar_url ? (
                       <img src={`http://localhost:8080${profile.avatar_url}`} className="w-full h-full object-cover" alt="" />
                     ) : (
@@ -118,10 +118,10 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
               <button 
                 onClick={handleFollow}
                 disabled={profile.requested}
-                className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl transition-all active:scale-95
+                className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 cursor-pointer
                   ${profile.requested 
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-                    : 'bg-black text-white shadow-black/10'}`}
+                    ? 'bg-bg-sidebar text-text-muted cursor-not-allowed' 
+                    : 'bg-text-base text-bg-base shadow-black/10'}`}
               >
                 {profile.requested ? 'Requested' : 'Follow'}
               </button>
@@ -136,26 +136,26 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
 
           {/* Name & Bio */}
           <div className="mb-8">
-            <h1 className="text-3xl font-black tracking-tight italic text-black uppercase mb-1">
+            <h1 className="text-3xl font-black tracking-tight italic text-text-base uppercase mb-1">
               {profile.full_name || profile.username}
             </h1>
-            <div className="flex items-center gap-2 text-accent font-black text-sm uppercase tracking-wider mb-4">
+            <div className="flex items-center gap-2 text-primary font-black text-sm uppercase tracking-wider mb-4">
               <span>@{profile.username}</span>
-              <div className="w-1.5 h-1.5 bg-accent/20 rounded-full" />
+              <div className="w-1.5 h-1.5 bg-primary/20 rounded-full" />
               <div className="flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5" />
-                <span className="text-black/40">{profile.location || 'Locolive Community'}</span>
+                <span className="text-text-muted">{profile.location || 'Locolive Community'}</span>
               </div>
             </div>
             {profile.bio && (
-              <p className="text-sm text-black/60 font-medium leading-relaxed max-w-md italic border-l-4 border-gray-100 pl-4 py-1">
+              <p className="text-sm text-text-muted font-medium leading-relaxed max-w-md italic border-l-4 border-border-base pl-4 py-1">
                 {profile.bio}
               </p>
             )}
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-3 gap-4 py-6 border-y border-gray-100 mb-8">
+          <div className="grid grid-cols-3 gap-4 py-6 border-y border-border-base mb-8">
             <QuickStat label="Moments" value={stories.length} icon={<Zap className="w-3.5 h-3.5" />} />
             <QuickStat label="Connections" value={profile.connection_count || 0} icon={<Users className="w-3.5 h-3.5" />} />
             <QuickStat label="Crossed" value={profile.crossings_count || 0} icon={<Footprints className="w-3.5 h-3.5" />} />
@@ -164,13 +164,13 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
           {/* Highlights */}
           <div className="mb-10">
             <div className="flex items-center justify-between mb-2 px-1">
-              <span className="text-[10px] font-black text-black/40 uppercase tracking-widest">Featured</span>
+              <span className="text-[10px] font-black text-text-muted/40 uppercase tracking-widest">Featured</span>
             </div>
             <Highlights highlights={[]} isOwnProfile={false} />
           </div>
 
           {/* ─── Navigation Tabs ─── */}
-          <div className="sticky top-0 bg-white/80 backdrop-blur-xl z-20 flex gap-10 border-b border-gray-100 mb-6 px-1">
+          <div className="sticky top-0 bg-bg-base/80 backdrop-blur-xl z-20 flex gap-10 border-b border-border-base mb-6 px-1">
             {([
               { id: 'stories', label: 'Stories', icon: <Zap className="w-4 h-4" /> },
               { id: 'posts', label: 'Posts', icon: <Grid3x3 className="w-4 h-4" /> },
@@ -179,8 +179,8 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-4 relative flex items-center gap-2 transition-all ${
-                  activeTab === tab.id ? 'text-black' : 'text-black/20 hover:text-black/40'
+                className={`py-4 relative flex items-center gap-2 transition-all cursor-pointer ${
+                  activeTab === tab.id ? 'text-text-base' : 'text-text-base/20 hover:text-text-base/40'
                 }`}
               >
                 {tab.icon}
@@ -188,7 +188,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                 {activeTab === tab.id && (
                   <motion.div
                     layoutId="activeTabUser"
-                    className="absolute bottom-0 left-0 right-0 h-1 bg-black rounded-t-full"
+                    className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full"
                   />
                 )}
               </button>
@@ -211,7 +211,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                       <div
                         key={story.id}
                         onClick={() => setViewingStoryIndex(idx)}
-                        className="aspect-[9/16] bg-gray-50 rounded-[24px] overflow-hidden relative cursor-pointer group border border-gray-100"
+                        className="aspect-[9/16] bg-bg-sidebar rounded-[24px] overflow-hidden relative cursor-pointer group border border-border-base"
                       >
                         <img src={`http://localhost:8080${story.media_url}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
                         <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
@@ -224,12 +224,12 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                     ))}
                   </div>
                 ) : (
-                  <EmptyState label="Archive empty" icon="📸" />
+                  <EmptyState label="Archive empty" icon={<Zap className="w-8 h-8" />} />
                 )
               )}
 
-              {activeTab === 'posts' && <EmptyState label="No posts yet" icon="🖼️" />}
-              {activeTab === 'history' && <EmptyState label="No common paths" icon="👣" />}
+              {activeTab === 'posts' && <EmptyState label="No posts yet" icon={<Grid3x3 className="w-8 h-8" />} />}
+              {activeTab === 'history' && <EmptyState label="No common paths" icon={<Footprints className="w-8 h-8" />} />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -253,17 +253,17 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
 const QuickStat = ({ label, value, icon }: { label: string; value: number | string; icon: React.ReactNode }) => (
   <div className="flex flex-col items-center justify-center">
     <div className="flex items-center gap-1.5 mb-0.5">
-       <span className="text-black/10">{icon}</span>
-       <span className="text-xl font-black text-black italic tracking-tight">{value}</span>
+       <span className="text-text-muted/20">{icon}</span>
+       <span className="text-xl font-black text-text-base italic tracking-tight">{value}</span>
     </div>
-    <span className="text-[9px] font-black uppercase tracking-widest text-black/30">{label}</span>
+    <span className="text-[9px] font-black uppercase tracking-widest text-text-muted/40">{label}</span>
   </div>
 );
 
-const EmptyState = ({ label, icon }: { label: string; icon: string }) => (
+const EmptyState = ({ label, icon }: { label: string; icon: React.ReactNode }) => (
   <div className="flex flex-col items-center justify-center py-24 text-center">
-    <div className="text-3xl mb-4 grayscale opacity-20">{icon}</div>
-    <p className="text-xs font-black uppercase tracking-widest text-black/20 italic">{label}</p>
+    <div className="text-3xl mb-4 text-text-muted/20">{icon}</div>
+    <p className="text-xs font-black uppercase tracking-widest text-text-muted/20 italic">{label}</p>
   </div>
 );
 

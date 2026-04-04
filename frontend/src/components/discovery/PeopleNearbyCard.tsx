@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Star, Heart, MapPin } from 'lucide-react';
+import { X, Star, Heart, MapPin, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface PeopleNearbyCardProps {
@@ -11,6 +11,7 @@ interface PeopleNearbyCardProps {
     distance?: string;
     bio?: string;
     tags?: string[];
+    labels?: string[]; // e.g. ["NEARBY", "EXPERT"]
   };
   onConnect?: (userId: string) => void;
   onProfileClick?: (userId: string) => void;
@@ -26,115 +27,99 @@ export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({
   onFavorite
 }) => {
   const isGuest = user.username === 'Guest';
+  const labels = user.labels || ["NEARBY"];
 
   return (
     <motion.div 
-      initial={{ opacity: 0, x: 50, rotate: 5 }}
-      animate={{ opacity: 1, x: 0, rotate: 0 }}
-      exit={{ 
-        opacity: 0, 
-        x: -200, 
-        rotate: -20, 
-        transition: { duration: 0.3 } 
-      }}
-      className="relative group px-2"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative group w-full"
     >
       <motion.div 
-        drag={!isGuest}
-        dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-        onDragEnd={(_, info) => {
-          if (isGuest) return;
-          if (info.offset.x > 100) onConnect?.(user.id);
-          else if (info.offset.x < -100) onSkip?.();
-          else if (info.offset.y < -100) onFavorite?.(user.id);
-        }}
+        whileHover={{ y: -10, scale: 1.01 }}
         onClick={() => !isGuest && onProfileClick?.(user.id)}
-        className="aspect-[4/5] rounded-[40px] overflow-hidden shadow-2xl relative border-[6px] border-white shadow-pink-100/50 cursor-pointer bg-white"
-        whileDrag={{ scale: 1.05 }}
+        className="bg-white rounded-[48px] overflow-hidden shadow-[0_40px_80px_-20px_rgba(255,0,110,0.12)] border border-pink-50 p-6 flex flex-col items-center gap-6 cursor-pointer group transition-all duration-500"
       >
-        {isGuest ? (
-          <div className="w-full h-full bg-gradient-to-br from-[#f8fafc] to-[#f1f5f9] flex flex-col items-center justify-center text-center p-8 border-[6px] border-white shadow-inner">
-            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-xl shadow-gray-200/50">
-              <MapPin className="w-10 h-10 text-gray-300" />
+        {/* Profile Image with Gradient Ring */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-brand-gradient rounded-full blur-[10px] opacity-20 group-hover:opacity-40 transition-opacity" />
+          <div className="w-48 h-48 rounded-full p-2 bg-brand-gradient relative z-10">
+            <div className="w-full h-full rounded-full bg-white overflow-hidden p-1.5 shadow-inner">
+               <div className="w-full h-full rounded-full bg-bg-base overflow-hidden relative">
+                {user.avatar_url ? (
+                    <img 
+                      src={`http://localhost:8080${user.avatar_url}`} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                      alt={user.username} 
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-5xl font-black text-primary/20 italic">
+                      {(user.username?.charAt(0) || 'U').toUpperCase()}
+                    </div>
+                  )}
+               </div>
             </div>
-            <h3 className="text-2xl font-black text-gray-800 mb-3 tracking-tight">Nobody Nearby</h3>
-            <p className="text-sm font-medium text-gray-400 leading-relaxed max-w-xs">
-              We couldn't find any explorers around you right now. Try wandering a bit or check back later!
-            </p>
           </div>
-        ) : user.avatar_url ? (
-          <img 
-            src={`http://localhost:8080${user.avatar_url}`} 
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-            alt={user.username} 
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-pink-100 to-purple-100 flex items-center justify-center text-5xl font-black text-pink-300 italic">
-            {(user.username?.charAt(0) || 'U').toUpperCase()}
+          
+          {/* Online status badge */}
+          <div className="absolute bottom-4 right-4 w-6 h-6 bg-green-500 border-4 border-white rounded-full z-20 shadow-lg" />
+          
+          {/* Label Chip */}
+          <div className="absolute -top-2 -right-4 bg-red-50 px-3 py-1 rounded-full border border-red-100 shadow-sm z-20">
+             <span className="text-[10px] font-black text-red-500 tracking-widest">{labels[0]}</span>
           </div>
-        )}
-        
-        {/* Gradient Overlay & Info (Only if not guest) */}
-        {!isGuest && (
-          <>
-            <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/90 via-black/20 to-transparent pointer-events-none" />
-            <div className="absolute bottom-0 left-0 right-0 p-8 text-white pointer-events-none">
-              <div className="flex flex-wrap gap-2 mb-3">
-                {(user.tags || ['Explorer 📍', 'Coffee Lover ☕']).map((tag, i) => (
-                  <span key={i} className="px-3 py-1.5 bg-black/20 backdrop-blur-md rounded-full text-[10px] font-black border border-white/20 uppercase tracking-tighter shadow-lg">
-                    {tag}
-                  </span>
-                ))}
-              </div>
+        </div>
 
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-3xl font-black italic tracking-tighter uppercase">{user.full_name || user.username}</h3>
-              </div>
-              <div className="flex items-center gap-2 text-white/70 text-[10px] font-black uppercase tracking-widest">
-                 <MapPin className="w-3 h-3 text-pink-400" />
-                 Nearby · {user.distance || 'Recently'}
-              </div>
-            </div>
-          </>
-        )}
+        {/* User Info */}
+        <div className="flex flex-col items-center text-center gap-1">
+          <h3 className="text-3xl font-black text-text-base italic tracking-tight translate-x-1">
+            {user.full_name || user.username}
+          </h3>
+          <div className="flex items-center gap-1.5 text-text-muted text-[11px] font-black uppercase tracking-widest leading-none">
+            <MapPin className="w-3.5 h-3.5 text-primary" />
+            {user.distance ? `${user.distance} away` : 'Nearby'}
+          </div>
+        </div>
+
+        {/* Bio / Description */}
+        <p className="text-sm font-medium text-text-muted leading-relaxed max-w-xs h-10 line-clamp-2">
+            {user.bio || "Hi there! I'm exploring new places and meeting vibrant souls."}
+        </p>
+
+        {/* Action Buttons */}
+        <motion.button
+            whileHover={{ scale: 1.05, boxShadow: "0 20px 40px -10px rgba(255,0,110,0.3)" }}
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => { e.stopPropagation(); onConnect?.(user.id); }}
+            className="w-full py-4 bg-brand-gradient rounded-full text-white font-black italic tracking-tight text-[15px] flex items-center justify-center gap-2 group/btn shadow-[0_15px_30px_-5px_rgba(255,0,110,0.2)]"
+        >
+            <Heart className="w-5 h-5 transition-transform group-hover/btn:scale-125" />
+            Connect
+        </motion.button>
+
+        {/* Secondary Actions */}
+        <div className="flex items-center justify-center gap-4 w-full pt-2">
+             <div className="flex-1 h-px bg-border-base" />
+             <div className="flex gap-4">
+                <MiniAction onClick={(e) => { e.stopPropagation(); onSkip?.(); }} icon={<X className="w-5 h-5" />} color="text-text-muted" bg="bg-bg-base" />
+                <MiniAction onClick={(e) => { e.stopPropagation(); onFavorite?.(user.id); }} icon={<Star className="w-5 h-5" />} color="text-amber-500" bg="bg-amber-50" />
+                <MiniAction onClick={(e) => { e.stopPropagation(); }} icon={<Zap className="w-5 h-5" />} color="text-primary" bg="bg-primary/5" />
+             </div>
+             <div className="flex-1 h-px bg-border-base" />
+        </div>
       </motion.div>
-
-      {/* Action Buttons */}
-      <div className="flex items-center justify-center gap-5 mt-8">
-        <ActionButton 
-          onClick={onSkip}
-          icon={<X className="w-7 h-7" />} 
-          color="text-gray-400" 
-          bg="bg-white" 
-          shadow="shadow-gray-200/50" 
-        />
-        <ActionButton 
-          onClick={() => onConnect?.(user.id)}
-          icon={<Heart className="w-7 h-7 fill-white" />} 
-          color="text-white" 
-          bg="bg-gradient-to-tr from-pink-500 to-purple-600" 
-          large 
-          shadow="shadow-pink-300/50" 
-        />
-        <ActionButton 
-          onClick={() => onFavorite?.(user.id)}
-          icon={<Star className="w-6 h-6" />} 
-          color="text-amber-400" 
-          bg="bg-white" 
-          shadow="shadow-amber-100" 
-        />
-      </div>
     </motion.div>
   );
 };
 
-const ActionButton = ({ icon, color, bg, large, shadow, onClick }: { icon: React.ReactNode, color: string, bg: string, large?: boolean, shadow: string, onClick?: () => void }) => (
-  <motion.button
-    whileHover={{ scale: 1.1, y: -2 }}
-    whileTap={{ scale: 0.9 }}
-    onClick={onClick}
-    className={`${bg} ${color} ${shadow} ${large ? 'w-14 h-14' : 'w-12 h-12'} rounded-full flex items-center justify-center shadow-xl border border-gray-100 transition-all`}
-  >
-    {icon}
-  </motion.button>
-);
+const MiniAction = ({ icon, color, bg, onClick }: { icon: React.ReactNode, color: string, bg: string, onClick?: (e: React.MouseEvent) => void }) => (
+    <motion.button
+      whileHover={{ scale: 1.1, y: -2 }}
+      whileTap={{ scale: 0.9 }}
+      onClick={onClick}
+      className={`${bg} ${color} w-11 h-11 rounded-full flex items-center justify-center shadow-sm border border-border-base transition-all hover:shadow-md cursor-pointer`}
+    >
+      {icon}
+    </motion.button>
+  );
+  

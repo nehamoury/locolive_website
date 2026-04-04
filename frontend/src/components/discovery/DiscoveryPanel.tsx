@@ -31,7 +31,7 @@ export const DiscoveryPanel: React.FC<DiscoveryPanelProps> = ({
   onFavorite
 }) => {
   return (
-    <div className="flex-1 h-full overflow-y-auto no-scrollbar flex flex-col bg-white border-l border-gray-100">
+    <div className="flex-1 h-full overflow-y-auto no-scrollbar flex flex-col bg-bg-base border-border-base transition-colors duration-300">
       <DiscoveryHeader 
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
@@ -41,7 +41,7 @@ export const DiscoveryPanel: React.FC<DiscoveryPanelProps> = ({
       <div className="p-8 flex flex-col gap-10">
         {/* People Nearby Section */}
         <section className="flex flex-col gap-6 overflow-hidden">
-           <h3 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 italic px-2">
+           <h3 className="text-[12px] font-bold text-text-muted uppercase tracking-widest flex items-center gap-2 italic px-2">
               People Nearby <span className="text-lg">💫</span>
            </h3>
            <AnimatePresence mode="wait">
