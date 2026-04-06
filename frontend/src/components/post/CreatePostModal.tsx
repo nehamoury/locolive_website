@@ -1,5 +1,5 @@
-import { useState, useRef, type FC } from 'react';
-import { X, Camera, Type, MapPin, Zap, Clock } from 'lucide-react';
+import { useState, useRef, type FC, useEffect } from 'react';
+import { X, Camera, Type, MapPin, Zap, Clock, Video } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 
@@ -7,11 +7,12 @@ interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  onRequestReelModal?: () => void;
 }
 
-type PostType = 'story' | 'post';
+type PostType = 'story' | 'post' | 'reel';
 
-const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess, onRequestReelModal }) => {
   const [postType, setPostType] = useState<PostType>('post');
   const [mediaType, setMediaType] = useState<'image' | 'video' | 'text'>('image');
   const [caption, setCaption] = useState('');
@@ -21,6 +22,12 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess 
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+        setPostType('post');
+    }
+  }, [isOpen]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -113,6 +120,14 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess 
     }
   };
 
+  const handleTypeChange = (key: PostType) => {
+      if (key === 'reel' && onRequestReelModal) {
+          onRequestReelModal();
+          return;
+      }
+      setPostType(key);
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -136,21 +151,22 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess 
               <button
                 onClick={handleClose}
                 className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-              >
+               >
                 <X className="w-4 h-4 text-gray-600" />
               </button>
             </div>
 
             <div className="px-6 py-5 space-y-5 max-h-[85vh] overflow-y-auto no-scrollbar">
-              {/* Type Switcher: Story vs Post */}
+              {/* Type Switcher: Story vs Post vs Reel */}
               <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl">
                 {([
-                  { key: 'story', label: 'Story', icon: Zap, desc: '24h' },
-                  { key: 'post', label: 'Post', icon: Clock, desc: 'Forever' },
-                ] as const).map(({ key, label, icon: Icon, desc }) => (
+                  { key: 'story', label: 'Story', icon: Zap },
+                  { key: 'post', label: 'Post', icon: Clock },
+                  { key: 'reel', label: 'Reel', icon: Video },
+                ] as const).map(({ key, label, icon: Icon }) => (
                   <button
                     key={key}
-                    onClick={() => setPostType(key)}
+                    onClick={() => handleTypeChange(key as PostType)}
                     className={`flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
                       postType === key
                         ? 'bg-white shadow-sm text-gray-900'
@@ -159,9 +175,6 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess 
                   >
                     <Icon className="w-4 h-4" />
                     <span>{label}</span>
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                      postType === key ? 'bg-gray-100 text-gray-500' : 'bg-transparent'
-                    }`}>{desc}</span>
                   </button>
                 ))}
               </div>

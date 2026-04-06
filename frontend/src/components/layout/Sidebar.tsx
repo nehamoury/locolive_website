@@ -1,8 +1,8 @@
 import { useState, type FC } from 'react';
-import { Home, Map as MapIcon, User, Plus, Sparkles, Footprints, Users, LogOut, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { Home, Map as MapIcon, User, Plus, Sparkles, Footprints, Users, LogOut, ChevronLeft, ChevronRight, Zap, Video } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting' | 'discovery';
+type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting' | 'discovery' | 'reels';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -92,6 +92,7 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, logout, onCr
         <NavItem icon={<Home className="w-5 h-5" />} label="Home" active={activeTab === 'home'} onClick={() => setActiveTab('home')} color="text-[#FF4D97]" isCollapsed={isCollapsed} />
         <NavItem icon={<MapIcon className="w-5 h-5" />} label="Map / Explore" active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} color="text-[#FFA94D]" isCollapsed={isCollapsed} />
         <NavItem icon={<Sparkles className="w-5 h-5" />} label="Discovery" active={activeTab === 'discovery'} onClick={() => setActiveTab('discovery')} color="text-[#A436EE]" isCollapsed={isCollapsed} />
+        <NavItem icon={<Video className="w-5 h-5" />} label="Reels" active={activeTab === 'reels'} onClick={() => setActiveTab('reels')} color="text-[#FF006E]" isCollapsed={isCollapsed} />
         <NavItem icon={<Users className="w-5 h-5" />} label="Connections" active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} color="text-[#4DABF7]" isCollapsed={isCollapsed} />
         <NavItem icon={<Footprints className="w-5 h-5" />} label="Crossings" active={activeTab === 'crossings'} onClick={() => setActiveTab('crossings')} color="text-[#20C997]" isCollapsed={isCollapsed} />
         <NavItem icon={<Zap className="w-5 h-5" />} label="Casting" active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} color="text-[#FCC419]" isCollapsed={isCollapsed} />

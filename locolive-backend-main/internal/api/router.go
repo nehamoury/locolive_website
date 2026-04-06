@@ -134,6 +134,17 @@ func (server *Server) setupRouter() {
 	authRoutes.POST("/posts/:id/comments", server.addPostComment)
 	authRoutes.DELETE("/posts/:id/comments/:commentId", server.deletePostComment)
 
+	// Reels (Vertical video content)
+	authRoutes.POST("/reels", server.createReel)
+	authRoutes.GET("/reels/feed", server.getReelsFeed)
+	authRoutes.GET("/reels/nearby", server.getNearbyReels)
+	authRoutes.POST("/reels/:id/like", server.likeReel)
+	authRoutes.DELETE("/reels/:id/like", server.unlikeReel)
+	authRoutes.POST("/reels/:id/comments", server.addReelComment)
+	authRoutes.GET("/reels/:id/comments", server.listReelComments)
+	authRoutes.POST("/reels/:id/save", server.saveReel)
+	authRoutes.DELETE("/reels/:id/save", server.unsaveReel)
+
 	// Highlights (Permanent story collections)
 	authRoutes.POST("/highlights", server.createHighlight)
 	authRoutes.GET("/highlights/me", server.getMyHighlights)

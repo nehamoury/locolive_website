@@ -33,6 +33,12 @@ func (server *Server) updateLocation(ctx *gin.Context) {
 	}
 
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	userIDStr := authPayload.UserID.String()
+
+	log.Debug().
+		Str("user_id", userIDStr).
+		Float64("lat", req.Latitude).Float64("lng", req.Longitude).
+		Msg("[LocationPing] Incoming location update")
 
 	// Ghost Mode Logic
 	user, userErr := server.store.GetUserByID(ctx, authPayload.UserID)
@@ -44,6 +50,7 @@ func (server *Server) updateLocation(ctx *gin.Context) {
 				GhostModeExpiresAt: sql.NullTime{},
 			})
 		} else {
+			log.Debug().Str("user_id", userIDStr).Msg("[LocationPing] Skipped — ghost mode active")
 			ctx.JSON(http.StatusOK, gin.H{"status": "ghost"})
 			return
 		}
@@ -55,15 +62,16 @@ func (server *Server) updateLocation(ctx *gin.Context) {
 	}
 
 	// Safety Check: Fake GPS
-	val := server.safety.ValidateUserMovement(ctx, authPayload.UserID.String(), req.Latitude, req.Longitude)
+	val := server.safety.ValidateUserMovement(ctx, userIDStr, req.Latitude, req.Longitude)
 	if !val.Allowed {
 		if val.ShouldBan {
 			server.store.BanUser(ctx, db.BanUserParams{
 				ID:             authPayload.UserID,
 				IsShadowBanned: true,
 			})
-			log.Warn().Str("user_id", authPayload.UserID.String()).Msg("User shadow-banned for fake GPS")
+			log.Warn().Str("user_id", userIDStr).Msg("[LocationPing] User shadow-banned for fake GPS")
 		}
+		log.Debug().Str("user_id", userIDStr).Msg("[LocationPing] Skipped — safety check failed")
 		ctx.JSON(http.StatusOK, gin.H{"status": "updated"})
 		return
 	}
@@ -82,20 +90,22 @@ func (server *Server) updateLocation(ctx *gin.Context) {
 	})
 
 	if err != nil {
+		log.Error().Err(err).Str("user_id", userIDStr).Msg("[LocationPing] Failed to persist location to DB")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
 	_, err = server.store.UpdateUserActivity(ctx, authPayload.UserID)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to update user activity on location ping")
+		log.Error().Err(err).Str("user_id", userIDStr).Msg("[LocationPing] Failed to update user activity")
 	}
 
-	// Redis GEO Update & Crossing Detection
+	// Redis GEO Update & Crossing Detection & Nearby Broadcast
 	if err := server.location.UpdateUserLocation(ctx, authPayload.UserID, req.Latitude, req.Longitude); err != nil {
-		log.Error().Err(err).Msg("Failed to update redis location service")
+		log.Error().Err(err).Str("user_id", userIDStr).Msg("[LocationPing] Redis location service error")
 	}
 
+	log.Debug().Str("user_id", userIDStr).Msg("[LocationPing] Complete")
 	ctx.JSON(http.StatusOK, gin.H{"status": "updated"})
 }
 
@@ -152,13 +162,26 @@ func (server *Server) getNearbyUsers(ctx *gin.Context) {
 	}
 
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+	userIDStr := authPayload.UserID.String()
+
+	log.Debug().
+		Str("user_id", userIDStr).
+		Float64("lat", req.Latitude).Float64("lng", req.Longitude).
+		Float64("radius_km", req.Radius).
+		Msg("[GetNearbyUsers] Request received")
 
 	// Fetch from Redis via Service
 	matches, err := server.location.GetNearbyUsers(ctx, authPayload.UserID, req.Latitude, req.Longitude, req.Radius)
 	if err != nil {
+		log.Error().Err(err).Str("user_id", userIDStr).Msg("[GetNearbyUsers] Redis query failed")
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+
+	log.Debug().
+		Str("user_id", userIDStr).
+		Int("redis_matches", len(matches)).
+		Msg("[GetNearbyUsers] Redis matches returned")
 
 	rsp := make([]nearbyUserResponse, 0, len(matches))
 	for _, match := range matches {
@@ -198,6 +221,11 @@ func (server *Server) getNearbyUsers(ctx *gin.Context) {
 			Online:    online,
 		})
 	}
+
+	log.Info().
+		Str("user_id", userIDStr).
+		Int("response_count", len(rsp)).
+		Msg("[GetNearbyUsers] Returning nearby users")
 
 	ctx.JSON(http.StatusOK, rsp)
 }

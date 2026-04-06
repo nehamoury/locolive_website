@@ -20,22 +20,31 @@ import CrossingsView from './CrossingsView';
 import CastingPage from './CastingPage';
 import MapPage from './MapPage';
 import DiscoveryPage from './DiscoveryPage';
+import ReelsView from '../../components/reels/ReelsView';
 import { useGeolocation } from '../../hooks/useGeolocation';
 
 // Modals
 import CreatePostModal from '../../components/post/CreatePostModal';
+import CreateReelModal from '../../components/reels/CreateReelModal';
 import StoryViewer from '../../components/story/StoryViewer';
 import ChatList from '../../components/chat/ChatList';
 import ChatWindow from '../../components/chat/ChatWindow';
 import ChatProfileSidebar from '../../components/chat/ChatProfileSidebar';
 
-type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting' | 'discovery';
+type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting' | 'discovery' | 'reels';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  
+  // Real-time & Location Hooks (Early calls to stabilize order)
+  const { position: currentGeoPos } = useGeolocation(true);
+  const { unreadCount: totalUnreadCount, unreadMessagesCount } = useNotifications();
+
+  // Local UI State
   const [activeTab, setActiveTab] = useState<TabType>('home');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreateReelModalOpen, setIsCreateReelModalOpen] = useState(false);
   const [stories, setStories] = useState<any[]>([]);
   const [loadingStories, setLoadingStories] = useState(false);
   const [viewingStories, setViewingStories] = useState<any[]>([]);
@@ -49,11 +58,7 @@ const Dashboard = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showRightSidebar, setShowRightSidebar] = useState(true);
 
-  // Real-time Notifications Hook
-  const { unreadCount: totalUnreadCount, unreadMessagesCount } = useNotifications();
-
-  // Crossings mapping
-  useGeolocation(true);
+  // Sidebar Stats State
   const [crossingsCount, setCrossingsCount] = useState<number>(0);
   const [nearbyCount, setNearbyCount] = useState<number>(0);
   const [storiesCount, setStoriesCount] = useState<number>(0);
@@ -70,13 +75,12 @@ const Dashboard = () => {
       return true;
     });
     try {
-      const position: any = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-      }).catch(() => null);
-
+      // Use the stable coordinate from useGeolocation instead of calling browser API again
+      const coords = currentGeoPos;
       const defaultCoords = { latitude: 28.6139, longitude: 77.2090 };
-      const params = position
-        ? { latitude: position.coords.latitude, longitude: position.coords.longitude }
+      
+      const params = coords
+        ? { latitude: coords.lat, longitude: coords.lng }
         : defaultCoords;
 
       const [feedResponse, connResponse, meResponse] = await Promise.all([
@@ -109,7 +113,7 @@ const Dashboard = () => {
     } finally {
       setLoadingStories(false);
     }
-  }, [logout]);
+  }, [logout, currentGeoPos]);
 
   // Removed manual message unread count (now handled by useNotifications)
 
@@ -117,11 +121,6 @@ const Dashboard = () => {
   const fetchSidebarStats = useCallback(async () => {
     setIsSyncingStats(true);
     try {
-      // 1. Get location for context
-      const position: any = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
-      }).catch(() => null);
-
       // Always fetch crossings (no location needed)
       const crossRes = await api.get('/crossings').catch(() => ({ data: [] }));
       const data = crossRes.data || [];
@@ -129,10 +128,10 @@ const Dashboard = () => {
       const todayCrossings = data.filter((c: any) => c.last_crossing_at?.startsWith(today));
       setCrossingsCount(todayCrossings.length);
 
-      // Only fetch nearby + feed if we have location (both require lat/lng)
-      if (position) {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
+      // Use the stable coordinate from useGeolocation
+      if (currentGeoPos) {
+        const lat = currentGeoPos.lat;
+        const lng = currentGeoPos.lng;
 
         const [nearbyRes, feedRes] = await Promise.all([
           api.get('/users/nearby', { params: { lat, lng, radius: 5 } }).catch(() => ({ data: [] })),
@@ -148,7 +147,7 @@ const Dashboard = () => {
     } finally {
       setTimeout(() => setIsSyncingStats(false), 1000);
     }
-  }, []);
+  }, [currentGeoPos]);
 
   // Panic & Data Polling
   useEffect(() => {
@@ -242,7 +241,7 @@ const Dashboard = () => {
       case 'notifications':
         return <NotificationsView onUserSelect={handleUserSelect} />;
       case 'explore':
-        return <MapPage onUserSelect={handleUserSelect} />;
+        return <MapPage onUserSelect={handleUserSelect} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />;
       case 'connections':
         return (
           <ConnectionsView
@@ -269,6 +268,8 @@ const Dashboard = () => {
         return <CastingPage />;
       case 'discovery':
         return <DiscoveryPage onUserSelect={handleUserSelect} />;
+      case 'reels':
+        return <ReelsView onCreateReel={() => setIsCreateReelModalOpen(true)} />;
       case 'messages':
         return (
           <div className="flex flex-col h-full w-full overflow-hidden bg-white">
@@ -427,6 +428,18 @@ const Dashboard = () => {
         onClose={() => setIsCreateModalOpen(false)}
         onSuccess={() => {
           fetchStories();
+          setRefreshKey(prev => prev + 1);
+        }}
+        onRequestReelModal={() => {
+          setIsCreateModalOpen(false);
+          setIsCreateReelModalOpen(true);
+        }}
+      />
+
+      <CreateReelModal
+        isOpen={isCreateReelModalOpen}
+        onClose={() => setIsCreateReelModalOpen(false)}
+        onSuccess={() => {
           setRefreshKey(prev => prev + 1);
         }}
       />

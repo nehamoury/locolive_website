@@ -2,6 +2,7 @@ package realtime
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -156,4 +157,44 @@ func (h *Hub) IsUserOnline(userID uuid.UUID) bool {
 
 	clients, ok := h.clients[userID]
 	return ok && len(clients) > 0
+}
+
+// ─── Reels Events ────────────────────────────────────────────────────────────
+
+func (h *Hub) BroadcastReelLiked(reelID uuid.UUID, ownerID uuid.UUID, likerID uuid.UUID, likerUsername string) {
+	msg := WSMessage{
+		Type: "reel_liked",
+		Payload: map[string]interface{}{
+			"reel_id":  reelID,
+			"user_id":  likerID,
+			"username": likerUsername,
+		},
+	}
+	data, _ := json.Marshal(msg)
+	h.SendToUser(ownerID, data)
+}
+
+func (h *Hub) BroadcastReelCommented(reelID uuid.UUID, ownerID uuid.UUID, commenterID uuid.UUID, commenterUsername string, comment interface{}) {
+	msg := WSMessage{
+		Type: "reel_commented",
+		Payload: map[string]interface{}{
+			"reel_id":  reelID,
+			"user_id":  commenterID,
+			"username": commenterUsername,
+			"comment":  comment,
+		},
+	}
+	data, _ := json.Marshal(msg)
+	h.SendToUser(ownerID, data)
+}
+
+func (h *Hub) BroadcastNewReelNearby(reel interface{}, targetUserIDs []uuid.UUID) {
+	msg := WSMessage{
+		Type:    "new_reel_nearby",
+		Payload: reel,
+	}
+	data, _ := json.Marshal(msg)
+	for _, id := range targetUserIDs {
+		h.SendToUser(id, data)
+	}
 }

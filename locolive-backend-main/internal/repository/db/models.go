@@ -395,6 +395,45 @@ type ProfileView struct {
 	ViewedAt     time.Time `json:"viewed_at"`
 }
 
+type Reel struct {
+	ID            uuid.UUID      `json:"id"`
+	UserID        uuid.UUID      `json:"user_id"`
+	VideoUrl      string         `json:"video_url"`
+	Caption       sql.NullString `json:"caption"`
+	IsAiGenerated bool           `json:"is_ai_generated"`
+	LocationName  sql.NullString `json:"location_name"`
+	Geohash       sql.NullString `json:"geohash"`
+	Geom          interface{}    `json:"geom"`
+	LikesCount    int32          `json:"likes_count"`
+	CommentsCount int32          `json:"comments_count"`
+	SharesCount   int32          `json:"shares_count"`
+	SavesCount    int32          `json:"saves_count"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+}
+
+type ReelComment struct {
+	ID        uuid.UUID `json:"id"`
+	ReelID    uuid.UUID `json:"reel_id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type ReelLike struct {
+	ID        uuid.UUID `json:"id"`
+	ReelID    uuid.UUID `json:"reel_id"`
+	UserID    uuid.UUID `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type ReelSafe struct {
+	ID        uuid.UUID `json:"id"`
+	ReelID    uuid.UUID `json:"reel_id"`
+	UserID    uuid.UUID `json:"user_id"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type Report struct {
 	ID            uuid.UUID      `json:"id"`
 	ReporterID    uuid.UUID      `json:"reporter_id"`

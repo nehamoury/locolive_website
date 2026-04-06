@@ -148,25 +148,27 @@ const FlyToUser = ({ position }: { position: [number, number] | null }) => {
 interface MapPageProps {
   onUserSelect?: (userId: string) => void;
   onConnect?: (userId: string) => void;
+  userPosition?: [number, number] | null;
 }
 
-const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
+const NEARBY_POLL_INTERVAL = 30000; // Fallback polling every 30s
+
+const MapPage = ({ onUserSelect, onConnect, userPosition: externalPosition }: MapPageProps) => {
     const { } = useAuth();
     const [clusters, setClusters] = useState<any[]>([]);
-    const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
+    const [userPosition, setUserPosition] = useState<[number, number] | null>(externalPosition || null);
     const [nearbyUsers, setNearbyUsers] = useState<any[]>([]);
     const [flyTo, setFlyTo] = useState<[number, number] | null>(null);
     const [isGhostMode, setIsGhostMode] = useState(false);
     const [isPanicActive, setIsPanicActive] = useState(false);
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [activeTab] = useState<'stories' | 'heatmap' | 'both'>('both');
     const [heatmap, setHeatmap] = useState<any[]>([]);
     const [locationName, setLocationName] = useState('India');
     const [toast, setToast] = useState<{ message: string; type: 'like' | 'superlike' } | null>(null);
     const [activeFilters, setActiveFilters] = useState({ distance: null, isOnline: false, hasStories: false });
     const [connectionIds, setConnectionIds] = useState<Set<string>>(new Set());
-    const watchIdRef = useRef<number | null>(null);
+    const latestPositionRef = useRef<[number, number] | null>(externalPosition || null);
 
     // Throttling Refs
     const lastNearbyFetchRef = useRef<{time: number, coords: [number, number]} | null>(null);
@@ -194,17 +196,19 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
             
             if (selectedUser) setSelectedUser(null);
         } catch (err) {
-            console.error('Failed to send connection request:', err);
+            console.error('[Map] Failed to send connection request:', err);
         }
     };
 
     const fetchNearbyUsers = async (lat: number, lng: number) => {
         try {
+            console.log(`[Map] Fetching nearby users at lat=${lat.toFixed(4)}, lng=${lng.toFixed(4)}`);
             const res = await api.get('/users/nearby', { params: { lat, lng } });
             const users = res.data || [];
+            console.log(`[Map] Nearby users received: ${users.length}`);
             setNearbyUsers(users);
         } catch (err) {
-            console.error('Failed to fetch nearby users:', err);
+            console.error('[Map] Failed to fetch nearby users:', err);
         }
     };
 
@@ -215,55 +219,110 @@ const MapPage = ({ onUserSelect, onConnect }: MapPageProps) => {
             const city = data.address?.city || data.address?.town || data.address?.state_district || 'India';
             setLocationName(city);
         } catch (err) {
-            console.error('Failed to fetch city:', err);
+            console.error('[Map] Failed to fetch city:', err);
         }
     };
 
+    // ── Sync with externalPosition prop (from Dashboard) ─────────────────
     useEffect(() => {
-        if (!navigator.geolocation) return;
-        watchIdRef.current = navigator.geolocation.watchPosition(
-            (pos) => {
-                const { latitude, longitude } = pos.coords;
-                const now = Date.now();
-                setUserPosition([latitude, longitude]);
+        if (!externalPosition) return;
 
-                // 1. Optimize Nearby Users Fetch
-                let shouldFetchNearby = false;
-                if (!lastNearbyFetchRef.current) {
-                    shouldFetchNearby = true;
-                } else {
-                    const dist = calculateDistance(lastNearbyFetchRef.current.coords[0], lastNearbyFetchRef.current.coords[1], latitude, longitude);
-                    if (dist > 100 || (now - lastNearbyFetchRef.current.time > 30000)) {
-                        shouldFetchNearby = true;
-                    }
-                }
+        const [lat, lng] = externalPosition;
+        setUserPosition([lat, lng]);
+        latestPositionRef.current = [lat, lng];
 
-                if (shouldFetchNearby) {
-                    fetchNearbyUsers(latitude, longitude);
-                    lastNearbyFetchRef.current = { time: now, coords: [latitude, longitude] };
-                }
+        const now = Date.now();
 
-                // 2. Optimize City Fetch
-                let shouldFetchCity = false;
-                if (!lastCityFetchRef.current) {
-                    shouldFetchCity = true;
-                } else {
-                    const dist = calculateDistance(lastCityFetchRef.current.coords[0], lastCityFetchRef.current.coords[1], latitude, longitude);
-                    if (dist > 500 || (now - lastCityFetchRef.current.time > 600000)) {
-                        shouldFetchCity = true;
-                    }
-                }
+        // Optimized nearby fetch (move >100m or >30s elapsed)
+        let shouldFetchNearby = false;
+        if (!lastNearbyFetchRef.current) {
+            shouldFetchNearby = true;
+        } else {
+            const dist = calculateDistance(lastNearbyFetchRef.current.coords[0], lastNearbyFetchRef.current.coords[1], lat, lng);
+            if (dist > 100 || (now - lastNearbyFetchRef.current.time > 30000)) {
+                shouldFetchNearby = true;
+            }
+        }
 
-                if (shouldFetchCity) {
-                    fetchCity(latitude, longitude);
-                    lastCityFetchRef.current = { time: now, coords: [latitude, longitude] };
+        if (shouldFetchNearby) {
+            fetchNearbyUsers(lat, lng);
+            lastNearbyFetchRef.current = { time: now, coords: [lat, lng] };
+        }
+
+        // Optimized city fetch (move >500m or >10min elapsed)
+        let shouldFetchCity = false;
+        if (!lastCityFetchRef.current) {
+            shouldFetchCity = true;
+        } else {
+            const dist = calculateDistance(lastCityFetchRef.current.coords[0], lastCityFetchRef.current.coords[1], lat, lng);
+            if (dist > 500 || (now - lastCityFetchRef.current.time > 600000)) {
+                shouldFetchCity = true;
+            }
+        }
+
+        if (shouldFetchCity) {
+            fetchCity(lat, lng);
+            lastCityFetchRef.current = { time: now, coords: [lat, lng] };
+        }
+    }, [externalPosition]);
+
+    // ── Fallback polling: refetch nearby users every 30s ─────────────────
+    useEffect(() => {
+        const intervalId = setInterval(() => {
+            const pos = latestPositionRef.current;
+            if (pos) {
+                console.log('[Map] Polling nearby users (30s fallback)');
+                fetchNearbyUsers(pos[0], pos[1]);
+            }
+        }, NEARBY_POLL_INTERVAL);
+        return () => clearInterval(intervalId);
+    }, []);
+
+    // (Location ping timer removed - handled by useGeolocation in Dashboard)
+
+    // ── WebSocket event listeners for real-time updates ──────────────────
+    useEffect(() => {
+        const handleNearbyUpdate = (e: Event) => {
+            const user = (e as CustomEvent).detail;
+            if (!user?.id) return;
+            console.log('[Map] WS nearby_user_update:', user.username);
+
+            setNearbyUsers(prev => {
+                const idx = prev.findIndex(u => u.id === user.id);
+                if (idx >= 0) {
+                    // Update existing user position/data
+                    const updated = [...prev];
+                    updated[idx] = { ...updated[idx], ...user };
+                    return updated;
                 }
-            },
-            (err) => console.error('Geolocation error:', err),
-            { enableHighAccuracy: true, maximumAge: 10000 }
-        );
+                // Add new nearby user
+                return [...prev, user];
+            });
+        };
+
+        const handleLeftRadius = (e: Event) => {
+            const { user_id } = (e as CustomEvent).detail;
+            if (!user_id) return;
+            console.log('[Map] WS user_left_radius:', user_id);
+
+            setNearbyUsers(prev => prev.filter(u => u.id !== user_id));
+        };
+
+        const handleCrossing = (e: Event) => {
+            const notif = (e as CustomEvent).detail;
+            console.log('[Map] WS crossing_detected:', notif?.message);
+            // Crossing notifications are handled by useNotifications toast.
+            // Optionally trigger a UI highlight here.
+        };
+
+        window.addEventListener('nearby_user_update', handleNearbyUpdate);
+        window.addEventListener('user_left_radius', handleLeftRadius);
+        window.addEventListener('crossing_detected', handleCrossing);
+
         return () => {
-            if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+            window.removeEventListener('nearby_user_update', handleNearbyUpdate);
+            window.removeEventListener('user_left_radius', handleLeftRadius);
+            window.removeEventListener('crossing_detected', handleCrossing);
         };
     }, []);
 

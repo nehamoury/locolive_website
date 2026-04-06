@@ -417,6 +417,36 @@ func (mr *MockStoreMockRecorder) CreatePostComment(ctx, arg any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePostComment", reflect.TypeOf((*MockStore)(nil).CreatePostComment), ctx, arg)
 }
 
+// CreateReel mocks base method.
+func (m *MockStore) CreateReel(ctx context.Context, arg db.CreateReelParams) (db.CreateReelRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateReel", ctx, arg)
+	ret0, _ := ret[0].(db.CreateReelRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateReel indicates an expected call of CreateReel.
+func (mr *MockStoreMockRecorder) CreateReel(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateReel", reflect.TypeOf((*MockStore)(nil).CreateReel), ctx, arg)
+}
+
+// CreateReelComment mocks base method.
+func (m *MockStore) CreateReelComment(ctx context.Context, arg db.CreateReelCommentParams) (db.ReelComment, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateReelComment", ctx, arg)
+	ret0, _ := ret[0].(db.ReelComment)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateReelComment indicates an expected call of CreateReelComment.
+func (mr *MockStoreMockRecorder) CreateReelComment(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateReelComment", reflect.TypeOf((*MockStore)(nil).CreateReelComment), ctx, arg)
+}
+
 // CreateReport mocks base method.
 func (m *MockStore) CreateReport(ctx context.Context, arg db.CreateReportParams) (db.Report, error) {
 	m.ctrl.T.Helper()
@@ -534,6 +564,34 @@ func (m *MockStore) DecrementPostLikes(ctx context.Context, id uuid.UUID) error 
 func (mr *MockStoreMockRecorder) DecrementPostLikes(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DecrementPostLikes", reflect.TypeOf((*MockStore)(nil).DecrementPostLikes), ctx, id)
+}
+
+// DecrementReelLikes mocks base method.
+func (m *MockStore) DecrementReelLikes(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DecrementReelLikes", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DecrementReelLikes indicates an expected call of DecrementReelLikes.
+func (mr *MockStoreMockRecorder) DecrementReelLikes(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DecrementReelLikes", reflect.TypeOf((*MockStore)(nil).DecrementReelLikes), ctx, id)
+}
+
+// DecrementReelSaves mocks base method.
+func (m *MockStore) DecrementReelSaves(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DecrementReelSaves", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DecrementReelSaves indicates an expected call of DecrementReelSaves.
+func (mr *MockStoreMockRecorder) DecrementReelSaves(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DecrementReelSaves", reflect.TypeOf((*MockStore)(nil).DecrementReelSaves), ctx, id)
 }
 
 // DeleteAllUserData mocks base method.
@@ -1147,6 +1205,21 @@ func (mr *MockStoreMockRecorder) GetRecentProfileVisitors(ctx, viewedUserID any)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRecentProfileVisitors", reflect.TypeOf((*MockStore)(nil).GetRecentProfileVisitors), ctx, viewedUserID)
 }
 
+// GetReel mocks base method.
+func (m *MockStore) GetReel(ctx context.Context, id uuid.UUID) (db.GetReelRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetReel", ctx, id)
+	ret0, _ := ret[0].(db.GetReelRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetReel indicates an expected call of GetReel.
+func (mr *MockStoreMockRecorder) GetReel(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReel", reflect.TypeOf((*MockStore)(nil).GetReel), ctx, id)
+}
+
 // GetSession mocks base method.
 func (m *MockStore) GetSession(ctx context.Context, id uuid.UUID) (db.Session, error) {
 	m.ctrl.T.Helper()
@@ -1521,6 +1594,62 @@ func (mr *MockStoreMockRecorder) IncrementPostLikes(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementPostLikes", reflect.TypeOf((*MockStore)(nil).IncrementPostLikes), ctx, id)
 }
 
+// IncrementReelComments mocks base method.
+func (m *MockStore) IncrementReelComments(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IncrementReelComments", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IncrementReelComments indicates an expected call of IncrementReelComments.
+func (mr *MockStoreMockRecorder) IncrementReelComments(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementReelComments", reflect.TypeOf((*MockStore)(nil).IncrementReelComments), ctx, id)
+}
+
+// IncrementReelLikes mocks base method.
+func (m *MockStore) IncrementReelLikes(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IncrementReelLikes", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IncrementReelLikes indicates an expected call of IncrementReelLikes.
+func (mr *MockStoreMockRecorder) IncrementReelLikes(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementReelLikes", reflect.TypeOf((*MockStore)(nil).IncrementReelLikes), ctx, id)
+}
+
+// IncrementReelSaves mocks base method.
+func (m *MockStore) IncrementReelSaves(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IncrementReelSaves", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IncrementReelSaves indicates an expected call of IncrementReelSaves.
+func (mr *MockStoreMockRecorder) IncrementReelSaves(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementReelSaves", reflect.TypeOf((*MockStore)(nil).IncrementReelSaves), ctx, id)
+}
+
+// IncrementReelShares mocks base method.
+func (m *MockStore) IncrementReelShares(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IncrementReelShares", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IncrementReelShares indicates an expected call of IncrementReelShares.
+func (mr *MockStoreMockRecorder) IncrementReelShares(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementReelShares", reflect.TypeOf((*MockStore)(nil).IncrementReelShares), ctx, id)
+}
+
 // IsUserBlocked mocks base method.
 func (m *MockStore) IsUserBlocked(ctx context.Context, arg db.IsUserBlockedParams) (bool, error) {
 	m.ctrl.T.Helper()
@@ -1549,6 +1678,21 @@ func (m *MockStore) LikePost(ctx context.Context, arg db.LikePostParams) (db.Pos
 func (mr *MockStoreMockRecorder) LikePost(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LikePost", reflect.TypeOf((*MockStore)(nil).LikePost), ctx, arg)
+}
+
+// LikeReel mocks base method.
+func (m *MockStore) LikeReel(ctx context.Context, arg db.LikeReelParams) (db.ReelLike, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LikeReel", ctx, arg)
+	ret0, _ := ret[0].(db.ReelLike)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LikeReel indicates an expected call of LikeReel.
+func (mr *MockStoreMockRecorder) LikeReel(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LikeReel", reflect.TypeOf((*MockStore)(nil).LikeReel), ctx, arg)
 }
 
 // ListAllStories mocks base method.
@@ -1626,6 +1770,21 @@ func (mr *MockStoreMockRecorder) ListMessages(ctx, arg any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMessages", reflect.TypeOf((*MockStore)(nil).ListMessages), ctx, arg)
 }
 
+// ListNearbyReels mocks base method.
+func (m *MockStore) ListNearbyReels(ctx context.Context, arg db.ListNearbyReelsParams) ([]db.ListNearbyReelsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListNearbyReels", ctx, arg)
+	ret0, _ := ret[0].([]db.ListNearbyReelsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListNearbyReels indicates an expected call of ListNearbyReels.
+func (mr *MockStoreMockRecorder) ListNearbyReels(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNearbyReels", reflect.TypeOf((*MockStore)(nil).ListNearbyReels), ctx, arg)
+}
+
 // ListNotifications mocks base method.
 func (m *MockStore) ListNotifications(ctx context.Context, arg db.ListNotificationsParams) ([]db.Notification, error) {
 	m.ctrl.T.Helper()
@@ -1684,6 +1843,36 @@ func (m *MockStore) ListPostsByUserID(ctx context.Context, arg db.ListPostsByUse
 func (mr *MockStoreMockRecorder) ListPostsByUserID(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPostsByUserID", reflect.TypeOf((*MockStore)(nil).ListPostsByUserID), ctx, arg)
+}
+
+// ListReelComments mocks base method.
+func (m *MockStore) ListReelComments(ctx context.Context, reelID uuid.UUID) ([]db.ListReelCommentsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListReelComments", ctx, reelID)
+	ret0, _ := ret[0].([]db.ListReelCommentsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListReelComments indicates an expected call of ListReelComments.
+func (mr *MockStoreMockRecorder) ListReelComments(ctx, reelID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListReelComments", reflect.TypeOf((*MockStore)(nil).ListReelComments), ctx, reelID)
+}
+
+// ListReelsFeed mocks base method.
+func (m *MockStore) ListReelsFeed(ctx context.Context, arg db.ListReelsFeedParams) ([]db.ListReelsFeedRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListReelsFeed", ctx, arg)
+	ret0, _ := ret[0].([]db.ListReelsFeedRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListReelsFeed indicates an expected call of ListReelsFeed.
+func (mr *MockStoreMockRecorder) ListReelsFeed(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListReelsFeed", reflect.TypeOf((*MockStore)(nil).ListReelsFeed), ctx, arg)
 }
 
 // ListReports mocks base method.
@@ -1847,6 +2036,21 @@ func (mr *MockStoreMockRecorder) SaveMessage(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveMessage", reflect.TypeOf((*MockStore)(nil).SaveMessage), ctx, id)
 }
 
+// SaveReel mocks base method.
+func (m *MockStore) SaveReel(ctx context.Context, arg db.SaveReelParams) (db.ReelSafe, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SaveReel", ctx, arg)
+	ret0, _ := ret[0].(db.ReelSafe)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SaveReel indicates an expected call of SaveReel.
+func (mr *MockStoreMockRecorder) SaveReel(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SaveReel", reflect.TypeOf((*MockStore)(nil).SaveReel), ctx, arg)
+}
+
 // SearchUsers mocks base method.
 func (m *MockStore) SearchUsers(ctx context.Context, query string) ([]db.SearchUsersRow, error) {
 	m.ctrl.T.Helper()
@@ -1933,6 +2137,34 @@ func (m *MockStore) UnlikePost(ctx context.Context, arg db.UnlikePostParams) err
 func (mr *MockStoreMockRecorder) UnlikePost(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnlikePost", reflect.TypeOf((*MockStore)(nil).UnlikePost), ctx, arg)
+}
+
+// UnlikeReel mocks base method.
+func (m *MockStore) UnlikeReel(ctx context.Context, arg db.UnlikeReelParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnlikeReel", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnlikeReel indicates an expected call of UnlikeReel.
+func (mr *MockStoreMockRecorder) UnlikeReel(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnlikeReel", reflect.TypeOf((*MockStore)(nil).UnlikeReel), ctx, arg)
+}
+
+// UnsaveReel mocks base method.
+func (m *MockStore) UnsaveReel(ctx context.Context, arg db.UnsaveReelParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnsaveReel", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnsaveReel indicates an expected call of UnsaveReel.
+func (mr *MockStoreMockRecorder) UnsaveReel(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsaveReel", reflect.TypeOf((*MockStore)(nil).UnsaveReel), ctx, arg)
 }
 
 // UpdateConnectionStatus mocks base method.

@@ -190,10 +190,10 @@ const Profile: FC<ProfileProps> = ({ onLogout }) => {
 
               {/* Stats Bento Grid - Premium styling */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
-                <BentoStat label="Moments" value={myStories.length} icon={<Zap className="w-4 h-4" />} color="bg-primary/5" textColor="text-primary" />
-                <BentoStat label="Stamps" value={profile?.crossings_count || 0} icon={<Footprints className="w-4 h-4" />} color="bg-accent/5" textColor="text-accent" />
-                <BentoStat label="Network" value={connections.length} icon={<Users className="w-4 h-4" />} color="bg-purple-500/5 text-purple-500" textColor="text-purple-500" />
-                <BentoStat label="Views" value={formatCount(profile?.views_count || 0)} icon={<Eye className="w-4 h-4" />} color="bg-orange-500/5 text-orange-500" textColor="text-orange-500" />
+                <BentoStat label="Moments" value={myStories.length} icon={<Zap className="w-4 h-4" />} textColor="text-primary" />
+                <BentoStat label="Stamps" value={profile?.crossings_count || 0} icon={<Footprints className="w-4 h-4" />} textColor="text-accent" />
+                <BentoStat label="Network" value={connections.length} icon={<Users className="w-4 h-4" />} textColor="text-purple-500" />
+                <BentoStat label="Views" value={formatCount(profile?.views_count || 0)} icon={<Eye className="w-4 h-4" />} textColor="text-orange-500" />
               </div>
 
               {/* Story Highlights */}
@@ -464,7 +464,7 @@ const Profile: FC<ProfileProps> = ({ onLogout }) => {
 
 // ─── Sub-components ───
 
-const BentoStat = ({ label, value, icon, color, textColor }: { label: string; value: number | string; icon: React.ReactNode, color: string, textColor: string }) => (
+const BentoStat = ({ label, value, icon, textColor }: { label: string; value: number | string; icon: React.ReactNode, textColor: string }) => (
   <div className={`p-4 bg-bg-card rounded-[28px] border border-border-base hover:border-primary/50 transition-all relative overflow-hidden group`}>
     <div className="flex items-center justify-between mb-2">
        <div className={`${textColor} opacity-40 group-hover:opacity-100 transition-opacity`}>{icon}</div>

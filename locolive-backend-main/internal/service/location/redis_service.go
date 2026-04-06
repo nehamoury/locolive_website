@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,17 +18,14 @@ import (
 )
 
 const (
-	// Key prefix for user locations
-	userLocationsKey = "users:locations"
-
-	// Key prefix for daily crossing duplications
+	userLocationsKey  = "users:locations"
 	crossingKeyPrefix = "crossing:"
+	lastPosKeyPrefix  = "user:lastpos:"
 
-	// Crossing TTL (Don't trigger same crossing for 10 minutes)
-	crossingTTL = 10 * time.Minute
-
-	// Radius for "crossing paths" (50m as per spec)
+	crossingTTL          = 10 * time.Minute
 	crossingRadiusMeters = 50.0
+	nearbyRadiusKm       = 5.0
+	minMovementMeters    = 20.0 // Skip updates if user moved less than this
 )
 
 type RedisLocationService struct {
@@ -44,21 +42,82 @@ func NewRedisLocationService(redis *redis.Client, store repository.Store, hub *r
 	}
 }
 
-// UpdateUserLocation updates user position in Redis and triggers real-time crossing detection
+// UpdateUserLocation updates user position in Redis, broadcasts nearby updates, and detects crossings
 func (s *RedisLocationService) UpdateUserLocation(ctx context.Context, userID uuid.UUID, lat, lng float64) error {
-	// 1. Update Geo Index
-	err := s.redis.GeoAdd(ctx, userLocationsKey, &redis.GeoLocation{
-		Name:      userID.String(),
+	userIDStr := userID.String()
+
+	// ── Step 0: Distance-based optimization ─────────────────────────────
+	// Skip heavy processing if user barely moved (<20m)
+	significantMove := true
+	lastPosKey := lastPosKeyPrefix + userIDStr
+	lastPosData, err := s.redis.Get(ctx, lastPosKey).Result()
+	if err == nil && lastPosData != "" {
+		var lastPos [2]float64
+		if json.Unmarshal([]byte(lastPosData), &lastPos) == nil {
+			dist := haversineMeters(lastPos[0], lastPos[1], lat, lng)
+			if dist < minMovementMeters {
+				significantMove = false
+				log.Debug().
+					Str("user_id", userIDStr).
+					Float64("distance_m", dist).
+					Msg("[Location] Skip — movement below threshold")
+			}
+		}
+	}
+
+	// ── Step 1: Always update GEO index (keeps TTL alive) ───────────────
+	err = s.redis.GeoAdd(ctx, userLocationsKey, &redis.GeoLocation{
+		Name:      userIDStr,
 		Longitude: lng,
 		Latitude:  lat,
 	}).Err()
 	if err != nil {
 		return fmt.Errorf("failed to update geo location: %w", err)
 	}
+	log.Debug().
+		Str("user_id", userIDStr).
+		Float64("lat", lat).Float64("lng", lng).
+		Msg("[Location] Redis GEOADD complete")
 
-	// 2. Find nearby users (Real-time Crossing Detection)
-	// Modern GEOSEARCH command replaces GEORADIUS
-	matches, err := s.redis.GeoSearchLocation(ctx, userLocationsKey, &redis.GeoSearchLocationQuery{
+	// Save last position for future delta checks
+	posBytes, _ := json.Marshal([2]float64{lat, lng})
+	s.redis.Set(ctx, lastPosKey, string(posBytes), 30*time.Minute)
+
+	if !significantMove {
+		return nil // GEO updated but no broadcasts needed
+	}
+
+	// ── Step 2: Fetch nearby users within discovery radius (5km) ────────
+	nearbyMatches, err := s.redis.GeoSearchLocation(ctx, userLocationsKey, &redis.GeoSearchLocationQuery{
+		GeoSearchQuery: redis.GeoSearchQuery{
+			Longitude:  lng,
+			Latitude:   lat,
+			Radius:     nearbyRadiusKm,
+			RadiusUnit: "km",
+			Sort:       "ASC",
+			Count:      100,
+		},
+		WithDist:  true,
+		WithCoord: true,
+	}).Result()
+	if err != nil {
+		log.Error().Err(err).Str("user_id", userIDStr).Msg("[Location] Failed GEOSEARCH for nearby users")
+		return nil
+	}
+
+	log.Info().
+		Str("user_id", userIDStr).
+		Int("nearby_count", len(nearbyMatches)-1). // -1 to exclude self
+		Msg("[Location] Nearby users found")
+
+	// ── Step 3: Broadcast nearby_user_update to all nearby users ────────
+	s.broadcastNearbyUpdates(ctx, userID, lat, lng, nearbyMatches)
+
+	// ── Step 4: Detect user_left_radius ─────────────────────────────────
+	s.detectLeftRadius(ctx, userID, nearbyMatches)
+
+	// ── Step 5: Crossing detection (50m) ────────────────────────────────
+	crossingMatches, err := s.redis.GeoSearchLocation(ctx, userLocationsKey, &redis.GeoSearchLocationQuery{
 		GeoSearchQuery: redis.GeoSearchQuery{
 			Longitude:  lng,
 			Latitude:   lat,
@@ -69,21 +128,144 @@ func (s *RedisLocationService) UpdateUserLocation(ctx context.Context, userID uu
 		WithDist:  true,
 		WithCoord: true,
 	}).Result()
-
 	if err != nil {
-		log.Error().Err(err).Msg("failed to query nearby users for crossings using GeoSearch")
+		log.Error().Err(err).Str("user_id", userIDStr).Msg("[Location] Failed GEOSEARCH for crossings")
 		return nil
 	}
 
-	// 3. Process matches
-	s.processCrossings(ctx, userID, matches)
+	if len(crossingMatches) > 1 {
+		log.Info().
+			Str("user_id", userIDStr).
+			Int("crossing_candidates", len(crossingMatches)-1).
+			Msg("[Location] Crossing candidates detected")
+	}
+
+	s.processCrossings(ctx, userID, crossingMatches)
 
 	return nil
 }
 
+// broadcastNearbyUpdates sends a nearby_user_update WS event to all users within range
+func (s *RedisLocationService) broadcastNearbyUpdates(ctx context.Context, movedUserID uuid.UUID, lat, lng float64, matches []redis.GeoLocation) {
+	movedUserIDStr := movedUserID.String()
+
+	// Get the moving user's profile for the broadcast payload
+	movedUser, err := s.store.GetUserByID(ctx, movedUserID)
+	if err != nil {
+		log.Error().Err(err).Str("user_id", movedUserIDStr).Msg("[Nearby] Failed to get moved user profile")
+		return
+	}
+	if movedUser.IsGhostMode || movedUser.IsShadowBanned {
+		return
+	}
+
+	avatar := ""
+	if movedUser.AvatarUrl.Valid {
+		avatar = movedUser.AvatarUrl.String
+	}
+	bio := ""
+	if movedUser.Bio.Valid {
+		bio = movedUser.Bio.String
+	}
+	online := movedUser.LastActiveAt.Valid && time.Since(movedUser.LastActiveAt.Time) < 5*time.Minute
+
+	for _, match := range matches {
+		if match.Name == movedUserIDStr {
+			continue
+		}
+
+		targetID, err := uuid.Parse(match.Name)
+		if err != nil {
+			continue
+		}
+
+		valid, err := s.validateCrossingPrivacy(ctx, movedUserID, targetID)
+		if err != nil || !valid {
+			continue
+		}
+
+		// Send to the nearby user: "this user is near you"
+		payload := map[string]interface{}{
+			"id":         movedUserIDStr,
+			"username":   movedUser.Username,
+			"full_name":  movedUser.FullName,
+			"avatar_url": avatar,
+			"bio":        bio,
+			"lat":        lat,
+			"lng":        lng,
+			"distance":   match.Dist,
+			"online":     online,
+		}
+
+		s.hub.SendToUser(targetID, s.formatAlert("nearby_user_update", payload))
+
+		log.Debug().
+			Str("moved_user", movedUserIDStr).
+			Str("notified_user", match.Name).
+			Float64("distance_km", match.Dist).
+			Msg("[Nearby] Sent nearby_user_update")
+	}
+}
+
+// detectLeftRadius checks which users the moving user was previously near but are no longer within 5km
+func (s *RedisLocationService) detectLeftRadius(ctx context.Context, userID uuid.UUID, currentNearby []redis.GeoLocation) {
+	userIDStr := userID.String()
+	nearbySetKey := "nearby_set:" + userIDStr
+
+	// Build set of current nearby user IDs
+	currentIDs := make(map[string]bool)
+	for _, m := range currentNearby {
+		if m.Name != userIDStr {
+			currentIDs[m.Name] = true
+		}
+	}
+
+	// Get previous nearby set from Redis
+	previousIDs, err := s.redis.SMembers(ctx, nearbySetKey).Result()
+	if err != nil && err != redis.Nil {
+		log.Error().Err(err).Msg("[LeftRadius] Failed to read previous nearby set")
+	}
+
+	// Detect users who left radius
+	for _, prevID := range previousIDs {
+		if !currentIDs[prevID] {
+			targetID, err := uuid.Parse(prevID)
+			if err != nil {
+				continue
+			}
+
+			// Notify the moving user that this person left their radius
+			s.hub.SendToUser(userID, s.formatAlert("user_left_radius", map[string]interface{}{
+				"user_id": prevID,
+			}))
+			// Notify the other user too
+			s.hub.SendToUser(targetID, s.formatAlert("user_left_radius", map[string]interface{}{
+				"user_id": userIDStr,
+			}))
+
+			log.Debug().
+				Str("user_id", userIDStr).
+				Str("left_user", prevID).
+				Msg("[LeftRadius] User left nearby radius")
+		}
+	}
+
+	// Update the stored nearby set
+	pipe := s.redis.Pipeline()
+	pipe.Del(ctx, nearbySetKey)
+	if len(currentIDs) > 0 {
+		members := make([]interface{}, 0, len(currentIDs))
+		for id := range currentIDs {
+			members = append(members, id)
+		}
+		pipe.SAdd(ctx, nearbySetKey, members...)
+		pipe.Expire(ctx, nearbySetKey, 10*time.Minute)
+	}
+	pipe.Exec(ctx)
+}
+
 // GetNearbyUsers fetches filtered users within a radius using GEOSEARCH
 func (s *RedisLocationService) GetNearbyUsers(ctx context.Context, userID uuid.UUID, lat, lng float64, radiusKm float64) ([]redis.GeoLocation, error) {
-	// 1. Fetch from Redis
 	matches, err := s.redis.GeoSearchLocation(ctx, userLocationsKey, &redis.GeoSearchLocationQuery{
 		GeoSearchQuery: redis.GeoSearchQuery{
 			Longitude:  lng,
@@ -96,27 +278,28 @@ func (s *RedisLocationService) GetNearbyUsers(ctx context.Context, userID uuid.U
 		WithDist:  true,
 		WithCoord: true,
 	}).Result()
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to search nearby users: %w", err)
 	}
 
-	// 2. Filter matches
+	log.Debug().
+		Str("user_id", userID.String()).
+		Float64("lat", lat).Float64("lng", lng).
+		Float64("radius_km", radiusKm).
+		Int("raw_matches", len(matches)).
+		Msg("[GetNearby] Redis GEOSEARCH result")
+
 	var filtered []redis.GeoLocation
 	for _, match := range matches {
-		targetIDStr := match.Name
-
-		// Skip self
-		if targetIDStr == userID.String() {
+		if match.Name == userID.String() {
 			continue
 		}
 
-		targetID, err := uuid.Parse(targetIDStr)
+		targetID, err := uuid.Parse(match.Name)
 		if err != nil {
 			continue
 		}
 
-		// Verify Privacy/Blocks
 		valid, err := s.validateCrossingPrivacy(ctx, userID, targetID)
 		if err != nil || !valid {
 			continue
@@ -125,14 +308,17 @@ func (s *RedisLocationService) GetNearbyUsers(ctx context.Context, userID uuid.U
 		filtered = append(filtered, match)
 	}
 
+	log.Debug().
+		Str("user_id", userID.String()).
+		Int("filtered_count", len(filtered)).
+		Msg("[GetNearby] Filtered nearby users")
+
 	return filtered, nil
 }
 
 func (s *RedisLocationService) processCrossings(ctx context.Context, userID uuid.UUID, matches []redis.GeoLocation) {
 	for _, match := range matches {
 		targetUserIDStr := match.Name
-
-		// Skip self
 		if targetUserIDStr == userID.String() {
 			continue
 		}
@@ -147,10 +333,13 @@ func (s *RedisLocationService) processCrossings(ctx context.Context, userID uuid
 			u1, u2 = u2, u1
 		}
 
-		// Check De-duplication
+		// De-duplication: skip if same pair crossed within TTL (10 min)
 		dedupKey := fmt.Sprintf("%s%s:%s", crossingKeyPrefix, u1.String(), u2.String())
 		exists, err := s.redis.Exists(ctx, dedupKey).Result()
 		if err == nil && exists > 0 {
+			log.Debug().
+				Str("u1", u1.String()).Str("u2", u2.String()).
+				Msg("[Crossing] Skipped — dedup active")
 			continue
 		}
 
@@ -168,9 +357,14 @@ func (s *RedisLocationService) processCrossings(ctx context.Context, userID uuid
 			OccurredAt:     time.Now().UTC(),
 		})
 		if err != nil {
-			log.Error().Err(err).Msg("failed to persist crossing")
+			log.Error().Err(err).Msg("[Crossing] Failed to persist crossing")
 			continue
 		}
+
+		log.Info().
+			Str("u1", u1.String()).Str("u2", u2.String()).
+			Float64("distance_m", match.Dist).
+			Msg("[Crossing] New crossing created")
 
 		// Connection-aware notifications
 		conn, err := s.store.GetConnection(ctx, db.GetConnectionParams{
@@ -178,6 +372,7 @@ func (s *RedisLocationService) processCrossings(ctx context.Context, userID uuid
 			TargetID:    targetUserID,
 		})
 		isConnected := err == nil && conn.Status == "accepted"
+
 		title := "Path Crossed!"
 		message := "You crossed paths with someone nearby"
 		if isConnected {
@@ -198,7 +393,7 @@ func (s *RedisLocationService) processCrossings(ctx context.Context, userID uuid
 			RelatedCrossingID: uuid.NullUUID{UUID: crossing.ID, Valid: true},
 		})
 		if err != nil {
-			log.Error().Err(err).Msg("failed to create notification for user1")
+			log.Error().Err(err).Msg("[Crossing] Failed to create notification for user1")
 		} else if s.hub != nil {
 			s.hub.SendToUser(userID, s.formatAlert("crossing_detected", notif1))
 		}
@@ -213,7 +408,7 @@ func (s *RedisLocationService) processCrossings(ctx context.Context, userID uuid
 			RelatedCrossingID: uuid.NullUUID{UUID: crossing.ID, Valid: true},
 		})
 		if err != nil {
-			log.Error().Err(err).Msg("failed to create notification for user2")
+			log.Error().Err(err).Msg("[Crossing] Failed to create notification for user2")
 		} else if s.hub != nil {
 			s.hub.SendToUser(targetUserID, s.formatAlert("crossing_detected", notif2))
 		}
@@ -226,7 +421,6 @@ func (s *RedisLocationService) processCrossings(ctx context.Context, userID uuid
 }
 
 func (s *RedisLocationService) validateCrossingPrivacy(ctx context.Context, u1, u2 uuid.UUID) (bool, error) {
-	// Block Check
 	blocked, err := s.store.IsUserBlocked(ctx, db.IsUserBlockedParams{
 		BlockerID: u1,
 		BlockedID: u2,
@@ -243,7 +437,6 @@ func (s *RedisLocationService) validateCrossingPrivacy(ctx context.Context, u1, 
 		return false, err
 	}
 
-	// Status Check (Ghost/Shadow)
 	user1, err := s.store.GetUserByID(ctx, u1)
 	if err != nil || user1.IsGhostMode || user1.IsShadowBanned {
 		return false, err
@@ -257,8 +450,6 @@ func (s *RedisLocationService) validateCrossingPrivacy(ctx context.Context, u1, 
 	return true, nil
 }
 
-// createNotification removed - logic inlined with connection awareness
-
 func (s *RedisLocationService) formatAlert(msgType string, payload interface{}) []byte {
 	wsMsg := realtime.WSMessage{
 		Type:    msgType,
@@ -271,4 +462,19 @@ func (s *RedisLocationService) formatAlert(msgType string, payload interface{}) 
 func (s *RedisLocationService) invalidateCrossingsCache(ctx context.Context, userID uuid.UUID) {
 	cacheKey := "crossings:v3:" + userID.String()
 	s.redis.Del(ctx, cacheKey)
+}
+
+// haversineMeters calculates the distance between two lat/lng points in meters
+func haversineMeters(lat1, lng1, lat2, lng2 float64) float64 {
+	const R = 6371e3 // Earth radius in meters
+	phi1 := lat1 * math.Pi / 180
+	phi2 := lat2 * math.Pi / 180
+	dPhi := (lat2 - lat1) * math.Pi / 180
+	dLambda := (lng2 - lng1) * math.Pi / 180
+
+	a := math.Sin(dPhi/2)*math.Sin(dPhi/2) +
+		math.Cos(phi1)*math.Cos(phi2)*math.Sin(dLambda/2)*math.Sin(dLambda/2)
+	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
+
+	return R * c
 }
