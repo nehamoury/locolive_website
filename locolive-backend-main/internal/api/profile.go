@@ -13,6 +13,7 @@ import (
 	"github.com/sqlc-dev/pqtype"
 
 	"privacy-social-backend/internal/repository/db"
+	"privacy-social-backend/internal/service/location"
 	"privacy-social-backend/internal/token"
 )
 
@@ -38,7 +39,11 @@ type ProfileResponse struct {
 	IsPremium         bool       `json:"is_premium"`
 	ActivityStreak    int        `json:"activity_streak"`
 	StoryCount        int64      `json:"story_count"`
+	PostCount         int64      `json:"post_count"`
+	ReelsCount        int64      `json:"reels_count"`
 	ConnectionCount   int64      `json:"connection_count"`
+	FollowingCount    int64      `json:"following_count"`
+	FollowersCount    int64      `json:"followers_count"`
 	ViewsCount        int64      `json:"views_count"`
 	CrossingsCount    int64      `json:"crossings_count"`
 	LastActiveAt      time.Time  `json:"last_active_at"`
@@ -46,6 +51,8 @@ type ProfileResponse struct {
 	VisibilityStatus  string     `json:"visibility_status"`
 	WebsiteURL        string     `json:"website_url"`
 	Links             []UserLink `json:"links"`
+	Interests         []string   `json:"interests"`
+	DistanceKm        *float64   `json:"distance_km,omitempty"`
 }
 
 func mapProfileResponse(p db.GetUserProfileRow) ProfileResponse {
@@ -70,7 +77,11 @@ func mapProfileResponse(p db.GetUserProfileRow) ProfileResponse {
 		IsPremium:         p.IsPremium.Bool,
 		ActivityStreak:    int(streak),
 		StoryCount:        p.StoryCount,
+		PostCount:         p.PostCount,
+		ReelsCount:        p.ReelsCount,
 		ConnectionCount:   p.ConnectionCount,
+		FollowingCount:    p.FollowingCount,
+		FollowersCount:    p.FollowersCount,
 		ViewsCount:        0, // Will be populated in handlers
 		CrossingsCount:    0, // Will be populated in handlers
 		LastActiveAt:      p.LastActiveAt.Time,
@@ -78,6 +89,7 @@ func mapProfileResponse(p db.GetUserProfileRow) ProfileResponse {
 		VisibilityStatus:  p.VisibilityStatus,
 		WebsiteURL:        p.WebsiteUrl.String,
 		Links:             links,
+		Interests:         p.Interests,
 	}
 }
 
@@ -131,16 +143,20 @@ func (server *Server) getUserProfile(ctx *gin.Context) {
 	}
 
 	rsp := mapProfileResponse(profile)
+	rsp.ViewsCount = profile.TotalViews
+	rsp.CrossingsCount = profile.CrossingsCount
 
-	// Fetch Engagement Stats
-	stats, err := server.store.GetUserEngagementStats(ctx, userID)
-	if err == nil {
-		rsp.ViewsCount = stats.TotalViews
-	}
-	// Fetch Crossings Count
-	crossings, err := server.store.GetCrossingsForUser(ctx, userID)
-	if err == nil {
-		rsp.CrossingsCount = int64(len(crossings))
+	// Calculate distance if user is authenticated and viewing different profile
+	if exists && authPayload != nil {
+		payload := authPayload.(*token.Payload)
+		if payload.UserID != userID {
+			if viewerLat, viewerLng, viewerExists, err := server.location.GetUserLocation(context.Background(), payload.UserID); err == nil && viewerExists {
+				if profileLat, profileLng, profileExists, err := server.location.GetUserLocation(context.Background(), userID); err == nil && profileExists {
+					distKm := location.HaversineKm(viewerLat, viewerLng, profileLat, profileLng)
+					rsp.DistanceKm = &distKm
+				}
+			}
+		}
 	}
 
 	// Cache the result
@@ -171,17 +187,8 @@ func (server *Server) getMyProfile(ctx *gin.Context) {
 	}
 
 	rsp := mapProfileResponse(profile)
-
-	// Fetch Engagement Stats
-	stats, err := server.store.GetUserEngagementStats(ctx, authPayload.UserID)
-	if err == nil {
-		rsp.ViewsCount = stats.TotalViews
-	}
-	// Fetch Crossings Count
-	crossings, err := server.store.GetCrossingsForUser(ctx, authPayload.UserID)
-	if err == nil {
-		rsp.CrossingsCount = int64(len(crossings))
-	}
+	rsp.ViewsCount = profile.TotalViews
+	rsp.CrossingsCount = profile.CrossingsCount
 
 	// Cache the result
 	responseJSON, _ := json.Marshal(rsp)
@@ -201,6 +208,7 @@ type updateUserProfileRequest struct {
 	ProfileVisibility string     `json:"profile_visibility"`
 	WebsiteURL        string     `json:"website_url"`
 	Links             []UserLink `json:"links"`
+	Interests         []string   `json:"interests"`
 }
 
 func (server *Server) updateProfile(ctx *gin.Context) {
@@ -221,6 +229,7 @@ func (server *Server) updateProfile(ctx *gin.Context) {
 		Theme:             sql.NullString{String: req.Theme, Valid: req.Theme != ""},
 		ProfileVisibility: sql.NullString{String: req.ProfileVisibility, Valid: req.ProfileVisibility != ""},
 		WebsiteUrl:        sql.NullString{String: req.WebsiteURL, Valid: true},
+		Interests:         req.Interests,
 	}
 
 	if req.Links != nil {
@@ -250,6 +259,7 @@ func (server *Server) updateProfile(ctx *gin.Context) {
 		ProfileVisibility string     `json:"profile_visibility"`
 		WebsiteUrl        string     `json:"website_url"`
 		Links             []UserLink `json:"links"`
+		Interests         []string   `json:"interests"`
 		CreatedAt         time.Time  `json:"created_at"`
 	}{
 		ID:                user.ID,
@@ -261,6 +271,7 @@ func (server *Server) updateProfile(ctx *gin.Context) {
 		Theme:             user.Theme.String,
 		ProfileVisibility: user.ProfileVisibility.String,
 		WebsiteUrl:        user.WebsiteUrl.String,
+		Interests:         user.Interests,
 		CreatedAt:         user.CreatedAt,
 	}
 

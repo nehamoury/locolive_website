@@ -1,5 +1,5 @@
 import { type FC, useState } from 'react';
-import { Heart, CheckCircle2, User, Star } from 'lucide-react';
+import { Heart, CheckCircle2, User, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface CastingUser {
@@ -82,13 +82,15 @@ const CastingCard: FC<CastingCardProps> = ({ user, onMatch, onPass, onViewProfil
             <h3 className="text-[17px] font-bold text-gray-900 truncate tracking-tight leading-tight">
               {user.full_name}
             </h3>
-            {user.is_verified && (
-              <CheckCircle2 className="w-4 h-4 text-blue-500 fill-blue-50" />
-            )}
-            {user.mutual_count && user.mutual_count > 0 && (
-              <div className="flex items-center gap-1 px-1.5 py-0.5 bg-pink-50 rounded-md">
-                <Star className="w-3 h-3 text-pink-500 fill-pink-500" />
+            {user.mutual_count && user.mutual_count > 0 ? (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-pink-50 to-purple-50 rounded-full border border-pink-100/50 shadow-sm animate-pulse-slow">
+                <Users className="w-3 h-3 text-pink-500" />
+                <span className="text-[10px] font-black text-pink-600 uppercase tracking-tighter">
+                  {user.mutual_count} Mutuals
+                </span>
               </div>
+            ) : (
+                user.is_verified && <CheckCircle2 className="w-4 h-4 text-blue-500 fill-blue-50" />
             )}
           </div>
         </div>

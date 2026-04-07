@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Send,
-  MoreHorizontal,
+  ArrowLeft,
+  CheckCheck,
+  Phone,
+  Video,
+  Plus,
   Smile,
   Paperclip,
   MessageCircle,
-  ArrowLeft,
-  ChevronDown,
-  ShieldCheck,
-  CheckCheck
+  MoreHorizontal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '../../hooks/useChat';
@@ -18,9 +19,10 @@ import api from '../../services/api';
 interface ChatWindowProps {
   receiverId: string;
   onBack?: () => void;
+  onToggleProfile?: () => void;
 }
 
-const ChatWindow = ({ receiverId, onBack }: ChatWindowProps) => {
+const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) => {
   const { user } = useAuth();
   const { messages, sendMessage, sendTyping, isTyping } = useChat(receiverId);
   const [content, setContent] = useState('');
@@ -68,32 +70,44 @@ const ChatWindow = ({ receiverId, onBack }: ChatWindowProps) => {
     <div className="flex flex-col h-full bg-[#f8f9fc] flex-1 relative overflow-hidden font-poppins">
       
       {/* Chat Header */}
-      <header className="h-[70px] px-6 flex items-center justify-between bg-white border-b border-gray-100 sticky top-0 z-20 shadow-sm shadow-gray-200/5">
+      <header className="h-[80px] px-8 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-20">
         <div className="flex items-center gap-4">
           {onBack && (
-            <button
-              onClick={onBack}
-              className="md:hidden p-2 bg-gray-50 rounded-xl text-gray-500 transition-all hover:bg-gray-100"
-            >
+            <button onClick={onBack} className="md:hidden p-2 bg-gray-50 rounded-xl text-gray-500">
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
           
-          <div className="flex items-center gap-2 cursor-pointer group">
-            <span className="text-xs font-medium text-gray-400 uppercase tracking-widest">Assignee</span>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50/50 rounded-lg hover:bg-gray-100 transition-all">
-                <span className="text-[13px] font-medium text-gray-700 italic">{displayName}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={onToggleProfile}>
+            <div className="relative">
+              <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-purple-500">
+                <div className="w-full h-full rounded-full bg-white overflow-hidden border-2 border-white">
+                  {recipient?.avatar_url ? (
+                    <img src={recipient.avatar_url.startsWith('http') ? recipient.avatar_url : `http://localhost:8080${recipient.avatar_url}`} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center font-bold text-gray-400 uppercase">{recipient?.username?.charAt(0)}</div>
+                  )}
+                </div>
+              </div>
+              <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-[15px] font-black text-gray-900 leading-tight group-hover:text-pink-500 transition-colors uppercase italic">{displayName}</h3>
+              <span className="text-[10px] font-bold text-emerald-500 uppercase flex items-center gap-1">
+                <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse" /> Online
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-tr from-[#FF3B8E] to-[#A436EE] text-white rounded-xl shadow-lg shadow-pink-100/50 hover:opacity-90 active:scale-95 transition-all">
-            <CheckCheck className="w-4 h-4" />
-            <span className="text-[11px] font-medium uppercase tracking-widest leading-none">Mark as Close</span>
+        <div className="flex items-center gap-2">
+          <button className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all">
+            <Phone className="w-5 h-5" />
           </button>
-          <button className="p-2.5 bg-gray-50 text-gray-400 hover:text-gray-900 rounded-xl transition-all">
+          <button className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all">
+            <Video className="w-5 h-5" />
+          </button>
+          <button className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all">
             <MoreHorizontal className="w-5 h-5" />
           </button>
         </div>
@@ -141,24 +155,33 @@ const ChatWindow = ({ receiverId, onBack }: ChatWindowProps) => {
                        </span>
                     </div>
 
-                    <div className={`flex gap-3 max-w-[85%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <div className={`flex gap-3 max-w-[80%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                       {/* Avatar */}
-                      <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 shadow-sm shrink-0 mt-1">
-                         {senderAvatar ? (
-                           <img src={senderAvatar.startsWith('http') ? senderAvatar : `http://localhost:8080${senderAvatar}`} alt="" className="w-full h-full object-cover" />
-                         ) : (
-                           <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-gray-400 uppercase">{senderName?.charAt(0)}</div>
-                         )}
-                      </div>
+                      {!isMe && (
+                        <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 shrink-0 mt-auto mb-1">
+                          {senderAvatar ? (
+                            <img src={senderAvatar.startsWith('http') ? senderAvatar : `http://localhost:8080${senderAvatar}`} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-gray-400 uppercase">{senderName?.charAt(0)}</div>
+                          )}
+                        </div>
+                      )}
 
-                      {/* Bubble */}
-                      <div className={`
-                        px-4 py-3 text-[13px] font-medium shadow-sm leading-relaxed
-                        ${isMe
-                          ? 'bg-[#e8f2ff] text-gray-800 border border-[#d0e4ff] rounded-2xl rounded-tr-none'
-                          : 'bg-white text-gray-700 border border-gray-100 rounded-2xl rounded-tl-none'}
-                      `}>
-                        {msg.content}
+                      <div className="flex flex-col">
+                        {/* Bubble */}
+                        <div className={`
+                          px-5 py-3 text-[13.5px] font-medium leading-relaxed shadow-sm
+                          ${isMe
+                            ? 'bg-brand-gradient text-white rounded-[22px] rounded-br-[4px]'
+                            : 'bg-white text-gray-800 border border-gray-100 rounded-[22px] rounded-bl-[4px]'}
+                        `}>
+                          {msg.content}
+                        </div>
+                        {/* Time */}
+                        <span className={`text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-widest ${isMe ? 'text-right' : 'text-left'}`}>
+                          {new Date(msg.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                          {isMe && <CheckCheck className="w-3 h-3 inline ml-1 text-pink-500" />}
+                        </span>
                       </div>
                     </div>
                   </motion.div>
@@ -179,53 +202,44 @@ const ChatWindow = ({ receiverId, onBack }: ChatWindowProps) => {
       </div>
 
       {/* Input Area */}
-      <div className="px-8 py-6 bg-white border-t border-gray-100/50">
-        <form onSubmit={handleSend} className="flex items-center gap-4 bg-gray-50/50 p-2 rounded-[22px] border border-gray-100 shadow-sm focus-within:border-gray-200 transition-all">
+      <div className="px-10 py-8 bg-white/40 backdrop-blur-3xl sticky bottom-0">
+        <form onSubmit={handleSend} className="max-w-4xl mx-auto flex items-center gap-4 bg-white/80 p-2.5 rounded-[30px] border border-gray-100 shadow-2xl shadow-gray-200/50">
           
-          <div className="flex items-center">
-            <div className="relative group">
-                <button type="button" className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-medium text-gray-500 uppercase tracking-widest hover:bg-white rounded-lg transition-all border border-transparent hover:border-gray-200">
-                  <span>SMS</span>
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-            </div>
-            <div className="w-[1px] h-4 bg-gray-200 mx-1" />
-          </div>
+          <button type="button" className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all">
+            <Plus className="w-5 h-5" />
+          </button>
 
           <input
             type="text"
-            placeholder="Let's meet or leave!"
+            placeholder="Type a message..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent py-2.5 text-[13px] font-medium text-gray-700 outline-none placeholder:text-gray-300"
+            className="flex-1 bg-transparent py-2.5 text-[14px] font-bold text-gray-800 outline-none placeholder:font-bold placeholder:text-gray-300"
           />
 
-          <div className="flex items-center gap-1 px-1">
-            <button type="button" className="p-2 text-gray-400 hover:text-gray-900 rounded-xl transition-all">
+          <div className="flex items-center gap-1.5 mr-1">
+            <button type="button" className="p-2 text-gray-400 hover:text-gray-900 transition-all">
               <Smile className="w-5 h-5" />
             </button>
-            <button type="button" className="p-2 text-gray-400 hover:text-gray-900 rounded-xl transition-all">
+            <button type="button" className="p-2 text-gray-400 hover:text-gray-900 transition-all">
               <Paperclip className="w-5 h-5" />
             </button>
-            <button type="button" className="p-2 text-gray-400 hover:text-gray-900 rounded-xl transition-all">
-              <ShieldCheck className="w-5 h-5" />
-            </button>
+            
+            <motion.button
+              type="submit"
+              disabled={!content.trim()}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all shadow-xl ${
+                content.trim()
+                  ? 'bg-brand-gradient text-white shadow-pink-500/30'
+                  : 'bg-gray-100 text-gray-300'
+              }`}
+            >
+              <Send className="w-4 h-4 fill-white" />
+            </motion.button>
           </div>
-
-          <motion.button
-            type="submit"
-            disabled={!content.trim()}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={`w-11 h-11 rounded-[16px] flex items-center justify-center transition-all shrink-0 shadow-lg ${
-              content.trim()
-                ? 'bg-[#4a90e2] text-white shadow-[#4a90e2]/20'
-                : 'bg-gray-100 text-gray-300 shadow-none'
-            }`}
-          >
-            <Send className="w-4 h-4 fill-white" />
-          </motion.button>
         </form>
       </div>
     </div>

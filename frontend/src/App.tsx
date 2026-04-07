@@ -1,15 +1,14 @@
-import { useState } from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import { ThemeProvider } from './context/ThemeContext'
+import { BrowserRouter as Router } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { SoundProvider } from './context/SoundContext'
 import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
 import Dashboard from './pages/dashboard/Dashboard'
 
-type View = 'login' | 'signup'
-
 function AppContent() {
   const { user, loading } = useAuth();
-  const [view, setView] = useState<View>('signup');
 
   if (loading) {
     return (
@@ -19,28 +18,32 @@ function AppContent() {
     );
   }
 
-  if (user) {
-    return <Dashboard />;
-  }
-
-
-  if (view === 'login') {
-    return (
-      <Login
-        onToggle={() => setView('signup')}
-      />
-    );
-  }
-
   return (
-    <Signup
-      onToggle={() => setView('login')}
-    />
+    <Routes>
+      {/* Public Routes */}
+      <Route 
+        path="/login" 
+        element={!user ? <Login onToggle={() => {}} /> : <Navigate to="/dashboard/home" replace />} 
+      />
+      <Route 
+        path="/signup" 
+        element={!user ? <Signup onToggle={() => {}} /> : <Navigate to="/dashboard/home" replace />} 
+      />
+
+      {/* Protected Dashboard Route (Layout) */}
+      <Route 
+        path="/dashboard/*" 
+        element={user ? <Dashboard /> : <Navigate to="/login" replace />} 
+      />
+
+      {/* Catch-all Redirect */}
+      <Route 
+        path="*" 
+        element={<Navigate to={user ? "/dashboard/home" : "/login"} replace />} 
+      />
+    </Routes>
   );
 }
-
-import { ThemeProvider } from './context/ThemeContext'
-import { BrowserRouter as Router } from 'react-router-dom'
 
 function App() {
   return (

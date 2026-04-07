@@ -154,6 +154,7 @@ type Querier interface {
 	// Admin: List all reports
 	ListReports(ctx context.Context, arg ListReportsParams) ([]ListReportsRow, error)
 	ListSentConnectionRequests(ctx context.Context, requesterID uuid.UUID) ([]ListSentConnectionRequestsRow, error)
+	ListUserReels(ctx context.Context, arg ListUserReelsParams) ([]ListUserReelsRow, error)
 	// Admin Queries
 	ListUsers(ctx context.Context, arg ListUsersParams) ([]User, error)
 	MarkAllNotificationsAsRead(ctx context.Context, userID uuid.UUID) error

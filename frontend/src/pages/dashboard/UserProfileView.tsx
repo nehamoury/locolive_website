@@ -1,5 +1,5 @@
 import { useState, useEffect, type FC } from 'react';
-import { ArrowLeft, MessageSquare, MapPin, Grid3x3, Heart, Share2, MoreHorizontal, Zap, Footprints, Users } from 'lucide-react';
+import { ArrowLeft, MessageSquare, MapPin, Grid3x3, Heart, Share2, MoreHorizontal, Zap, Footprints, Users, Film } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import StoryViewer from '../../components/story/StoryViewer';
@@ -14,9 +14,12 @@ interface UserProfileViewProps {
 const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }) => {
   const [profile, setProfile] = useState<any>(null);
   const [stories, setStories] = useState<any[]>([]);
+  const [reels, setReels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reelsLoading, setReelsLoading] = useState(false);
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
-  const [activeTab, setActiveTab] = useState<'stories' | 'posts' | 'history'>('stories');
+  const [activeTab, setActiveTab] = useState<'stories' | 'posts' | 'reels' | 'history'>('stories');
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchFullProfile = async () => {
@@ -28,6 +31,9 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
         ]);
         setProfile(userRes.data);
         setStories(storiesRes.data || []);
+        if (userRes.data.distance_km) {
+          setDistanceKm(userRes.data.distance_km);
+        }
       } catch (err) {
         console.error('Failed to fetch user profile:', err);
       } finally {
@@ -36,6 +42,25 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
     };
     fetchFullProfile();
   }, [userId]);
+
+  // Lazy load reels when tab is activated
+  useEffect(() => {
+    if (activeTab === 'reels' && reels.length === 0 && !reelsLoading) {
+      fetchReels();
+    }
+  }, [activeTab]);
+
+  const fetchReels = async () => {
+    try {
+      setReelsLoading(true);
+      const res = await api.get(`/users/${userId}/reels?page=1&page_size=12`);
+      setReels(res.data.reels || []);
+    } catch (err) {
+      console.error('Failed to fetch user reels:', err);
+    } finally {
+      setReelsLoading(false);
+    }
+  };
 
   const handleFollow = async () => {
     try {
@@ -144,7 +169,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
               <div className="w-1.5 h-1.5 bg-primary/20 rounded-full" />
               <div className="flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5" />
-                <span className="text-text-muted">{profile.location || 'Locolive Community'}</span>
+                <span className="text-text-muted">{distanceKm ? `${distanceKm.toFixed(1)}km away` : 'Locolive Community'}</span>
               </div>
             </div>
             {profile.bio && (
@@ -170,16 +195,17 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
           </div>
 
           {/* ─── Navigation Tabs ─── */}
-          <div className="sticky top-0 bg-bg-base/80 backdrop-blur-xl z-20 flex gap-10 border-b border-border-base mb-6 px-1">
+          <div className="sticky top-0 bg-bg-base/80 backdrop-blur-xl z-20 flex gap-10 border-b border-border-base mb-6 px-1 overflow-x-auto">
             {([
               { id: 'stories', label: 'Stories', icon: <Zap className="w-4 h-4" /> },
               { id: 'posts', label: 'Posts', icon: <Grid3x3 className="w-4 h-4" /> },
+              { id: 'reels', label: 'Reels', icon: <Film className="w-4 h-4" /> },
               { id: 'history', label: 'Common', icon: <Footprints className="w-4 h-4" /> },
             ] as const).map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-4 relative flex items-center gap-2 transition-all cursor-pointer ${
+                className={`py-4 relative flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === tab.id ? 'text-text-base' : 'text-text-base/20 hover:text-text-base/40'
                 }`}
               >
@@ -229,6 +255,39 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
               )}
 
               {activeTab === 'posts' && <EmptyState label="No posts yet" icon={<Grid3x3 className="w-8 h-8" />} />}
+
+              {activeTab === 'reels' && (
+                reelsLoading ? (
+                  <div className="flex items-center justify-center py-24">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : reels.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    {reels.map((reel) => (
+                      <div
+                        key={reel.id}
+                        className="aspect-[9/16] bg-bg-sidebar rounded-[24px] overflow-hidden relative group border border-border-base"
+                      >
+                        <video
+                          src={`http://localhost:8080${reel.video_url}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          poster={reel.thumbnail}
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                        <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
+                          <div className="flex items-center gap-1.5 text-white/90 text-[10px] font-black">
+                            <Heart className="w-3 h-3 fill-pink-500 text-pink-500" />
+                            <span>{reel.likes_count || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState label="No reels yet" icon={<Film className="w-8 h-8" />} />
+                )
+              )}
+
               {activeTab === 'history' && <EmptyState label="No common paths" icon={<Footprints className="w-8 h-8" />} />}
             </motion.div>
           </AnimatePresence>

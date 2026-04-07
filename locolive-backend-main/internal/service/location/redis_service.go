@@ -459,6 +459,18 @@ func (s *RedisLocationService) formatAlert(msgType string, payload interface{}) 
 	return data
 }
 
+// GetUserLocation retrieves the user's current location from Redis GEO store
+func (s *RedisLocationService) GetUserLocation(ctx context.Context, userID uuid.UUID) (lat, lng float64, exists bool, err error) {
+	positions, err := s.redis.GeoPos(ctx, userLocationsKey, userID.String()).Result()
+	if err != nil {
+		return 0, 0, false, fmt.Errorf("failed to get user position: %w", err)
+	}
+	if len(positions) == 0 || positions[0] == nil {
+		return 0, 0, false, nil
+	}
+	return positions[0].Latitude, positions[0].Longitude, true, nil
+}
+
 func (s *RedisLocationService) invalidateCrossingsCache(ctx context.Context, userID uuid.UUID) {
 	cacheKey := "crossings:v3:" + userID.String()
 	s.redis.Del(ctx, cacheKey)
@@ -477,4 +489,9 @@ func haversineMeters(lat1, lng1, lat2, lng2 float64) float64 {
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 
 	return R * c
+}
+
+// CalculateDistanceKm calculates distance between two points in kilometers
+func HaversineKm(lat1, lng1, lat2, lng2 float64) float64 {
+	return haversineMeters(lat1, lng1, lat2, lng2) / 1000.0
 }

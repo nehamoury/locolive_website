@@ -526,4 +526,5 @@ type User struct {
 	PasswordResetToken     sql.NullString  `json:"password_reset_token"`
 	PasswordResetExpiresAt sql.NullTime    `json:"password_reset_expires_at"`
 	GhostModeExpiresAt     sql.NullTime    `json:"ghost_mode_expires_at"`
+	Interests              []string        `json:"interests"`
 }

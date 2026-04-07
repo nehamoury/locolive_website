@@ -228,7 +228,13 @@ export const useNotifications = () => {
           // ── Handle connection_accepted ─────────────────────────
           if (data.type === 'connection_accepted') {
             const payload = data.payload;
+            const notifId = `conn-acc-${payload.id || Date.now()}`;
+            
+            if (seenNotifIds.current.has(notifId)) return;
+            seenNotifIds.current.add(notifId);
+
             toast.success(`You are now connected! 🤝`, {
+              id: notifId,
               duration: 5000,
               style: {
                 borderRadius: '20px',
@@ -239,6 +245,7 @@ export const useNotifications = () => {
               },
             });
             window.dispatchEvent(new CustomEvent('connection_accepted', { detail: payload }));
+            return;
           }
         } catch (err) {
           console.error('[WS] Failed to parse message:', err);

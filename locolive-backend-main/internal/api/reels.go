@@ -34,10 +34,10 @@ type reelResponse struct {
 	ID             uuid.UUID `json:"id"`
 	UserID         uuid.UUID `json:"user_id"`
 	VideoURL       string    `json:"video_url"`
-	Caption        string    `json:"caption"`
+	Caption        *string   `json:"caption"`
 	IsAiGenerated  bool      `json:"is_ai_generated"`
-	LocationName   string    `json:"location_name"`
-	Geohash        string    `json:"geohash"`
+	LocationName   *string   `json:"location_name"`
+	Geohash        *string   `json:"geohash"`
 	Lat            float64   `json:"lat"`
 	Lng            float64   `json:"lng"`
 	LikesCount     int32     `json:"likes_count"`
@@ -65,15 +65,22 @@ type reelCommentResponse struct {
 
 // ─── Mappers ─────────────────────────────────────────────────────────────────
 
+func nullStrToPtr(ns sql.NullString) *string {
+	if ns.Valid {
+		return &ns.String
+	}
+	return nil
+}
+
 func toReelResponseFromCreate(r db.CreateReelRow) reelResponse {
 	return reelResponse{
 		ID:            r.ID,
 		UserID:        r.UserID,
 		VideoURL:      r.VideoUrl,
-		Caption:       r.Caption.String,
+		Caption:       nullStrToPtr(r.Caption),
 		IsAiGenerated: r.IsAiGenerated,
-		LocationName:  r.LocationName.String,
-		Geohash:       r.Geohash.String,
+		LocationName:  nullStrToPtr(r.LocationName),
+		Geohash:       nullStrToPtr(r.Geohash),
 		Lat:           r.Lat,
 		Lng:           r.Lng,
 		LikesCount:    r.LikesCount,
@@ -90,10 +97,10 @@ func toReelResponseFromGet(r db.GetReelRow) reelResponse {
 		ID:            r.ID,
 		UserID:        r.UserID,
 		VideoURL:      r.VideoUrl,
-		Caption:       r.Caption.String,
+		Caption:       nullStrToPtr(r.Caption),
 		IsAiGenerated: r.IsAiGenerated,
-		LocationName:  r.LocationName.String,
-		Geohash:       r.Geohash.String,
+		LocationName:  nullStrToPtr(r.LocationName),
+		Geohash:       nullStrToPtr(r.Geohash),
 		Lat:           r.Lat,
 		Lng:           r.Lng,
 		LikesCount:    r.LikesCount,
@@ -110,10 +117,10 @@ func toReelResponseFromFeed(r db.ListReelsFeedRow) reelResponse {
 		ID:            r.ID,
 		UserID:        r.UserID,
 		VideoURL:      r.VideoUrl,
-		Caption:       r.Caption.String,
+		Caption:       nullStrToPtr(r.Caption),
 		IsAiGenerated: r.IsAiGenerated,
-		LocationName:  r.LocationName.String,
-		Geohash:       r.Geohash.String,
+		LocationName:  nullStrToPtr(r.LocationName),
+		Geohash:       nullStrToPtr(r.Geohash),
 		Lat:           r.Lat,
 		Lng:           r.Lng,
 		LikesCount:    r.LikesCount,
@@ -137,10 +144,10 @@ func toReelResponseFromNearby(r db.ListNearbyReelsRow) reelResponse {
 		ID:            r.ID,
 		UserID:        r.UserID,
 		VideoURL:      r.VideoUrl,
-		Caption:       r.Caption.String,
+		Caption:       nullStrToPtr(r.Caption),
 		IsAiGenerated: r.IsAiGenerated,
-		LocationName:  r.LocationName.String,
-		Geohash:       r.Geohash.String,
+		LocationName:  nullStrToPtr(r.LocationName),
+		Geohash:       nullStrToPtr(r.Geohash),
 		Lat:           r.Lat,
 		Lng:           r.Lng,
 		LikesCount:    r.LikesCount,
@@ -158,6 +165,33 @@ func toReelResponseFromNearby(r db.ListNearbyReelsRow) reelResponse {
 	}
 	if d, ok := r.DistanceMeters.(float64); ok {
 		rsp.DistanceMeters = &d
+	}
+	return rsp
+}
+
+func toReelResponseFromUserReels(r db.ListUserReelsRow) reelResponse {
+	rsp := reelResponse{
+		ID:            r.ID,
+		UserID:        r.UserID,
+		VideoURL:      r.VideoUrl,
+		Caption:       nullStrToPtr(r.Caption),
+		IsAiGenerated: r.IsAiGenerated,
+		LocationName:  nullStrToPtr(r.LocationName),
+		Geohash:       nullStrToPtr(r.Geohash),
+		Lat:           r.Lat,
+		Lng:           r.Lng,
+		LikesCount:    r.LikesCount,
+		CommentsCount: r.CommentsCount,
+		SharesCount:   r.SharesCount,
+		SavesCount:    r.SavesCount,
+		CreatedAt:     r.CreatedAt,
+		UpdatedAt:     r.UpdatedAt,
+		Username:      r.Username,
+		IsLiked:       r.IsLiked,
+		IsSaved:       r.IsSaved,
+	}
+	if r.AvatarUrl.Valid {
+		rsp.AvatarURL = &r.AvatarUrl.String
 	}
 	return rsp
 }
@@ -298,6 +332,69 @@ func (server *Server) getNearbyReels(ctx *gin.Context) {
 	rsp := make([]reelResponse, len(reels))
 	for i, r := range reels {
 		rsp[i] = toReelResponseFromNearby(r)
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"reels": rsp, "page": page, "page_size": pageSize})
+}
+
+// getUserReels returns paginated reels for a specific user with privacy checks
+func (server *Server) getUserReels(ctx *gin.Context) {
+	targetUserID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(fmt.Errorf("invalid user id")))
+		return
+	}
+
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	// Privacy checks: ghost mode, blocked users
+	targetUser, err := server.store.GetUserByID(ctx, targetUserID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, errorResponse(fmt.Errorf("user not found")))
+		return
+	}
+
+	// Check if viewing user is blocked
+	if targetUserID != authPayload.UserID {
+		blocked, _ := server.store.IsUserBlocked(ctx, db.IsUserBlockedParams{
+			BlockerID: targetUserID,
+			BlockedID: authPayload.UserID,
+		})
+		if blocked {
+			ctx.JSON(http.StatusForbidden, errorResponse(fmt.Errorf("user has blocked you")))
+			return
+		}
+	}
+
+	// If target user is in ghost mode and not viewing own reels, deny access
+	if targetUser.IsGhostMode && targetUserID != authPayload.UserID {
+		ctx.JSON(http.StatusForbidden, errorResponse(fmt.Errorf("user is in ghost mode")))
+		return
+	}
+
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "12"))
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 50 {
+		pageSize = 12
+	}
+
+	reels, err := server.store.ListUserReels(ctx, db.ListUserReelsParams{
+		UserID:   targetUserID,
+		ViewerID: authPayload.UserID,
+		Limit:    int32(pageSize),
+		Offset:   int32((page - 1) * pageSize),
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	rsp := make([]reelResponse, len(reels))
+	for i, r := range reels {
+		rsp[i] = toReelResponseFromUserReels(r)
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"reels": rsp, "page": page, "page_size": pageSize})

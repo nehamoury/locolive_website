@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, MoreHorizontal, Send, Trash2, Flag, Volume2, VolumeX, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, MoreHorizontal, Send, Trash2, Flag, Volume2, VolumeX, ChevronLeft, ChevronRight, Archive, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import { toast } from 'react-hot-toast';
 
 interface Story {
   id: string;
@@ -48,6 +49,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
   const [reply, setReply] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
   const [sendingReply, setSendingReply] = useState(false);
+  const [archiving, setArchiving] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -146,6 +148,24 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
       console.error('Delete failed:', err);
       alert(err.response?.data?.error || 'Failed to delete story');
       setPaused(false);
+    }
+  };
+
+  const handleArchive = async () => {
+    setArchiving(true);
+    try {
+      setPaused(true);
+      await api.post(`/stories/${story.id}/archive`);
+      
+      toast.success('Story archived to vault!');
+      setMenuOpen(false);
+      setPaused(false);
+    } catch (err: any) {
+      console.error('Archive failed:', err);
+      toast.error(err.response?.data?.error || 'Failed to archive story');
+      setPaused(false);
+    } finally {
+      setArchiving(false);
     }
   };
 
@@ -300,12 +320,22 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
                     className="absolute top-24 right-5 w-48 bg-gray-900/95 backdrop-blur-2xl border border-white/10 rounded-2xl p-1.5 shadow-2xl z-[110] overflow-hidden"
                 >
                     {isOwn && (
-                    <button 
-                        onClick={handleDelete}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
-                    >
-                        <Trash2 className="w-4 h-4" /> Delete Story
-                    </button>
+                    <div className="space-y-1">
+                        <button 
+                            onClick={handleArchive}
+                            disabled={archiving}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-pink-400 hover:bg-pink-500/10 rounded-xl transition-colors disabled:opacity-50"
+                        >
+                            {archiving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />} 
+                            Archive to Vault
+                        </button>
+                        <button 
+                            onClick={handleDelete}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+                        >
+                            <Trash2 className="w-4 h-4" /> Delete Story
+                        </button>
+                    </div>
                     )}
                     <button className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
                     <Flag className="w-4 h-4" /> Report Story

@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldAlert, Home, Map as MapIcon, User, MessageSquare, Plus, Bell, Sun, Moon, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -15,8 +17,9 @@ import NotificationsView from './NotificationsView';
 import ConnectionsView from './ConnectionsView';
 import SettingsView from './SettingsView';
 import SearchView from './SearchView';
-import UserProfileView from './UserProfileView';
+import MemberProfileDetail from './MemberProfileDetail';
 import CrossingsView from './CrossingsView';
+import ManageHighlights from './ManageHighlights';
 import CastingPage from './CastingPage';
 import MapPage from './MapPage';
 import DiscoveryPage from './DiscoveryPage';
@@ -31,18 +34,75 @@ import ChatList from '../../components/chat/ChatList';
 import ChatWindow from '../../components/chat/ChatWindow';
 import ChatProfileSidebar from '../../components/chat/ChatProfileSidebar';
 
-type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting' | 'discovery' | 'reels';
+const MemberProfileWrapper = ({ onMessage }: { onMessage: (id: string) => void }) => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  if (!id) return <Navigate to="/dashboard/home" replace />;
+  return (
+    <MemberProfileDetail
+      userId={id}
+      onBack={() => navigate(-1)}
+      onMessage={onMessage}
+    />
+  );
+};
+
+const MessageThreadWrapper = ({ 
+  onViewFullProfile, 
+  setShowChatProfile, 
+  showChatProfile 
+}: { 
+  onViewFullProfile: (id: string) => void;
+  setShowChatProfile: React.Dispatch<React.SetStateAction<boolean>>;
+  showChatProfile: boolean;
+}) => {
+  const { userId } = useParams();
+  const navigate = useNavigate();
+
+  if (!userId) return <Navigate to="/dashboard/messages" replace />;
+
+  return (
+    <>
+      <div className="flex-1 h-full w-full border-r border-gray-100">
+        <ChatWindow
+          receiverId={userId}
+          onBack={() => navigate('/dashboard/messages')}
+          onToggleProfile={() => setShowChatProfile(prev => !prev)}
+        />
+      </div>
+      <AnimatePresence>
+        {showChatProfile && (
+          <motion.div 
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 320, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            className="hidden lg:flex h-full shrink-0 bg-white overflow-y-auto no-scrollbar border-l border-gray-100"
+          >
+            <ChatProfileSidebar 
+              userId={userId} 
+              onViewFullProfile={onViewFullProfile}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+};
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  // Local Routing Helpers
+  const activeTab = pathname.split('/').pop() || 'home';
+  const setActiveTab = (tab: string) => navigate(`/dashboard/${tab}`);
   
-  // Real-time & Location Hooks (Early calls to stabilize order)
+  // Real-time & Location Hooks
   const { position: currentGeoPos } = useGeolocation(true);
   const { unreadCount: totalUnreadCount, unreadMessagesCount } = useNotifications();
 
-  // Local UI State
-  const [activeTab, setActiveTab] = useState<TabType>('home');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateReelModalOpen, setIsCreateReelModalOpen] = useState(false);
   const [stories, setStories] = useState<any[]>([]);
@@ -50,13 +110,12 @@ const Dashboard = () => {
   const [viewingStories, setViewingStories] = useState<any[]>([]);
   const [viewingStoryIndex, setViewingStoryIndex] = useState<number | null>(null);
 
-  const [selectedChatUser, setSelectedChatUser] = useState<string | null>(null);
-  const [selectedUserProfileId, setSelectedUserProfileId] = useState<string | null>(null);
-  const [activeConnectionTab, setActiveConnectionTab] = useState<'suggestions' | 'requests' | 'my-connections'>('suggestions');
+  const activeConnectionTab = 'suggestions'; // Simplified for now
   const [, setPanicSequence] = useState('');
   const [showPanicConfirm, setShowPanicConfirm] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [showRightSidebar, setShowRightSidebar] = useState(true);
+  const [showRightSidebar] = useState(true);
+  const [showChatProfile, setShowChatProfile] = useState(false);
 
   // Sidebar Stats State
   const [crossingsCount, setCrossingsCount] = useState<number>(0);
@@ -77,17 +136,20 @@ const Dashboard = () => {
     try {
       // Use the stable coordinate from useGeolocation instead of calling browser API again
       const coords = currentGeoPos;
-      const defaultCoords = { latitude: 28.6139, longitude: 77.2090 };
-      
-      const params = coords
-        ? { latitude: coords.lat, longitude: coords.lng }
-        : defaultCoords;
+      const requestOptions = coords ? { params: { latitude: coords.lat, longitude: coords.lng } } : undefined;
 
-      const [feedResponse, connResponse, meResponse] = await Promise.all([
-        api.get('/feed', { params }).catch(() => ({ data: { stories: [] } })),
+      const promises: any[] = [
         api.get('/stories/connections').catch(() => ({ data: [] })),
         api.get('/stories/me').catch(() => ({ data: [] }))
-      ]);
+      ];
+      
+      if (coords) {
+         promises.push(api.get('/feed', requestOptions).catch(() => ({ data: { stories: [] } })));
+      } else {
+         promises.push(Promise.resolve({ data: { stories: [] } }));
+      }
+
+      const [connResponse, meResponse, feedResponse] = await Promise.all(promises);
       
       const mapStories = feedResponse.data?.stories || [];
       const connStories = connResponse.data || [];
@@ -197,28 +259,25 @@ const Dashboard = () => {
     try {
       await api.post('/location/panic');
       logout();
-      window.location.href = '/';
+      navigate('/login');
     } catch (err) {
       console.error("Panic failed:", err);
     }
   };
 
   const handleUserSelect = (userId: string) => {
-    setSelectedUserProfileId(userId);
-    setActiveTab('search');
+    navigate(`/dashboard/user/${userId}`);
   };
 
   const handleStartMessage = (userId: string) => {
-    setSelectedChatUser(userId);
-    setSelectedUserProfileId(null);
-    setActiveTab('messages');
+    navigate(`/dashboard/messages/${userId}`);
   };
 
-  // ─── Render View Component ────────────────────────────────────────────────────────
-  const renderView = () => {
-    switch (activeTab) {
-      case 'home':
-        return (
+  // ─── Render Routing ────────────────────────────────────────────────────────
+  const renderRoutes = () => {
+    return (
+      <Routes>
+        <Route path="home" element={
           <HomeView
             key={`home-${refreshKey}`}
             stories={stories}
@@ -229,66 +288,43 @@ const Dashboard = () => {
               setViewingStories(userStories);
               setViewingStoryIndex(index);
             }}
-            showPanel={showRightSidebar}
-            onTogglePanel={() => setShowRightSidebar(prev => !prev)}
-            onNavigate={(tab) => setActiveTab(tab)}
             unreadNotificationsCount={totalUnreadCount}
             unreadMessagesCount={unreadMessagesCount}
           />
-        );
-      case 'profile':
-        return <Profile onLogout={logout} />;
-      case 'notifications':
-        return <NotificationsView onUserSelect={handleUserSelect} />;
-      case 'explore':
-        return <MapPage onUserSelect={handleUserSelect} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />;
-      case 'connections':
-        return (
+        } />
+        <Route path="profile" element={<Profile onLogout={logout} />} />
+        <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate('/dashboard/profile')} />} />
+        <Route path="notifications" element={<NotificationsView onUserSelect={handleUserSelect} />} />
+        <Route path="explore" element={<MapPage onUserSelect={handleUserSelect} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />} />
+        <Route path="connections" element={
           <ConnectionsView
             initialTab={activeConnectionTab}
             onUserSelect={handleUserSelect}
             onMessage={handleStartMessage}
           />
-        );
-      case 'settings':
-        return <SettingsView onBack={() => setActiveTab('profile')} />;
-      case 'search':
-        return selectedUserProfileId ? (
-          <UserProfileView
-            userId={selectedUserProfileId}
-            onBack={() => setSelectedUserProfileId(null)}
-            onMessage={handleStartMessage}
-          />
-        ) : (
-          <SearchView onUserSelect={handleUserSelect} />
-        );
-      case 'crossings':
-        return <CrossingsView onUserSelect={handleUserSelect} />;
-      case 'casting':
-        return <CastingPage />;
-      case 'discovery':
-        return <DiscoveryPage onUserSelect={handleUserSelect} />;
-      case 'reels':
-        return <ReelsView onCreateReel={() => setIsCreateReelModalOpen(true)} />;
-      case 'messages':
-        return (
-          <div className="flex flex-col h-full w-full overflow-hidden bg-white">
-            {/* Messages Top Header */}
-            <div className="flex items-center justify-between px-6 py-3.5 border-b border-gray-100 bg-white shrink-0">
+        } />
+        <Route path="settings" element={<SettingsView onBack={() => navigate('/dashboard/profile')} />} />
+        <Route path="search" element={<SearchView onUserSelect={handleUserSelect} />} />
+        <Route path="user/:id" element={<MemberProfileWrapper onMessage={handleStartMessage} />} />
+        <Route path="crossings" element={<CrossingsView onUserSelect={handleUserSelect} />} />
+        <Route path="casting" element={<CastingPage />} />
+        <Route path="discovery" element={<DiscoveryPage onUserSelect={handleUserSelect} />} />
+        <Route path="reels" element={<ReelsView onCreateReel={() => setIsCreateReelModalOpen(true)} />} />
+        
+        <Route path="messages/*" element={
+          <div className="flex flex-col h-full w-full overflow-hidden bg-transparent">
+            <div className="flex items-center justify-between px-6 py-3.5 border-b border-border-base bg-transparent shrink-0">
               <h2 className="text-xl font-black text-gray-900 italic tracking-tight">Messages</h2>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => {
-                    setActiveConnectionTab('requests');
-                    setActiveTab('connections');
-                  }}
+                  onClick={() => navigate('/dashboard/connections')}
                   className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-gray-500 hover:bg-gray-50 transition-all cursor-pointer"
                 >
                   <span className={`w-1.5 h-1.5 rounded-full ${totalUnreadCount > 0 ? 'bg-pink-500 animate-pulse' : 'bg-gray-300'}`} />
                   {totalUnreadCount > 0 ? `${totalUnreadCount} pending requests` : '0 pending requests'}
                 </button>
                 <button
-                  onClick={() => setSelectedChatUser(null)}
+                  onClick={() => navigate('/dashboard/messages')}
                   className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md shadow-pink-200 hover:scale-105 active:scale-95 transition-all"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -297,45 +333,39 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Chat Split View */}
             <div className="flex flex-1 overflow-hidden">
-              {/* Column 1: Chat List */}
-              <div className={`h-full border-r border-gray-100 ${selectedChatUser ? 'hidden md:flex' : 'flex'} w-full md:w-[350px] shrink-0 bg-white`}>
-                <ChatList onSelect={setSelectedChatUser} selectedId={selectedChatUser || undefined} />
-              </div>
-
-              {/* Column 2: Chat Window */}
-              {selectedChatUser ? (
-                <>
-                  <div className="flex-1 h-full w-full border-r border-gray-100">
-                    <ChatWindow
-                      receiverId={selectedChatUser}
-                      onBack={() => setSelectedChatUser(null)}
-                    />
+              <Routes>
+                <Route path=":userId" element={
+                   <MessageThreadWrapper 
+                    onViewFullProfile={handleUserSelect}
+                    setShowChatProfile={setShowChatProfile}
+                    showChatProfile={showChatProfile}
+                   />
+                } />
+                <Route path="/" element={
+                  <div className="flex flex-1 overflow-hidden">
+                    <div className="h-full border-r border-border-base flex w-full md:w-[350px] shrink-0 bg-transparent">
+                      <ChatList onSelect={(id) => navigate(`/dashboard/messages/${id}`)} />
+                    </div>
+                    <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-transparent">
+                      <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-5">
+                        <MessageSquare className="w-9 h-9 text-gray-300" />
+                      </div>
+                      <h3 className="text-xl font-medium text-gray-800 mb-2">Select a Conversation</h3>
+                      <p className="max-w-xs text-sm text-gray-400 leading-relaxed">
+                        Choose a chat from the list or start a new one
+                      </p>
+                    </div>
                   </div>
-                  {/* Column 3: Profile Info (General Info) */}
-                  <div className="hidden lg:flex h-full w-80 shrink-0 bg-white overflow-y-auto no-scrollbar">
-                    <ChatProfileSidebar userId={selectedChatUser} />
-                  </div>
-                </>
-              ) : (
-                <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-white">
-                  <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-5">
-                    <MessageSquare className="w-9 h-9 text-gray-300" />
-                  </div>
-                  <h3 className="text-xl font-medium text-gray-800 mb-2">Select a Conversation</h3>
-                  <p className="max-w-xs text-sm text-gray-400 leading-relaxed">
-                    Choose a chat from the list or start a new one to view messages and details
-                  </p>
-                </div>
-              )}
+                } />
+              </Routes>
             </div>
           </div>
-        );
+        } />
 
-      default:
-        return null;
-    }
+        <Route path="/" element={<Navigate to="home" replace />} />
+      </Routes>
+    );
   };
 
   return (
@@ -344,11 +374,10 @@ const Dashboard = () => {
       {/* 1. Left Sidebar */}
       <div className="hidden md:flex flex-col h-full bg-bg-sidebar md:rounded-[24px] shadow-sm relative flex-shrink-0 border border-border-base transition-all duration-300 overflow-hidden">
         <Sidebar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
           user={user}
           logout={logout}
           unreadCount={totalUnreadCount}
+          unreadMessagesCount={unreadMessagesCount}
           onCreatePost={() => setIsCreateModalOpen(true)}
         />
       </div>
@@ -356,10 +385,10 @@ const Dashboard = () => {
       <Toaster position="top-right" reverseOrder={false} />
 
       {/* 2. Main Content Center (Scrollable) */}
-      <main className="flex-1 relative overflow-hidden flex flex-col bg-bg-card md:rounded-[24px] shadow-sm z-10 w-full md:w-auto border border-border-base transition-colors duration-300">
+      <main className="flex-1 relative overflow-hidden flex flex-col bg-transparent z-10 w-full md:w-auto transition-colors duration-300">
 
         {/* Mobile Header */}
-        <div className="md:hidden sticky top-0 left-0 right-0 z-50 px-5 py-4 flex items-center justify-between bg-bg-card/95 backdrop-blur-xl border-b border-border-base">
+        <div className="md:hidden sticky top-0 left-0 right-0 z-50 px-5 py-4 flex items-center justify-between bg-bg-base/95 backdrop-blur-xl border-b border-border-base">
           <div className="text-2xl font-black tracking-tighter italic">
             <span className="text-primary">Locolive</span>
           </div>
@@ -385,13 +414,13 @@ const Dashboard = () => {
 
         {/* Dynamic Route View */}
         <div className="flex-1 overflow-hidden relative">
-          {renderView()}
+          {renderRoutes()}
         </div>
 
         {/* Mobile Bottom Navigation — 5 core tabs + floating create */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around bg-bg-card/95 backdrop-blur-2xl border-t border-border-base px-2 h-18 z-[60] shadow-[0_-8px_24px_rgba(255,0,110,0.06)]">
-          <MobileNavItem icon={<Home className="w-5 h-5" />} label="Home" active={activeTab === 'home'} onClick={() => setActiveTab('home')} />
-          <MobileNavItem icon={<MapIcon className="w-5 h-5" />} label="Map" active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} />
+          <MobileNavItem icon={<Home className="w-5 h-5" />} label="Home" active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
+          <MobileNavItem icon={<MapIcon className="w-5 h-5" />} label="Map" active={pathname.includes('explore')} onClick={() => navigate('/dashboard/explore')} />
 
           <button
             onClick={() => setIsCreateModalOpen(true)}
@@ -401,8 +430,8 @@ const Dashboard = () => {
             <Plus className="w-6 h-6 stroke-[3]" aria-hidden="true" />
           </button>
 
-          <MobileNavItem icon={<Users className="w-5 h-5" />} label="People" active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} />
-          <MobileNavItem icon={<User className="w-5 h-5" />} label="Profile" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
+          <MobileNavItem icon={<Users className="w-5 h-5" />} label="People" active={pathname.includes('connections')} onClick={() => navigate('/dashboard/connections')} />
+          <MobileNavItem icon={<User className="w-5 h-5" />} label="Profile" active={pathname.includes('profile')} onClick={() => navigate('/dashboard/profile')} />
         </nav>
       </main>
 

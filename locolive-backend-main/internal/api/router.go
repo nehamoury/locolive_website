@@ -138,6 +138,7 @@ func (server *Server) setupRouter() {
 	authRoutes.POST("/reels", server.createReel)
 	authRoutes.GET("/reels/feed", server.getReelsFeed)
 	authRoutes.GET("/reels/nearby", server.getNearbyReels)
+	authRoutes.GET("/users/:id/reels", server.getUserReels)
 	authRoutes.POST("/reels/:id/like", server.likeReel)
 	authRoutes.DELETE("/reels/:id/like", server.unlikeReel)
 	authRoutes.POST("/reels/:id/comments", server.addReelComment)

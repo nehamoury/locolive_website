@@ -1,8 +1,8 @@
 import { useState, type FC } from 'react';
-import { Home, Map as MapIcon, User, Plus, Sparkles, Footprints, Users, LogOut, ChevronLeft, ChevronRight, Zap, Video } from 'lucide-react';
+import { Home, Map as MapIcon, User, Plus, Sparkles, Footprints, Users, LogOut, ChevronLeft, ChevronRight, Zap, Video, MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-type TabType = 'home' | 'explore' | 'messages' | 'notifications' | 'profile' | 'connections' | 'settings' | 'search' | 'crossings' | 'casting' | 'discovery' | 'reels';
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -42,25 +42,29 @@ const NavItem = ({ icon, label, active, badge, onClick, color, isCollapsed }: Na
 );
 
 interface SidebarProps {
-  activeTab: TabType;
-  setActiveTab: (tab: TabType) => void;
   user: any;
+  unreadMessagesCount?: number;
   unreadCount?: number;
   logout: () => void;
   onCreatePost: () => void;
 }
 
-const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, logout, onCreatePost }) => {
+const Sidebar: FC<SidebarProps> = ({ user, logout, onCreatePost, unreadMessagesCount = 0 }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+
+  const activeTab = pathname.split('/').pop() || 'home';
+  const setActiveTab = (tab: string) => navigate(`/dashboard/${tab}`);
 
   return (
     <div className={`relative flex flex-col h-full transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-72'}`}>
 
       <aside className="flex-1 flex flex-col px-3 py-6 z-20 h-full overflow-y-auto no-scrollbar font-brand">
 
-      {/* Logo Area + Collapse Toggle inside the card */}
+      {/* Logo Area + Collapse Toggle */}
       <div className={`mb-8 px-2 flex flex-col ${isCollapsed ? 'items-center' : 'items-start'} cursor-default select-none`}>
-        <div className={`flex items-center gap-3 w-full ${isCollapsed ? 'justify-center' : 'justify-between'}`}>
+        <div className={`flex ${isCollapsed ? 'flex-col items-center gap-4' : 'flex-row items-center justify-between'} w-full`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-brand-gradient flex items-center justify-center shadow-lg shadow-primary/30 flex-shrink-0">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -76,7 +80,6 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, logout, onCr
             )}
           </div>
 
-          {/* Collapse Toggle — always inside the card */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="w-8 h-8 rounded-xl bg-bg-base border border-border-base text-text-muted hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-all flex items-center justify-center cursor-pointer flex-shrink-0"
@@ -87,62 +90,63 @@ const Sidebar: FC<SidebarProps> = ({ activeTab, setActiveTab, user, logout, onCr
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 mb-6">
-        <NavItem icon={<Home className="w-5 h-5" />} label="Home" active={activeTab === 'home'} onClick={() => setActiveTab('home')} color="text-[#FF4D97]" isCollapsed={isCollapsed} />
-        <NavItem icon={<MapIcon className="w-5 h-5" />} label="Map / Explore" active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} color="text-[#FFA94D]" isCollapsed={isCollapsed} />
-        <NavItem icon={<Sparkles className="w-5 h-5" />} label="Discovery" active={activeTab === 'discovery'} onClick={() => setActiveTab('discovery')} color="text-[#A436EE]" isCollapsed={isCollapsed} />
-        <NavItem icon={<Video className="w-5 h-5" />} label="Reels" active={activeTab === 'reels'} onClick={() => setActiveTab('reels')} color="text-[#FF006E]" isCollapsed={isCollapsed} />
-        <NavItem icon={<Users className="w-5 h-5" />} label="Connections" active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} color="text-[#4DABF7]" isCollapsed={isCollapsed} />
-        <NavItem icon={<Footprints className="w-5 h-5" />} label="Crossings" active={activeTab === 'crossings'} onClick={() => setActiveTab('crossings')} color="text-[#20C997]" isCollapsed={isCollapsed} />
-        <NavItem icon={<Zap className="w-5 h-5" />} label="Casting" active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} color="text-[#FCC419]" isCollapsed={isCollapsed} />
-        <NavItem icon={<User className="w-5 h-5" />} label="Profile" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} color="text-[#495057]" isCollapsed={isCollapsed} />
-      </nav>
+        {/* Navigation */}
+        <nav className="flex-1 space-y-1 mb-6">
+          <NavItem icon={<Home className="w-5 h-5" />} label="Home" active={activeTab === 'home'} onClick={() => setActiveTab('home')} color="text-[#FF4D97]" isCollapsed={isCollapsed} />
+          <NavItem icon={<MapIcon className="w-5 h-5" />} label="Map" active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} color="text-[#FFA94D]" isCollapsed={isCollapsed} />
+          <NavItem icon={<MessageSquare className="w-5 h-5" />} label="Messages" active={activeTab === 'messages'} onClick={() => setActiveTab('messages')} color="text-[#339AF0]" isCollapsed={isCollapsed} badge={unreadMessagesCount} />
+          <NavItem icon={<Sparkles className="w-5 h-5" />} label="Discovery" active={activeTab === 'discovery'} onClick={() => setActiveTab('discovery')} color="text-[#A436EE]" isCollapsed={isCollapsed} />
+          <NavItem icon={<Video className="w-5 h-5" />} label="Reels" active={activeTab === 'reels'} onClick={() => setActiveTab('reels')} color="text-[#FF006E]" isCollapsed={isCollapsed} />
+          <NavItem icon={<Users className="w-5 h-5" />} label="Connections" active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} color="text-[#4DABF7]" isCollapsed={isCollapsed} />
+          <NavItem icon={<Footprints className="w-5 h-5" />} label="Crossings" active={activeTab === 'crossings'} onClick={() => setActiveTab('crossings')} color="text-[#20C997]" isCollapsed={isCollapsed} />
+          <NavItem icon={<Zap className="w-5 h-5" />} label="Casting" active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} color="text-[#FCC419]" isCollapsed={isCollapsed} />
+          <NavItem icon={<User className="w-5 h-5" />} label="Profile" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} color="text-[#495057]" isCollapsed={isCollapsed} />
+        </nav>
 
-      {/* Create Post Button */}
-      <div className="mb-6 flex justify-center px-1">
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={onCreatePost}
-          className={`${isCollapsed ? 'w-11 h-11 p-0 rounded-full' : 'w-full py-3 px-4 rounded-[20px]'} bg-brand-gradient flex items-center justify-center gap-2 font-bold text-white text-[14px] shadow-[0_10px_20px_-5px_rgba(255,0,110,0.3)] cursor-pointer transition-all`}
-        >
-          <Plus className="w-5 h-5 stroke-[3] shrink-0" />
-          {!isCollapsed && <span>Create Post</span>}
-        </motion.button>
-      </div>
-
-      {/* Profile Snippet */}
-      <div className="border-t border-border-base pt-4">
-        <div className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start px-1 py-2'} rounded-2xl group select-none relative gap-3`}>
-          <div 
-            className="w-10 h-10 rounded-full p-[2px] bg-brand-gradient flex-shrink-0 cursor-pointer hover:scale-105 transition-transform"
-            onClick={() => setActiveTab('profile')}
+        {/* Create Post Button */}
+        <div className="mb-6 flex justify-center px-1">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onCreatePost}
+            className={`${isCollapsed ? 'w-11 h-11 p-0 rounded-full' : 'w-full py-3 px-4 rounded-[20px]'} bg-brand-gradient flex items-center justify-center gap-2 font-bold text-white text-[14px] shadow-[0_10px_20px_-5px_rgba(255,0,110,0.3)] cursor-pointer transition-all`}
           >
-            <div className="w-full h-full rounded-full bg-bg-sidebar overflow-hidden">
-              {user?.avatar_url ? (
-                <img src={`http://localhost:8080${user.avatar_url}`} alt="avatar" className="w-full h-full rounded-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary font-black text-sm">
-                  {user?.username?.charAt(0)?.toUpperCase()}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {!isCollapsed && (
-            <>
-              <div className="flex flex-col text-left flex-1 min-w-0 cursor-pointer" onClick={() => setActiveTab('profile')}>
-                <p className="font-bold text-sm text-text-base truncate leading-tight">{user?.full_name || user?.username}</p>
-                <p className="text-text-muted text-xs truncate">@{user?.username}</p>
-              </div>
-              <button onClick={logout} className="p-2 rounded-lg hover:bg-primary/5 transition-colors text-text-muted hover:text-primary cursor-pointer flex-shrink-0" title="Logout">
-                <LogOut className="w-4 h-4" />
-              </button>
-            </>
-          )}
+            <Plus className="w-5 h-5 stroke-[3] shrink-0" />
+            {!isCollapsed && <span>Create Post</span>}
+          </motion.button>
         </div>
-      </div>
+
+        {/* Profile Snippet */}
+        <div className="border-t border-border-base pt-4">
+          <div className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start px-1 py-2'} rounded-2xl group select-none relative gap-3`}>
+            <div
+              className="w-10 h-10 rounded-full p-[2px] bg-brand-gradient flex-shrink-0 cursor-pointer hover:scale-105 transition-transform"
+              onClick={() => setActiveTab('profile')}
+            >
+              <div className="w-full h-full rounded-full bg-bg-sidebar overflow-hidden">
+                {user?.avatar_url ? (
+                  <img src={`http://localhost:8080${user.avatar_url}`} alt="avatar" className="w-full h-full rounded-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary font-black text-sm">
+                    {user?.username?.charAt(0)?.toUpperCase()}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {!isCollapsed && (
+              <>
+                <div className="flex flex-col text-left flex-1 min-w-0 cursor-pointer" onClick={() => setActiveTab('profile')}>
+                  <p className="font-bold text-sm text-text-base truncate leading-tight">{user?.full_name || user?.username}</p>
+                  <p className="text-text-muted text-xs truncate">@{user?.username}</p>
+                </div>
+                <button onClick={logout} className="p-2 rounded-lg hover:bg-primary/5 transition-colors text-text-muted hover:text-primary cursor-pointer flex-shrink-0" title="Logout">
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
       </aside>
     </div>
   );

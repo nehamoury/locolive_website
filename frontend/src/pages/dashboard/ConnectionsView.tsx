@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
+import { getMediaUrl, FALLBACKS } from '../../utils/media';
 
 interface ConnectionsViewProps {
   initialTab?: 'suggestions' | 'requests' | 'my-connections';
@@ -163,8 +164,8 @@ const ConnectionsView: FC<ConnectionsViewProps> = ({ initialTab = 'suggestions',
           />
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 w-full bg-bg-card rounded-[32px] border border-border-base shadow-sm p-6 md:p-8 flex flex-col mb-8">
+        {/* Content Area - Transparent container for integration */}
+        <div className="flex-1 w-full flex flex-col mb-8">
           <div className={`w-full h-full flex flex-col ${filteredData().length === 0 ? 'border border-dashed border-border-base rounded-[24px]' : ''}`}>
             
             {loading ? (
@@ -310,19 +311,15 @@ const SuggestionCard = ({ user, onConnect, onView }: any) => {
 
   return (
     <motion.div 
-      whileHover={{ y: -6, boxShadow: '0 24px 48px -8px rgba(255, 0, 110, 0.15)' }}
+      whileHover={{ y: -6, boxShadow: '0 24px 48px -8px rgba(255, 0, 110, 0.12)' }}
       transition={{ duration: 0.2 }}
-      className="bg-bg-card p-5 rounded-[28px] border border-border-base shadow-sm group cursor-pointer"
+      className="bg-white/5 backdrop-blur-xl p-6 rounded-[32px] border border-white/10 shadow-sm group cursor-pointer"
     >
       <div className="flex items-start gap-4 mb-5">
         <div className="relative shrink-0">
           <div className="w-16 h-16 rounded-[22px] bg-brand-gradient p-[2px]">
             <div className="w-full h-full rounded-[20px] bg-bg-base overflow-hidden flex items-center justify-center">
-              {user.avatar_url && typeof user.avatar_url === 'string' ? (
-                <img src={user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8080${user.avatar_url}`} className="w-full h-full object-cover" alt="" />
-              ) : (
-                <span className="text-xl font-black text-primary uppercase">{user.username?.charAt(0)}</span>
-              )}
+              <img src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} className="w-full h-full object-cover" alt="" />
             </div>
           </div>
           <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-2 border-bg-card rounded-full shadow-sm" />
@@ -368,15 +365,11 @@ const SuggestionCard = ({ user, onConnect, onView }: any) => {
 const RequestCard = ({ user, onAccept, onReject, onView }: any) => (
   <motion.div 
     whileHover={{ y: -4 }}
-    className="bg-bg-card p-4 rounded-[28px] border border-border-base shadow-sm hover:border-primary/20 transition-all flex items-center gap-4"
+    className="bg-white/5 backdrop-blur-xl p-4 rounded-[28px] border border-white/10 shadow-sm hover:border-primary/20 transition-all flex items-center gap-4"
   >
     <div className="w-12 h-12 rounded-[18px] bg-brand-gradient p-[2px] shrink-0 cursor-pointer" onClick={onView}>
       <div className="w-full h-full rounded-[16px] bg-bg-base overflow-hidden flex items-center justify-center">
-        {user.avatar_url && typeof user.avatar_url === 'string' ? (
-          <img src={user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8080${user.avatar_url}`} className="w-full h-full object-cover" alt="" />
-        ) : (
-          <span className="font-black text-primary uppercase">{user.username?.charAt(0)}</span>
-        )}
+        <img src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} className="w-full h-full object-cover" alt="" />
       </div>
     </div>
     <div className="flex-1 min-w-0 cursor-pointer" onClick={onView}>
@@ -405,16 +398,12 @@ const RequestCard = ({ user, onAccept, onReject, onView }: any) => (
 const FollowingCard = ({ user, onMessage, onRemove, onView }: any) => (
   <motion.div 
     whileHover={{ y: -4 }}
-    className="bg-bg-card p-5 rounded-[24px] border border-border-base shadow-sm hover:border-primary/20 transition-all flex items-center justify-between group"
+    className="bg-white/5 backdrop-blur-xl p-5 rounded-[32px] border border-white/10 shadow-sm hover:border-primary/20 transition-all flex items-center justify-between group"
   >
     <div className="flex items-center gap-4 overflow-hidden pr-4">
       <div className="w-14 h-14 rounded-[20px] bg-brand-gradient p-[2px] shrink-0 cursor-pointer" onClick={onView}>
         <div className="w-full h-full rounded-[18px] bg-bg-base overflow-hidden flex items-center justify-center">
-          {user.avatar_url && typeof user.avatar_url === 'string' ? (
-            <img src={user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8080${user.avatar_url}`} className="w-full h-full object-cover" alt="" />
-          ) : (
-            <span className="text-xl font-black text-primary uppercase">{user.username?.charAt(0)}</span>
-          )}
+          <img src={getMediaUrl(user.avatar_url, FALLBACKS.AVATAR(user.username))} className="w-full h-full object-cover" alt="" />
         </div>
       </div>
       <div className="flex-1 min-w-0 cursor-pointer" onClick={onView}>

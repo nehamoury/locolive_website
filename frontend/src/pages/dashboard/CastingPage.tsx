@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, type FC } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import CastingGrid from '../../components/casting/CastingGrid';
-import { Sparkles, RefreshCcw, Heart, X, CheckCircle2, Search, Filter, Zap, Users, ShieldCheck } from 'lucide-react';
+import { Sparkles, RefreshCcw, Heart, X, CheckCircle2, Search, Zap, Users } from 'lucide-react';
 import api from '../../services/api';
 import UserProfileView from './UserProfileView';
 
@@ -222,18 +222,18 @@ const CastingPage: FC = () => {
           </button>
         </div>
 
-        {/* Search & Tabs Controls */}
-        <div className="flex flex-col gap-6">
-          {/* Main Tabs */}
-          <div className="flex items-center gap-2">
+        {/* Compact Search & Tabs Hub */}
+        <div className="flex flex-col md:flex-row md:items-center gap-4 bg-gray-50/50 p-4 rounded-[28px] border border-gray-100 shadow-sm">
+          {/* Tabs on Left */}
+          <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-gray-50 shadow-sm">
             {(['popular', 'new', 'online', 'all'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-6 py-2.5 rounded-2xl text-sm font-bold capitalize transition-all active:scale-95 ${
+                className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all ${
                   activeTab === tab 
-                    ? 'bg-pink-500 text-white shadow-lg shadow-pink-100' 
-                    : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+                    ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md shadow-pink-100' 
+                    : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 }`}
               >
                 {tab}
@@ -241,23 +241,20 @@ const CastingPage: FC = () => {
             ))}
           </div>
 
-          {/* Search Bar */}
-          <div className="relative group">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300 group-focus-within:text-pink-400 transition-colors" />
+          {/* Search in Middle */}
+          <div className="flex-1 relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-pink-500 transition-colors" />
             <input 
               type="text"
-              placeholder="Search users..."
+              placeholder="Search by name or interests..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-50/50 border border-gray-100 rounded-[24px] py-4 pl-14 pr-12 text-sm font-medium focus:ring-4 focus:ring-pink-500/5 focus:border-pink-500/20 transition-all outline-none placeholder:text-gray-300"
+              className="w-full bg-white border border-gray-50 rounded-2xl py-3 pl-11 pr-4 text-xs font-bold text-gray-700 focus:ring-4 focus:ring-pink-500/5 focus:border-pink-500/20 transition-all outline-none placeholder:text-gray-300"
             />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-white rounded-xl shadow-sm border border-gray-50">
-              <Filter className="w-4 h-4 text-gray-400" />
-            </div>
           </div>
 
-          {/* Filter Chips */}
-          <div className="flex items-center gap-3">
+          {/* Filter Chips on Right */}
+          <div className="flex items-center gap-2">
             <FilterChip 
               icon={<Zap className="w-3.5 h-3.5" />} 
               label="Nearby" 
@@ -269,12 +266,6 @@ const CastingPage: FC = () => {
               label="Mutuals" 
               active={selectedChips.includes('mutuals')} 
               onClick={() => toggleChip('mutuals')} 
-            />
-            <FilterChip 
-              icon={<ShieldCheck className="w-3.5 h-3.5" />} 
-              label="Verified" 
-              active={selectedChips.includes('verified')} 
-              onClick={() => toggleChip('verified')} 
             />
           </div>
         </div>

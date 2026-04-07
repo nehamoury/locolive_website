@@ -1905,6 +1905,21 @@ func (mr *MockStoreMockRecorder) ListSentConnectionRequests(ctx, requesterID any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSentConnectionRequests", reflect.TypeOf((*MockStore)(nil).ListSentConnectionRequests), ctx, requesterID)
 }
 
+// ListUserReels mocks base method.
+func (m *MockStore) ListUserReels(ctx context.Context, arg db.ListUserReelsParams) ([]db.ListUserReelsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListUserReels", ctx, arg)
+	ret0, _ := ret[0].([]db.ListUserReelsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListUserReels indicates an expected call of ListUserReels.
+func (mr *MockStoreMockRecorder) ListUserReels(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUserReels", reflect.TypeOf((*MockStore)(nil).ListUserReels), ctx, arg)
+}
+
 // ListUsers mocks base method.
 func (m *MockStore) ListUsers(ctx context.Context, arg db.ListUsersParams) ([]db.User, error) {
 	m.ctrl.T.Helper()

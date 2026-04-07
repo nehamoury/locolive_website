@@ -1,5 +1,6 @@
 import { useState, useEffect, type FC } from 'react';
-import { MapPin, Plus, Search, Bell, MessageCircle, PanelRight } from 'lucide-react';
+import { MapPin, Plus, Search, Bell, MessageCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { StoryBar } from '../../components/story/StoryBar';
 import PostCard from '../../components/post/PostCard';
 import PostInputBox from '../../components/post/PostInputBox';
@@ -11,14 +12,12 @@ interface HomeViewProps {
   loading: boolean;
   onCreateStory: () => void;
   onStoryClick: (userStories: any[], index: number) => void;
-  showPanel: boolean;
-  onTogglePanel: () => void;
-  onNavigate: (tab: any) => void;
   unreadNotificationsCount?: number;
   unreadMessagesCount?: number;
 }
 
-const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, onStoryClick, showPanel, onTogglePanel, onNavigate, unreadNotificationsCount = 0, unreadMessagesCount = 0 }) => {
+const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, onStoryClick, unreadNotificationsCount = 0, unreadMessagesCount = 0 }) => {
+  const navigate = useNavigate();
   const [posts, setPosts] = useState<any[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
 
@@ -55,23 +54,16 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
 
         {/* Actions on the right */}
         <div className="flex items-center gap-3">
-          <button onClick={() => onNavigate('notifications')} className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-bg-base text-text-muted hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer">
+          <button onClick={() => navigate('/dashboard/notifications')} className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-bg-base text-text-muted hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer">
             <Bell className="w-5 h-5" />
             {unreadNotificationsCount > 0 && <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-black rounded-full border-2 border-bg-card flex items-center justify-center shadow-sm">{unreadNotificationsCount > 99 ? '99+' : unreadNotificationsCount}</span>}
           </button>
 
-          <button onClick={() => onNavigate('messages')} className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-bg-base text-text-muted hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer">
+          <button onClick={() => navigate('/dashboard/messages')} className="relative w-10 h-10 flex items-center justify-center rounded-2xl bg-bg-base text-text-muted hover:bg-primary/10 hover:text-primary transition-colors cursor-pointer">
             <MessageCircle className="w-5 h-5" />
             {unreadMessagesCount > 0 && <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-black rounded-full border-2 border-bg-card flex items-center justify-center shadow-sm">{unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}</span>}
           </button>
 
-          <button
-            onClick={onTogglePanel}
-            className={`w-10 h-10 flex items-center justify-center rounded-2xl transition-colors ${showPanel ? 'bg-primary/10 text-primary' : 'bg-bg-base text-text-muted hover:bg-primary/10 hover:text-primary'}`}
-            title={showPanel ? "Hide Sidebar" : "Show Sidebar"}
-          >
-            <PanelRight className="w-5 h-5" />
-          </button>
 
           <button
             onClick={onCreateStory}
@@ -89,7 +81,7 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
         {/* Stories Card */}
         <div className="w-full bg-bg-card rounded-[24px] border border-border-base shadow-[0_8px_30px_rgba(0,0,0,0.02)] p-5 mb-6 transition-colors duration-300">
           <div className="flex items-center justify-between mb-4 px-2">
-            <h2 className="text-[17px] font-bold text-text-base tracking-tight">Stories Nearby</h2>
+            <h2 className="text-[17px] font-bold text-text-base tracking-tight">Stories</h2>
             <div className="flex items-center gap-1">
                <button className="w-7 h-7 flex items-center justify-center rounded-full bg-bg-base text-text-muted hover:text-text-base hover:bg-bg-base/80 transition-colors">
                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
@@ -125,7 +117,7 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
               <div className="w-16 h-16 bg-bg-base rounded-full flex items-center justify-center text-text-muted mb-6">
                 <MapPin className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-bold text-text-base mb-2 tracking-tight">No updates near you</h3>
+              <h3 className="text-xl font-bold text-text-base mb-2 tracking-tight">No updates yet</h3>
               <p className="text-text-muted max-w-xs mb-8 text-sm font-medium">
                 Try following more people or sharing your own moment!
               </p>

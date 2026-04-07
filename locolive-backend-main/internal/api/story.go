@@ -2,7 +2,6 @@ package api
 
 import (
 	"database/sql"
-	"encoding/json"
 	"net/http"
 	"time"
 
@@ -236,8 +235,9 @@ func (server *Server) getConnectionStories(ctx *gin.Context) {
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
 	// Cache key based on user ID
-	cacheKey := "stories:connections:" + authPayload.UserID.String()
+	// cacheKey := "stories:connections:" + authPayload.UserID.String()
 
+	/* // Disable cache for now to ensure instant visibility
 	// Try Redis cache first
 	cachedData, err := server.redis.Get(ctx, cacheKey).Result()
 	if err == nil && cachedData != "" {
@@ -245,6 +245,7 @@ func (server *Server) getConnectionStories(ctx *gin.Context) {
 		ctx.Data(http.StatusOK, "application/json", []byte(cachedData))
 		return
 	}
+	*/
 
 	stories, err := server.store.GetConnectionStories(ctx, authPayload.UserID)
 	if err != nil {
@@ -258,9 +259,11 @@ func (server *Server) getConnectionStories(ctx *gin.Context) {
 		storyResponses[i] = toStoryResponseFromConnection(story)
 	}
 
+	/* // Disable cache for now
 	// Cache for 5 minutes
 	responseJSON, _ := json.Marshal(storyResponses)
 	server.redis.Set(ctx, cacheKey, responseJSON, feedCacheTTL)
+	*/
 
 	ctx.Header("X-Cache", "MISS")
 	ctx.JSON(http.StatusOK, storyResponses)

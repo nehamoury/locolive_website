@@ -117,15 +117,22 @@ SET
   theme = COALESCE(sqlc.narg('theme'), theme),
   profile_visibility = COALESCE(sqlc.narg('profile_visibility'), profile_visibility),
   website_url = COALESCE(sqlc.narg('website_url'), website_url),
-  links = COALESCE(sqlc.narg('links'), links)
+  links = COALESCE(sqlc.narg('links'), links),
+  interests = COALESCE(sqlc.narg('interests'), interests)
 WHERE id = $1
-RETURNING id, username, full_name, avatar_url, bio, banner_url, theme, profile_visibility, website_url, links, created_at;
+RETURNING id, username, full_name, avatar_url, bio, banner_url, theme, profile_visibility, website_url, links, interests, created_at;
 
 -- name: GetUserProfile :one
 SELECT 
-  u.id, u.username, u.full_name, u.avatar_url, u.bio, u.banner_url, u.theme, u.profile_visibility, u.email, u.is_ghost_mode, u.website_url, u.links, u.created_at, u.is_premium, u.last_active_at,
+  u.id, u.username, u.full_name, u.avatar_url, u.bio, u.banner_url, u.theme, u.profile_visibility, u.email, u.is_ghost_mode, u.website_url, u.links, u.interests, u.created_at, u.is_premium, u.last_active_at,
   (SELECT COUNT(*) FROM stories WHERE stories.user_id = u.id) as story_count,
+  (SELECT COUNT(*) FROM posts WHERE posts.user_id = u.id) as post_count,
+  (SELECT COUNT(*) FROM reels WHERE reels.user_id = u.id) as reels_count,
   (SELECT COUNT(*) FROM connections WHERE (connections.requester_id = u.id OR connections.target_id = u.id) AND status = 'accepted') as connection_count,
+  (SELECT COUNT(*) FROM connections WHERE connections.requester_id = u.id AND status = 'accepted') as following_count,
+  (SELECT COUNT(*) FROM connections WHERE connections.target_id = u.id AND status = 'accepted') as followers_count,
+  (SELECT COUNT(DISTINCT viewer_id) FROM profile_views WHERE viewed_user_id = u.id) as total_views,
+  (SELECT COUNT(*) FROM crossings WHERE crossings.user_id_1 = u.id OR crossings.user_id_2 = u.id) as crossings_count,
   CASE
     WHEN DATE(u.last_active_at) < CURRENT_DATE - INTERVAL '1 day' THEN 0
     ELSE u.activity_streak

@@ -43,6 +43,21 @@ WHERE ST_DWithin(r.geom, ST_SetSRID(ST_MakePoint(sqlc.arg(lng)::float, sqlc.arg(
 ORDER BY distance_meters ASC
 LIMIT $1 OFFSET $2;
 
+-- name: ListUserReels :many
+SELECT 
+    r.id, r.user_id, r.video_url, r.caption, r.is_ai_generated, r.location_name, r.geohash,
+    COALESCE(ST_Y(r.geom::geometry)::float8, 0.0)::float8 AS lat, COALESCE(ST_X(r.geom::geometry)::float8, 0.0)::float8 AS lng,
+    r.likes_count, r.comments_count, r.shares_count, r.saves_count, r.created_at, r.updated_at,
+    u.username,
+    u.avatar_url,
+    EXISTS (SELECT 1 FROM reel_likes rl WHERE rl.reel_id = r.id AND rl.user_id = sqlc.arg(viewer_id)) AS is_liked,
+    EXISTS (SELECT 1 FROM reel_saves rs WHERE rs.reel_id = r.id AND rs.user_id = sqlc.arg(viewer_id)) AS is_saved
+FROM reels r
+JOIN users u ON r.user_id = u.id
+WHERE r.user_id = sqlc.arg(user_id)
+ORDER BY r.created_at DESC
+LIMIT $1 OFFSET $2;
+
 -- name: LikeReel :one
 INSERT INTO reel_likes (reel_id, user_id)
 VALUES ($1, $2)

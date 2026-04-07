@@ -471,6 +471,99 @@ func (q *Queries) ListReelsFeed(ctx context.Context, arg ListReelsFeedParams) ([
 	return items, nil
 }
 
+const listUserReels = `-- name: ListUserReels :many
+SELECT 
+    r.id, r.user_id, r.video_url, r.caption, r.is_ai_generated, r.location_name, r.geohash,
+    COALESCE(ST_Y(r.geom::geometry)::float8, 0.0)::float8 AS lat, COALESCE(ST_X(r.geom::geometry)::float8, 0.0)::float8 AS lng,
+    r.likes_count, r.comments_count, r.shares_count, r.saves_count, r.created_at, r.updated_at,
+    u.username,
+    u.avatar_url,
+    EXISTS (SELECT 1 FROM reel_likes rl WHERE rl.reel_id = r.id AND rl.user_id = $3) AS is_liked,
+    EXISTS (SELECT 1 FROM reel_saves rs WHERE rs.reel_id = r.id AND rs.user_id = $3) AS is_saved
+FROM reels r
+JOIN users u ON r.user_id = u.id
+WHERE r.user_id = $4
+ORDER BY r.created_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type ListUserReelsParams struct {
+	Limit    int32     `json:"limit"`
+	Offset   int32     `json:"offset"`
+	ViewerID uuid.UUID `json:"viewer_id"`
+	UserID   uuid.UUID `json:"user_id"`
+}
+
+type ListUserReelsRow struct {
+	ID            uuid.UUID      `json:"id"`
+	UserID        uuid.UUID      `json:"user_id"`
+	VideoUrl      string         `json:"video_url"`
+	Caption       sql.NullString `json:"caption"`
+	IsAiGenerated bool           `json:"is_ai_generated"`
+	LocationName  sql.NullString `json:"location_name"`
+	Geohash       sql.NullString `json:"geohash"`
+	Lat           float64        `json:"lat"`
+	Lng           float64        `json:"lng"`
+	LikesCount    int32          `json:"likes_count"`
+	CommentsCount int32          `json:"comments_count"`
+	SharesCount   int32          `json:"shares_count"`
+	SavesCount    int32          `json:"saves_count"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	Username      string         `json:"username"`
+	AvatarUrl     sql.NullString `json:"avatar_url"`
+	IsLiked       bool           `json:"is_liked"`
+	IsSaved       bool           `json:"is_saved"`
+}
+
+func (q *Queries) ListUserReels(ctx context.Context, arg ListUserReelsParams) ([]ListUserReelsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listUserReels,
+		arg.Limit,
+		arg.Offset,
+		arg.ViewerID,
+		arg.UserID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListUserReelsRow
+	for rows.Next() {
+		var i ListUserReelsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.VideoUrl,
+			&i.Caption,
+			&i.IsAiGenerated,
+			&i.LocationName,
+			&i.Geohash,
+			&i.Lat,
+			&i.Lng,
+			&i.LikesCount,
+			&i.CommentsCount,
+			&i.SharesCount,
+			&i.SavesCount,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Username,
+			&i.AvatarUrl,
+			&i.IsLiked,
+			&i.IsSaved,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const saveReel = `-- name: SaveReel :one
 INSERT INTO reel_saves (reel_id, user_id)
 VALUES ($1, $2)
