@@ -3,6 +3,7 @@ import { Heart, MessageSquare, Share2, MapPin, MoreHorizontal, Trash2, Volume2, 
 import { motion } from 'framer-motion';
 import api from '../../services/api';
 import { useSound } from '../../context/SoundContext';
+import { nullString } from '../../utils/string';
 
 interface PostCardProps {
   post: any;
@@ -20,7 +21,7 @@ const timeAgo = (date: string) => {
   return new Date(date).toLocaleDateString('en', { month: 'short', day: 'numeric' });
 };
 
-const BACKEND = 'http://localhost:8080';
+import { BACKEND } from '../../utils/config';
 
 const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageClick }) => {
   const [liked, setLiked] = useState<boolean>(post.liked_by_viewer ?? false);
@@ -31,16 +32,10 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
   const { isMuted, toggleMute } = useSound();
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Normalize NullString objects from Go backend ({ String: "...", Valid: true })
-  const caption = typeof post.caption === 'object' && post.caption !== null
-    ? (post.caption.String || '')
-    : (post.caption || '');
-  const locationName = typeof post.location_name === 'object' && post.location_name !== null
-    ? (post.location_name.String || '')
-    : (post.location_name || '');
-  const avatarUrl = typeof post.avatar_url === 'object' && post.avatar_url !== null
-    ? (post.avatar_url.String || '')
-    : (post.avatar_url || '');
+  // Normalize NullString objects from Go backend
+  const caption = nullString(post.caption);
+  const locationName = nullString(post.location_name);
+  const avatarUrl = nullString(post.avatar_url);
 
   const hashtags = caption.match(/#[a-z0-9_]+/gi) || [];
   const cleanCaption = caption.replace(/#[a-z0-9_]+/gi, '').trim();

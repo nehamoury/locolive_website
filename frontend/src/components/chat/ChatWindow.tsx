@@ -15,6 +15,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '../../hooks/useChat';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { useNotifications } from '../../hooks/useNotifications';
+import { BACKEND } from '../../utils/config';
 
 interface ChatWindowProps {
   receiverId: string;
@@ -23,8 +25,9 @@ interface ChatWindowProps {
 }
 
 const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) => {
-  const { user } = useAuth();
+   const { user } = useAuth();
   const { messages, sendMessage, sendTyping, isTyping } = useChat(receiverId);
+  const { playSendSound } = useNotifications();
   const [content, setContent] = useState('');
   const [recipient, setRecipient] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -49,10 +52,11 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
     fetchRecipient();
   }, [receiverId]);
 
-  const handleSend = (e: React.FormEvent) => {
+   const handleSend = (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim()) return;
     sendMessage(content);
+    playSendSound();
     setContent('');
   };
 
@@ -83,7 +87,7 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
               <div className="w-12 h-12 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 to-purple-500">
                 <div className="w-full h-full rounded-full bg-white overflow-hidden border-2 border-white">
                   {recipient?.avatar_url ? (
-                    <img src={recipient.avatar_url.startsWith('http') ? recipient.avatar_url : `http://localhost:8080${recipient.avatar_url}`} alt="" className="w-full h-full object-cover" />
+                    <img src={recipient.avatar_url.startsWith('http') ? recipient.avatar_url : `${BACKEND}${recipient.avatar_url}`} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center font-bold text-gray-400 uppercase">{recipient?.username?.charAt(0)}</div>
                   )}
@@ -160,7 +164,7 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
                       {!isMe && (
                         <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 shrink-0 mt-auto mb-1">
                           {senderAvatar ? (
-                            <img src={senderAvatar.startsWith('http') ? senderAvatar : `http://localhost:8080${senderAvatar}`} alt="" className="w-full h-full object-cover" />
+                            <img src={senderAvatar.startsWith('http') ? senderAvatar : `${BACKEND}${senderAvatar}`} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-[10px] font-black text-gray-400 uppercase">{senderName?.charAt(0)}</div>
                           )}

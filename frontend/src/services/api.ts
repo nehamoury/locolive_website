@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+const getApiBaseURL = () => {
+  const hostname = window.location.hostname;
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const baseURL = isLocalhost ? 'http://localhost:8080' : `http://${hostname}:8080`;
+  return baseURL;
+};
+
 const api = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: getApiBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },

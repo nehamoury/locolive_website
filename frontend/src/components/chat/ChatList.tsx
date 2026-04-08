@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { Search } from 'lucide-react';
+import { BACKEND } from '../../utils/config';
 
 interface Conversation {
   id: string;
@@ -20,6 +21,7 @@ interface ChatListProps {
 const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'All' | 'Unread' | 'Groups'>('All');
 
   useEffect(() => {
     const fetchConversations = async () => {
@@ -44,10 +46,16 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
   }, [selectedId]);
 
 
-  const filtered = conversations.filter(c =>
-    (c.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (c.username || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filtered = conversations.filter(c => {
+    const matchesSearch = (c.full_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (c.username || '').toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (!matchesSearch) return false;
+
+    if (activeTab === 'Unread') return c.unread_count > 0;
+    if (activeTab === 'Groups') return false; // Placeholder: No groups logic yet
+    return true;
+  });
 
 
   return (
@@ -71,11 +79,15 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
       {/* Pill Tabs */}
       <div className="px-6 mb-6">
         <div className="flex items-center gap-1.5 p-1 bg-gray-50/50 rounded-2xl border border-gray-100/50">
-          {['All', 'Unread', 'Groups'].map((tab) => (
+          {(['All', 'Unread', 'Groups'] as const).map((tab) => (
             <button
               key={tab}
-              className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${tab === 'All' ? 'bg-white text-gray-900 shadow-sm border border-gray-100/50' : 'text-gray-400 hover:text-gray-600'
-                }`}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                activeTab === tab 
+                  ? 'bg-white text-gray-900 shadow-sm border border-gray-100/50' 
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
             >
               {tab}
             </button>
@@ -91,7 +103,9 @@ const ChatList = ({ onSelect, selectedId }: ChatListProps) => {
           ))
         ) : (
           <div className="py-20 text-center px-10 opacity-30">
-            <p className="text-[10px] font-black uppercase tracking-widest">No results</p>
+            <p className="text-[10px] font-black uppercase tracking-widest">
+              {activeTab === 'Unread' ? 'No unread messages' : activeTab === 'Groups' ? 'No groups yet' : 'No results'}
+            </p>
           </div>
         )}
       </div>
@@ -113,7 +127,7 @@ const ChatItem = ({ conv, isSelected, onClick }: any) => {
         <div className="w-14 h-14 rounded-full overflow-hidden bg-gray-100 p-[2px] bg-gradient-to-tr from-pink-500 to-purple-500">
           <div className="w-full h-full rounded-full bg-white overflow-hidden border-2 border-white">
             {conv.avatar_url ? (
-              <img src={conv.avatar_url.startsWith('http') ? conv.avatar_url : `http://localhost:8080${conv.avatar_url}`} alt="" className="w-full h-full object-cover" />
+              <img src={conv.avatar_url.startsWith('http') ? conv.avatar_url : `${BACKEND}${conv.avatar_url}`} alt="" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center font-bold text-gray-400 uppercase">{initial}</div>
             )}

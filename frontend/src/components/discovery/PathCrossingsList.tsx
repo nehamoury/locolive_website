@@ -1,4 +1,5 @@
 import React from 'react';
+import { BACKEND } from '../../utils/config';
 
 interface Crossing {
   user_id: string;
@@ -51,7 +52,7 @@ export const PathCrossingsList: React.FC<PathCrossingsListProps> = ({ crossings,
                 <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-primary/5 to-accent/5 shadow-lg shadow-primary/5 group-hover:from-primary group-hover:to-accent transition-all duration-300">
                   <div className="w-full h-full rounded-full bg-bg-card overflow-hidden flex items-center justify-center border-2 border-bg-card">
                     {c.avatar_url ? (
-                      <img src={`http://localhost:8080${c.avatar_url}`} className="w-full h-full object-cover" alt="" />
+                      <img src={`${BACKEND}${c.avatar_url}`} className="w-full h-full object-cover" alt="" />
                     ) : (
                       <span className="font-bold text-primary text-lg italic">{(c.username?.charAt(0) || 'U').toUpperCase()}</span>
                     )}

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import StoryViewer from '../../components/story/StoryViewer';
 import Highlights from '../../components/profile/Highlights';
+import { BACKEND } from '../../utils/config';
 
 interface UserProfileViewProps {
   userId: string;
@@ -99,7 +100,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
       {/* ─── Hero Header ─── */}
       <div className="relative h-64 w-full bg-gradient-to-br from-[#f0f9ff] to-[#e0f2fe] overflow-hidden">
         {profile.cover_url ? (
-          <img src={`http://localhost:8080${profile.cover_url}`} className="w-full h-full object-cover" alt="Cover" />
+          <img src={`${BACKEND}${profile.cover_url}`} className="w-full h-full object-cover" alt="Cover" />
         ) : (
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-100/40 via-transparent to-transparent" />
         )}
@@ -130,7 +131,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                 <div className="w-full h-full rounded-[28px] bg-gradient-to-tr from-primary to-accent p-1">
                   <div className="w-full h-full rounded-[24px] bg-bg-card overflow-hidden flex items-center justify-center">
                     {profile.avatar_url ? (
-                      <img src={`http://localhost:8080${profile.avatar_url}`} className="w-full h-full object-cover" alt="" />
+                      <img src={`${BACKEND}${profile.avatar_url}`} className="w-full h-full object-cover" alt="" />
                     ) : (
                       <span className="text-4xl font-black text-primary italic">{avatarLetter}</span>
                     )}
@@ -239,7 +240,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                         onClick={() => setViewingStoryIndex(idx)}
                         className="aspect-[9/16] bg-bg-sidebar rounded-[24px] overflow-hidden relative cursor-pointer group border border-border-base"
                       >
-                        <img src={`http://localhost:8080${story.media_url}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
+                        <img src={`${BACKEND}${story.media_url}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="" />
                         <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/60 to-transparent">
                            <div className="flex items-center gap-1.5 text-white/90">
                               <Heart className="w-3 h-3 fill-pink-500 text-pink-500" />
@@ -269,7 +270,7 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
                         className="aspect-[9/16] bg-bg-sidebar rounded-[24px] overflow-hidden relative group border border-border-base"
                       >
                         <video
-                          src={`http://localhost:8080${reel.video_url}`}
+                          src={`${BACKEND}${reel.video_url}`}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           poster={reel.thumbnail}
                         />

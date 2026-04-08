@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Star, Heart, MapPin, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { BACKEND } from '../../utils/config';
 
 interface PeopleNearbyCardProps {
   user: {
@@ -48,7 +49,7 @@ export const PeopleNearbyCard: React.FC<PeopleNearbyCardProps> = ({
                <div className="w-full h-full rounded-full bg-bg-base overflow-hidden relative">
                 {user.avatar_url ? (
                     <img 
-                      src={`http://localhost:8080${user.avatar_url}`} 
+                      src={`${BACKEND}${user.avatar_url}`} 
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
                       alt={user.username} 
                     />

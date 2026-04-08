@@ -1,6 +1,7 @@
 import React, { useState, useEffect, type FC } from 'react';
 import { Heart, UserPlus, MapPin, Bell, Eye, MessageCircle, ThumbsUp } from 'lucide-react';
 import api from '../../services/api';
+import { BACKEND } from '../../utils/config';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -99,7 +100,7 @@ const NotifCard = ({
         >
           {notif.actor_avatar_url ? (
             <img
-              src={notif.actor_avatar_url.startsWith('http') ? notif.actor_avatar_url : `http://localhost:8080${notif.actor_avatar_url}`}
+              src={notif.actor_avatar_url.startsWith('http') ? notif.actor_avatar_url : `${BACKEND}${notif.actor_avatar_url}`}
               alt={notif.actor_full_name || '?'}
               className="w-full h-full object-cover"
             />

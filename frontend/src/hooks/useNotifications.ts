@@ -4,6 +4,9 @@ import toast from 'react-hot-toast';
 import { useSound } from '../context/SoundContext';
 
 const CROSSING_SOUND_URL = 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3';
+const MSG_RECEIVE_URL = 'https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3';
+const MSG_SEND_URL = 'https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3';
+
 const WS_RECONNECT_BASE_MS = 3000;
 const WS_RECONNECT_MAX_MS = 30000;
 const UNREAD_POLL_INTERVAL = 30000; // Poll unread counts every 30s as fallback
@@ -19,16 +22,23 @@ interface Notification {
 export const useNotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
+  
   const socketRef = useRef<WebSocket | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const crossingAudioRef = useRef<HTMLAudioElement | null>(null);
+  const receiveAudioRef = useRef<HTMLAudioElement | null>(null);
+  const sendAudioRef = useRef<HTMLAudioElement | null>(null);
+  
   const seenNotifIds = useRef<Set<string>>(new Set());
   const reconnectAttemptRef = useRef(0);
   const { alertsEnabled, toggleAlerts } = useSound();
 
   useEffect(() => {
-    audioRef.current = new Audio(CROSSING_SOUND_URL);
+    crossingAudioRef.current = new Audio(CROSSING_SOUND_URL);
+    receiveAudioRef.current = new Audio(MSG_RECEIVE_URL);
+    sendAudioRef.current = new Audio(MSG_SEND_URL);
   }, []);
 
   const fetchUnreadCount = useCallback(async () => {
@@ -49,10 +59,27 @@ export const useNotifications = () => {
     }
   }, []);
 
-  const playAlertSound = useCallback(() => {
-    if (alertsEnabled && audioRef.current) {
-      audioRef.current.play().catch(e => {
-        console.log('[Notifications] Audio play failed:', e);
+  const fetchPendingRequestsCount = useCallback(async () => {
+    try {
+      const res = await api.get('/connections/requests');
+      setPendingRequestsCount(Array.isArray(res.data) ? res.data.length : 0);
+    } catch (err) {
+      console.error('[Notifications] Failed to fetch pending requests:', err);
+    }
+  }, []);
+
+  const playSound = useCallback((type: 'crossing' | 'receive' | 'send') => {
+    if (!alertsEnabled) return;
+
+    let audio: HTMLAudioElement | null = null;
+    if (type === 'crossing') audio = crossingAudioRef.current;
+    if (type === 'receive') audio = receiveAudioRef.current;
+    if (type === 'send') audio = sendAudioRef.current;
+
+    if (audio) {
+      audio.currentTime = 0;
+      audio.play().catch(e => {
+        console.log(`[Notifications] Audio play failed (${type}):`, e);
         if (e.name === 'NotAllowedError') {
           toast.error('Enable sound in settings', { id: 'audio-blocked' });
         }
@@ -73,16 +100,18 @@ export const useNotifications = () => {
   useEffect(() => {
     fetchUnreadCount();
     fetchUnreadMessagesCount();
-  }, [fetchUnreadCount, fetchUnreadMessagesCount]);
+    fetchPendingRequestsCount();
+  }, [fetchUnreadCount, fetchUnreadMessagesCount, fetchPendingRequestsCount]);
 
-  // Periodic polling fallback for unread counts
+  // Periodic polling fallback
   useEffect(() => {
     const intervalId = setInterval(() => {
       fetchUnreadCount();
       fetchUnreadMessagesCount();
+      fetchPendingRequestsCount();
     }, UNREAD_POLL_INTERVAL);
     return () => clearInterval(intervalId);
-  }, [fetchUnreadCount, fetchUnreadMessagesCount]);
+  }, [fetchUnreadCount, fetchUnreadMessagesCount, fetchPendingRequestsCount]);
 
   // WebSocket connection with exponential backoff
   useEffect(() => {
@@ -100,22 +129,18 @@ export const useNotifications = () => {
       if (!isSubscribed) return;
 
       setWsStatus('connecting');
-      console.log('[WS] Connecting...');
       const ws = new WebSocket(wsUrl);
       socketRef.current = ws;
 
       ws.onopen = () => {
         setWsStatus('connected');
-        reconnectAttemptRef.current = 0; // Reset backoff on success
-        console.log('[WS] Connected successfully');
+        reconnectAttemptRef.current = 0;
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('[WS] Event received:', data.type, data);
-
-          // ── Handle new_message ──────────────────────────────────
+          
           if (data.type === 'new_message') {
             fetchUnreadMessagesCount();
 
@@ -124,127 +149,70 @@ export const useNotifications = () => {
               if (token) {
                 const payloadStr = atob(token.split('.')[1]);
                 const jwtPayload = JSON.parse(payloadStr);
-                if (jwtPayload.user_id === data.sender_id) {
-                  isMe = true;
-                }
+                if (jwtPayload.user_id === data.sender_id) isMe = true;
               }
-            } catch (e) {
-              console.error('[WS] Failed to decode token for sender check', e);
-            }
+            } catch (e) {}
 
             if (isMe) return;
 
-            playAlertSound();
+            playSound('receive');
             toast(`New message received! 💬`, {
               duration: 3000,
-              style: {
-                borderRadius: '20px',
-                background: '#FFF',
-                color: '#333',
+              style: { 
+                borderRadius: '20px', 
+                background: '#FFF', 
+                color: '#333', 
                 fontWeight: 'bold',
-                border: '1px solid #E5E7EB',
+                border: '1px solid #E5E7EB'
               },
             });
             return;
           }
 
-          // ── Handle nearby_user_update ───────────────────────────
-          if (data.type === 'nearby_user_update') {
-            const payload = data.payload;
-            console.log('[WS] Nearby user update:', payload?.username, `${payload?.distance?.toFixed(2)}km`);
-
-            // Dispatch custom event for MapPage to react
-            window.dispatchEvent(new CustomEvent('nearby_user_update', { detail: payload }));
-            return;
-          }
-
-          // ── Handle user_left_radius ────────────────────────────
-          if (data.type === 'user_left_radius') {
-            const payload = data.payload;
-            console.log('[WS] User left radius:', payload?.user_id);
-
-            window.dispatchEvent(new CustomEvent('user_left_radius', { detail: payload }));
-            return;
-          }
-
-          // ── Handle crossing_detected ───────────────────────────
           if (data.type === 'crossing_detected') {
             const notif = data.payload;
-            console.log('[WS] Crossing detected:', notif?.message);
-
             const notifId = notif?.id || notif?.message;
             if (notifId && seenNotifIds.current.has(notifId)) return;
             if (notifId) seenNotifIds.current.add(notifId);
-            if (seenNotifIds.current.size > 50) seenNotifIds.current.clear();
 
-            toast(notif.message, {
-              id: notifId,
+            toast(notif.message, { 
+              id: notifId, 
               icon: '📍',
-              duration: 5000,
-              style: {
-                borderRadius: '20px',
-                background: '#FFF',
-                color: '#333',
+              style: { 
+                borderRadius: '20px', 
+                background: '#FFF', 
+                color: '#333', 
                 fontWeight: 'bold',
-                border: '1px solid #FBCFE8',
-              },
+                border: '1px solid #FBCFE8'
+              }
             });
-
-            playAlertSound();
+            playSound('crossing');
             setUnreadCount(prev => prev + 1);
             setNotifications(prev => [notif, ...prev]);
-
-            // Dispatch for MapPage
             window.dispatchEvent(new CustomEvent('crossing_detected', { detail: notif }));
             return;
           }
 
-          // ── Handle nearby_story ────────────────────────────────
-          if (data.type === 'nearby_story') {
-            const notif = data.payload;
-            const notifId = notif?.id || notif?.message;
-            if (notifId && seenNotifIds.current.has(notifId)) return;
-            if (notifId) seenNotifIds.current.add(notifId);
-            if (seenNotifIds.current.size > 50) seenNotifIds.current.clear();
-
-            toast(notif.message, {
-              id: notifId,
-              icon: '✨',
-              duration: 5000,
-              style: {
-                borderRadius: '20px',
-                background: '#FFF',
-                color: '#333',
+          if (data.type === 'connection_request') {
+             fetchPendingRequestsCount();
+             toast('New Connection Request! 🤝', { 
+               icon: '✨',
+               style: { 
+                borderRadius: '20px', 
+                background: '#FFF', 
+                color: '#333', 
                 fontWeight: 'bold',
-                border: '1px solid #FBCFE8',
-              },
-            });
-
-            setUnreadCount(prev => prev + 1);
-            setNotifications(prev => [notif, ...prev]);
-            return;
+                border: '1px solid #E5E7EB'
+              }
+             });
+             playSound('receive');
+             return;
           }
 
-          // ── Handle connection_accepted ─────────────────────────
           if (data.type === 'connection_accepted') {
-            const payload = data.payload;
-            const notifId = `conn-acc-${payload.id || Date.now()}`;
-            
-            if (seenNotifIds.current.has(notifId)) return;
-            seenNotifIds.current.add(notifId);
-
-            toast.success(`You are now connected! 🤝`, {
-              id: notifId,
-              duration: 5000,
-              style: {
-                borderRadius: '20px',
-                background: '#FFF',
-                color: '#333',
-                fontWeight: 'bold',
-                border: '1px solid #FBCFE8',
-              },
-            });
-            window.dispatchEvent(new CustomEvent('connection_accepted', { detail: payload }));
+            fetchPendingRequestsCount();
+            toast.success(`You are now connected! 🤝`);
+            window.dispatchEvent(new CustomEvent('connection_accepted', { detail: data.payload }));
             return;
           }
         } catch (err) {
@@ -255,19 +223,13 @@ export const useNotifications = () => {
       ws.onclose = () => {
         setWsStatus('disconnected');
         if (!isSubscribed) return;
-
         const attempt = reconnectAttemptRef.current;
         const delay = Math.min(WS_RECONNECT_BASE_MS * Math.pow(2, attempt), WS_RECONNECT_MAX_MS);
         reconnectAttemptRef.current = attempt + 1;
-
-        console.log(`[WS] Disconnected. Reconnecting in ${delay}ms (attempt ${attempt + 1})...`);
         reconnectTimeout = setTimeout(connect, delay);
       };
 
-      ws.onerror = (err) => {
-        console.error('[WS] Error:', err);
-        ws.close();
-      };
+      ws.onerror = () => ws.close();
     };
 
     connect();
@@ -275,31 +237,23 @@ export const useNotifications = () => {
     return () => {
       isSubscribed = false;
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
-
-      const socket = socketRef.current;
-      if (socket) {
-        try {
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.close();
-          }
-        } catch (err) {
-          console.warn('[WS] Silent cleanup error:', err);
-        }
-        socketRef.current = null;
-      }
+      if (socketRef.current) socketRef.current.close();
     };
-  }, [fetchUnreadCount, fetchUnreadMessagesCount, playAlertSound]);
+  }, [fetchUnreadCount, fetchUnreadMessagesCount, fetchPendingRequestsCount, playSound]);
 
   return {
     unreadCount,
     unreadMessagesCount,
+    pendingRequestsCount,
     notifications,
     wsStatus,
     audioEnabled: alertsEnabled,
     toggleAudio,
+    playSendSound: () => playSound('send'),
     refreshUnread: () => {
       fetchUnreadCount();
       fetchUnreadMessagesCount();
+      fetchPendingRequestsCount();
     }
   };
 };

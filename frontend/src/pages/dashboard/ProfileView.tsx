@@ -3,12 +3,13 @@ import { Settings, Grid3x3, Heart, Bookmark, Footprints, Star, Plus, ChevronRigh
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import EditProfileModal from './EditProfileModal';
+import { nullString } from '../../utils/string';
 
 interface ProfileViewProps {
   onLogout?: () => void;
 }
 
-const BACKEND = 'http://localhost:8080';
+import { BACKEND } from '../../utils/config';
 
 const ProfileView: React.FC<ProfileViewProps> = () => {
   const { user } = useAuth();
@@ -192,7 +193,7 @@ const ProfileView: React.FC<ProfileViewProps> = () => {
                     <div key={post.id} className="aspect-square bg-primary/5 rounded-lg overflow-hidden relative group cursor-pointer">
                       {post.media_type === 'text' ? (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50 p-2">
-                          <p className="text-[10px] font-medium text-black/60 line-clamp-4 text-center">{post.caption}</p>
+                          <p className="text-[10px] font-medium text-black/60 line-clamp-4 text-center">{nullString(post.caption)}</p>
                         </div>
                       ) : (
                         <img src={post.media_url?.startsWith('http') ? post.media_url : `${BACKEND}${post.media_url}`} alt="" className="w-full h-full object-cover" />
@@ -221,7 +222,7 @@ const ProfileView: React.FC<ProfileViewProps> = () => {
                         <img src={story.media_url.startsWith('http') ? story.media_url : `${BACKEND}${story.media_url}`} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50 p-2">
-                          <p className="text-[10px] text-black/50 text-center line-clamp-4">{story.caption}</p>
+                          <p className="text-[10px] text-black/50 text-center line-clamp-4">{nullString(story.caption)}</p>
                         </div>
                       )}
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

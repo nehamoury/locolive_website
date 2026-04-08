@@ -2,6 +2,7 @@ import { useState, type FC } from 'react';
 import { X, Camera, Loader2, Save } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { BACKEND } from '../../utils/config';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -89,7 +90,7 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose }) => {
                 {avatarPreview ? (
                   <img src={avatarPreview} alt="Avatar Preview" className="w-full h-full object-cover" />
                 ) : user?.avatar_url ? (
-                  <img src={`http://localhost:8080${user.avatar_url}`} alt="Current Avatar" className="w-full h-full object-cover" />
+                  <img src={`${BACKEND}${user.avatar_url}`} alt="Current Avatar" className="w-full h-full object-cover" />
                 ) : (
                   user?.full_name?.charAt(0) || 'U'
                 )}

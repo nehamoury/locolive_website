@@ -201,10 +201,10 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
             <div className="max-w-[1200px] mx-auto px-4 md:px-8 pt-6 md:pt-10 space-y-6">
                 
                 {/* 1. Header Card */}
-                <div className="bg-white/60 dark:bg-bg-card/40 backdrop-blur-3xl rounded-[40px] p-6 md:p-8 border border-white/40 dark:border-white/5 shadow-[0_8px_30px_rgb(200,100,200,0.1)] dark:shadow-none flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
-                    <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+                <div className="bg-white/60 dark:bg-bg-card/40 backdrop-blur-3xl rounded-[32px] md:rounded-[40px] p-6 md:p-8 border border-white/40 dark:border-white/5 shadow-[0_8px_30px_rgb(200,100,200,0.1)] dark:shadow-none flex flex-col md:flex-row items-center md:items-start justify-between gap-6">
+                    <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left w-full">
                         <div 
-                            className="relative group cursor-pointer"
+                            className="relative group cursor-pointer shrink-0"
                             onClick={() => setIsEditModalOpen(true)}
                         >
                             <div className="w-24 h-24 md:w-32 md:h-32 rounded-full p-[3px] bg-gradient-to-tr from-pink-400 to-fuchsia-300 shadow-lg shadow-pink-500/10">
@@ -214,7 +214,6 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
                                         alt="avatar"
                                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                      />
-                                     {/* Pro Max Hover Overlay */}
                                      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
                                         <Camera className="w-8 h-8 text-white scale-75 group-hover:scale-100 transition-transform duration-500" />
                                      </div>
@@ -222,26 +221,47 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
                             </div>
                             <div className="absolute -bottom-1 translate-x-1/2 right-1/2 md:translate-x-0 md:right-3 bg-white dark:bg-bg-card px-2.5 py-1 rounded-full border border-white/50 dark:border-white/10 flex items-center gap-1.5 shadow-sm z-10 transition-transform group-hover:scale-110">
                                 <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgb(52,211,153)] animate-pulse" />
-                                <span className="text-[9px] font-black tracking-widest uppercase text-emerald-500">Online</span>
+                                <span className="text-[9px] font-black tracking-widest uppercase text-emerald-500">Live</span>
                             </div>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-4 w-full max-w-lg">
                             <div>
-                                <h1 className="text-3xl md:text-4xl font-black text-slate-800 dark:text-text-base tracking-tight">{profile?.full_name}</h1>
+                                <h1 className="text-2xl md:text-4xl font-black text-slate-800 dark:text-text-base tracking-tight">{profile?.full_name}</h1>
                                 <p className="text-sm font-bold text-slate-500 dark:text-text-muted mt-0.5">@{profile?.username}</p>
                             </div>
-                            <p className="text-sm font-medium text-slate-600 dark:text-text-base/80 flex items-center gap-2 justify-center md:justify-start">
+                            <p className="text-sm font-medium text-slate-600 dark:text-text-base/80 leading-relaxed">
                                 {profile?.bio || "Coffee enthusiast ☕ · Travel lover 🗺️ · Exploring..."}
                             </p>
                             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-text-muted justify-center md:justify-start pt-1">
                                 <Navigation className="w-3.5 h-3.5" /> 
                                 Bangalore {profile?.DistanceKm !== undefined ? `• ${profile.DistanceKm.toFixed(1)}km away` : '• 1.2km away'}
                             </div>
+
+                            <div className="flex md:hidden items-center justify-center gap-3 pt-2">
+                                <button 
+                                    onClick={() => handleToggleGhost()}
+                                    className={cn(
+                                        "flex items-center gap-2 px-6 py-3 rounded-full border transition-all text-xs font-black uppercase shadow-sm whitespace-nowrap",
+                                        profile?.is_ghost_mode 
+                                            ? "bg-fuchsia-500 text-white border-fuchsia-400" 
+                                            : "bg-white/80 dark:bg-white/5 border-white/40 dark:border-white/10 text-slate-500"
+                                    )}
+                                >
+                                    <Ghost className={cn("w-4 h-4", profile?.is_ghost_mode && "animate-pulse")} />
+                                    Ghost Mode
+                                </button>
+                                <button 
+                                    onClick={() => navigate('/dashboard/settings')}
+                                    className="p-3 rounded-full bg-white dark:bg-white/5 border border-white/40 dark:border-white/10 text-slate-500 shadow-sm"
+                                >
+                                    <Settings className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="hidden md:flex flex-col items-center gap-3">
                         <button 
                             onClick={() => handleToggleGhost()}
                             className={cn(
@@ -408,7 +428,7 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
 
                         {/* TAB CONTENT: BENTO GRID FOR POSTS */}
                         {activeTab === 'moments' && (
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-[200px]">
+                            <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 auto-rows-[160px] xs:auto-rows-[200px]">
                                 {posts.length > 0 ? (
                                     posts.map((post, index) => {
                                         const isFeatured = index % 5 === 0;

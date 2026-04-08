@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, type FC } from 'react';
 import { Search, X, Check } from 'lucide-react';
 import api from '../../services/api';
+import { BACKEND } from '../../utils/config';
 
 interface SearchViewProps {
   onUserSelect?: (userId: string) => void;
@@ -147,7 +148,7 @@ const SearchView: FC<SearchViewProps> = ({ onUserSelect }) => {
                     ${!user.avatar_url ? col : ''}`}
                   >
                     {user.avatar_url ? (
-                        <img src={`http://localhost:8080${user.avatar_url}`} alt="" className="w-full h-full object-cover" />
+                        <img src={`${BACKEND}${user.avatar_url}`} alt="" className="w-full h-full object-cover" />
                       ) : (
                         user.username?.charAt(0).toUpperCase()
                       )}

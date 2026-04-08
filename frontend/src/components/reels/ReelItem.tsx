@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, MessageCircle, Share2, Bookmark, MoreVertical, Volume2, VolumeX, MapPin, Sparkles } from 'lucide-react';
 import api from '../../services/api';
+import { BACKEND } from '../../utils/config';
 
 interface Reel {
   id: string;
@@ -84,7 +85,7 @@ const ReelItem = ({ reel, isActive }: ReelItemProps) => {
       {/* Video Background */}
       <video
         ref={videoRef}
-        src={`http://localhost:8080${reel.video_url}`}
+        src={`${BACKEND}${reel.video_url}`}
         className="w-full h-full object-cover"
         loop
         muted={muted}
@@ -193,7 +194,7 @@ const ReelItem = ({ reel, isActive }: ReelItemProps) => {
             <div className="w-14 h-14 rounded-2xl p-[3px] bg-brand-gradient group-hover:scale-105 transition-all">
               <div className="w-full h-full rounded-[13px] border-2 border-black overflow-hidden bg-gray-900">
                 {reel.avatar_url ? (
-                  <img src={`http://localhost:8080${reel.avatar_url}`} alt={reel.username} className="w-full h-full object-cover" />
+                  <img src={`${BACKEND}${reel.avatar_url}`} alt={reel.username} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-white font-black italic text-lg bg-gray-800">
                     {reel.username.charAt(0).toUpperCase()}

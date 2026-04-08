@@ -1,5 +1,6 @@
 import { type FC } from 'react';
 import { Image as ImageIcon, Smile } from 'lucide-react';
+import { BACKEND } from '../../utils/config';
 
 interface PostInputBoxProps {
   user: any;
@@ -10,12 +11,12 @@ const PostInputBox: FC<PostInputBoxProps> = ({ user, onClick }) => {
   return (
     <div 
       onClick={onClick}
-      className="w-full bg-bg-card rounded-full border border-border-base shadow-sm p-2 flex items-center gap-3 cursor-pointer hover:shadow-md transition-all duration-300"
+      className="w-full bg-bg-card rounded-full border border-border-base shadow-sm p-1.5 md:p-2 flex items-center gap-2.5 md:gap-3 cursor-pointer hover:shadow-md transition-all duration-300"
     >
-      <div className="w-10 h-10 rounded-full flex-shrink-0 bg-bg-sidebar flex items-center justify-center overflow-hidden border border-border-base transition-colors">
+      <div className="w-8 h-8 md:w-10 md:h-10 rounded-full flex-shrink-0 bg-bg-sidebar flex items-center justify-center overflow-hidden border border-border-base transition-colors">
         {user?.avatar_url ? (
           <img
-            src={user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8080${user.avatar_url}`}
+            src={user.avatar_url.startsWith('http') ? user.avatar_url : `${BACKEND}${user.avatar_url}`}
             alt="User"
             className="w-full h-full object-cover"
           />

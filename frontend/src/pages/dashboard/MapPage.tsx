@@ -8,6 +8,7 @@ import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import './MapPage.css';
 import { motion, AnimatePresence } from 'framer-motion';
+import { BACKEND } from '../../utils/config';
 import { Ghost, ShieldAlert, Navigation, Star, Heart, MapPin } from 'lucide-react';
 import { MapFilters } from '../../components/map/MapFilters';
 import { UserPreviewCard } from '../../components/map/UserPreviewCard';
@@ -432,7 +433,7 @@ const MapPage = ({ onUserSelect, onConnect, userPosition: externalPosition }: Ma
                         <Marker
                             key={`user-${u.id}`}
                             position={u.coords!}
-                            icon={createOtherUserIcon(u.avatar_url ? (u.avatar_url.startsWith('http') ? u.avatar_url : `http://localhost:8080${u.avatar_url}`) : '', u.username)}
+                            icon={createOtherUserIcon(u.avatar_url ? (u.avatar_url.startsWith('http') ? u.avatar_url : `${BACKEND}${u.avatar_url}`) : '', u.username)}
                             eventHandlers={{ click: () => setSelectedUser({ count: 0, stories: [u], isUserOnly: true }) }}
                         >
                             <Popup className="custom-popup">
@@ -448,7 +449,7 @@ const MapPage = ({ onUserSelect, onConnect, userPosition: externalPosition }: Ma
                         .filter(cluster => cluster.geohash && cluster.coords)
                         .map((cluster) => {
                         const avatar = cluster.stories?.[0]?.avatar_url
-                            ? (cluster.stories[0].avatar_url.startsWith('http') ? cluster.stories[0].avatar_url : `http://localhost:8080${cluster.stories[0].avatar_url}`)
+                            ? (cluster.stories[0].avatar_url.startsWith('http') ? cluster.stories[0].avatar_url : `${BACKEND}${cluster.stories[0].avatar_url}`)
                             : '';
                         const username = cluster.stories?.[0]?.username || 'User';
                         const icon = createStoryMarkerIcon(avatar, username, cluster.count);

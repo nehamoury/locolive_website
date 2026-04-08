@@ -73,6 +73,7 @@
   .text-gradient {
     background: linear-gradient(135deg, #FF006E, #833AB4);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
   }
 
@@ -115,6 +116,29 @@
     animation: status-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
+  /* Responsive & Safe Area Utilities */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 24px);
+  }
+
+  .mobile-card-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6;
+  }
+
+  .mobile-padding {
+    @apply px-4 sm:px-6 md:px-8;
+  }
+
+  /* Contrast Improvements */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 10px 40px -10px rgba(var(--color-primary-rgb), 0.08);
+    background-clip: padding-box;
+  }
+
   @keyframes status-pulse {
     0%, 100% {
       opacity: 1;
@@ -125,4 +149,13 @@
       transform: scale(0.9);
     }
   }
+}
+
+/* Hide scrollbar but allow scrolling */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

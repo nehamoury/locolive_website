@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { X, Heart, ExternalLink, MapPin, Zap } from 'lucide-react';
+import { BACKEND } from '../../utils/config';
 
 interface UserPreviewCardProps {
   user: any;
@@ -15,7 +16,7 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
 
   const userData = user.stories?.[0] || user;
   const avatar = userData.avatar_url 
-    ? (userData.avatar_url.startsWith('http') ? userData.avatar_url : `http://localhost:8080${userData.avatar_url}`) 
+    ? (userData.avatar_url.startsWith('http') ? userData.avatar_url : `${BACKEND}${userData.avatar_url}`) 
     : null;
     
   const distance = userData.distance ? `${Number(userData.distance).toFixed(1)} km away` : 'Nearby';

@@ -144,7 +144,7 @@ type getNearbyUsersRequest struct {
 
 type nearbyUserResponse struct {
 	UserID    string  `json:"id"`
-	Distance  float64 `json:"distance"`
+	Distance  float64 `json:"distance_km"`
 	Latitude  float64 `json:"lat"`
 	Longitude float64 `json:"lng"`
 	Username  string  `json:"username"`
@@ -183,8 +183,13 @@ func (server *Server) getNearbyUsers(ctx *gin.Context) {
 		Int("redis_matches", len(matches)).
 		Msg("[GetNearbyUsers] Redis matches returned")
 
+	seen := make(map[string]bool)
 	rsp := make([]nearbyUserResponse, 0, len(matches))
 	for _, match := range matches {
+		if seen[match.Name] {
+			continue
+		}
+		
 		targetID, err := uuid.Parse(match.Name)
 		if err != nil {
 			continue
@@ -220,6 +225,7 @@ func (server *Server) getNearbyUsers(ctx *gin.Context) {
 			Bio:       bio,
 			Online:    online,
 		})
+		seen[match.Name] = true
 	}
 
 	log.Info().

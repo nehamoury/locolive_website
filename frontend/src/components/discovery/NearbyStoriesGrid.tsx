@@ -1,4 +1,5 @@
 import React from 'react';
+import { BACKEND } from '../../utils/config';
 
 interface Story {
   id: string;
@@ -20,7 +21,7 @@ export const NearbyStoriesGrid: React.FC<NearbyStoriesGridProps> = ({ stories = 
       <div className="grid grid-cols-3 gap-2">
         {stories.slice(0, 9).map((s, i) => (
           <div key={i} className="aspect-square bg-bg-sidebar rounded-2xl overflow-hidden relative group cursor-pointer border border-border-base/50 transition-all hover:scale-[1.02] hover:shadow-lg active:scale-95">
-            {s?.media_url && <img src={`http://localhost:8080${s.media_url}`} className="w-full h-full object-cover relative z-0" alt="" />}
+            {s?.media_url && <img src={`${BACKEND}${s.media_url}`} className="w-full h-full object-cover relative z-0" alt="" />}
             
             {/* Dark overlay for text readability */}
             <div className="absolute z-10 inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-3 opacity-90 transition-opacity">

@@ -1,7 +1,9 @@
 import { useState, type FC } from 'react';
-import { Home, Map as MapIcon, User, Plus, Sparkles, Footprints, Users, LogOut, ChevronLeft, ChevronRight, Zap, Video, MessageSquare } from 'lucide-react';
+import { Home, Compass, User, Plus, Users, LogOut, ChevronLeft, ChevronRight, Video, MessageSquare, Download } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { usePWA } from '../../hooks/usePWA';
+import { BACKEND } from '../../utils/config';
 
 
 interface NavItemProps {
@@ -53,6 +55,7 @@ const Sidebar: FC<SidebarProps> = ({ user, logout, onCreatePost, unreadMessagesC
   const [isCollapsed, setIsCollapsed] = useState(false);
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { isInstallable, installApp } = usePWA();
 
   const activeTab = pathname.split('/').pop() || 'home';
   const setActiveTab = (tab: string) => navigate(`/dashboard/${tab}`);
@@ -93,18 +96,15 @@ const Sidebar: FC<SidebarProps> = ({ user, logout, onCreatePost, unreadMessagesC
         {/* Navigation */}
         <nav className="flex-1 space-y-1 mb-6">
           <NavItem icon={<Home className="w-5 h-5" />} label="Home" active={activeTab === 'home'} onClick={() => setActiveTab('home')} color="text-[#FF4D97]" isCollapsed={isCollapsed} />
-          <NavItem icon={<MapIcon className="w-5 h-5" />} label="Map" active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} color="text-[#FFA94D]" isCollapsed={isCollapsed} />
+          <NavItem icon={<Compass className="w-5 h-5" />} label="Explore" active={activeTab === 'explore'} onClick={() => setActiveTab('explore')} color="text-[#A436EE]" isCollapsed={isCollapsed} />
           <NavItem icon={<MessageSquare className="w-5 h-5" />} label="Messages" active={activeTab === 'messages'} onClick={() => setActiveTab('messages')} color="text-[#339AF0]" isCollapsed={isCollapsed} badge={unreadMessagesCount} />
-          <NavItem icon={<Sparkles className="w-5 h-5" />} label="Discovery" active={activeTab === 'discovery'} onClick={() => setActiveTab('discovery')} color="text-[#A436EE]" isCollapsed={isCollapsed} />
           <NavItem icon={<Video className="w-5 h-5" />} label="Reels" active={activeTab === 'reels'} onClick={() => setActiveTab('reels')} color="text-[#FF006E]" isCollapsed={isCollapsed} />
           <NavItem icon={<Users className="w-5 h-5" />} label="Connections" active={activeTab === 'connections'} onClick={() => setActiveTab('connections')} color="text-[#4DABF7]" isCollapsed={isCollapsed} />
-          <NavItem icon={<Footprints className="w-5 h-5" />} label="Crossings" active={activeTab === 'crossings'} onClick={() => setActiveTab('crossings')} color="text-[#20C997]" isCollapsed={isCollapsed} />
-          <NavItem icon={<Zap className="w-5 h-5" />} label="Casting" active={activeTab === 'casting'} onClick={() => setActiveTab('casting')} color="text-[#FCC419]" isCollapsed={isCollapsed} />
           <NavItem icon={<User className="w-5 h-5" />} label="Profile" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} color="text-[#495057]" isCollapsed={isCollapsed} />
         </nav>
 
         {/* Create Post Button */}
-        <div className="mb-6 flex justify-center px-1">
+        <div className="mb-4 flex justify-center px-1">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -116,6 +116,19 @@ const Sidebar: FC<SidebarProps> = ({ user, logout, onCreatePost, unreadMessagesC
           </motion.button>
         </div>
 
+        {/* PWA Install Button */}
+        {isInstallable && (
+          <div className="mb-4 flex justify-center px-1">
+            <button
+              onClick={installApp}
+              className={`${isCollapsed ? 'w-11 h-11 p-0 rounded-full' : 'w-full py-2.5 px-4 rounded-[20px]'} bg-primary/10 border border-primary/20 flex items-center justify-center gap-2 font-bold text-primary text-[13px] hover:bg-primary/15 transition-all`}
+            >
+              <Download className="w-4 h-4 shrink-0" />
+              {!isCollapsed && <span>Install App</span>}
+            </button>
+          </div>
+        )}
+
         {/* Profile Snippet */}
         <div className="border-t border-border-base pt-4">
           <div className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'justify-start px-1 py-2'} rounded-2xl group select-none relative gap-3`}>
@@ -125,7 +138,7 @@ const Sidebar: FC<SidebarProps> = ({ user, logout, onCreatePost, unreadMessagesC
             >
               <div className="w-full h-full rounded-full bg-bg-sidebar overflow-hidden">
                 {user?.avatar_url ? (
-                  <img src={`http://localhost:8080${user.avatar_url}`} alt="avatar" className="w-full h-full rounded-full object-cover" />
+                  <img src={`${BACKEND}${user.avatar_url}`} alt="avatar" className="w-full h-full rounded-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-primary/5 text-primary font-black text-sm">
                     {user?.username?.charAt(0)?.toUpperCase()}

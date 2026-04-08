@@ -26,7 +26,7 @@ interface CastingGridProps {
 const CastingGrid: FC<CastingGridProps> = ({ users, onMatch, onPass, onViewProfile, loading }) => {
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 p-6">
+      <div className="mobile-card-grid mobile-padding py-6">
         {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
           <div key={i} className="bg-white rounded-[40px] p-4 shadow-sm border border-gray-50 flex flex-col gap-4 animate-pulse">
             <div className="aspect-square rounded-[32px] bg-gray-100" />
@@ -69,7 +69,7 @@ const CastingGrid: FC<CastingGridProps> = ({ users, onMatch, onPass, onViewProfi
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 p-6 pb-24">
+    <div className="mobile-card-grid mobile-padding py-6 pb-24">
       {users.map((user, index) => (
         <motion.div
           key={user.id}

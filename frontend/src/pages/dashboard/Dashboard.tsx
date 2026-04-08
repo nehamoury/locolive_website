@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldAlert, Home, Map as MapIcon, User, MessageSquare, Plus, Bell, Sun, Moon, Users } from 'lucide-react';
+import { ShieldAlert, Home, Map as MapIcon, User, MessageSquare, Plus, Bell, Sun, Moon, Users, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
@@ -18,11 +18,8 @@ import ConnectionsView from './ConnectionsView';
 import SettingsView from './SettingsView';
 import SearchView from './SearchView';
 import MemberProfileDetail from './MemberProfileDetail';
-import CrossingsView from './CrossingsView';
-import ManageHighlights from './ManageHighlights';
-import CastingPage from './CastingPage';
-import MapPage from './MapPage';
-import DiscoveryPage from './DiscoveryPage';
+import { ManageHighlights } from './ManageHighlights';
+import ExplorePage from './ExplorePage';
 import ReelsView from '../../components/reels/ReelsView';
 import { useGeolocation } from '../../hooks/useGeolocation';
 
@@ -101,7 +98,7 @@ const Dashboard = () => {
   
   // Real-time & Location Hooks
   const { position: currentGeoPos } = useGeolocation(true);
-  const { unreadCount: totalUnreadCount, unreadMessagesCount } = useNotifications();
+  const { unreadCount: totalUnreadCount, unreadMessagesCount, pendingRequestsCount } = useNotifications();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateReelModalOpen, setIsCreateReelModalOpen] = useState(false);
@@ -115,7 +112,7 @@ const Dashboard = () => {
   const [showPanicConfirm, setShowPanicConfirm] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showRightSidebar] = useState(true);
-  const [showChatProfile, setShowChatProfile] = useState(false);
+  const [showChatProfile, setShowChatProfile] = useState(true);
 
   // Sidebar Stats State
   const [crossingsCount, setCrossingsCount] = useState<number>(0);
@@ -295,7 +292,7 @@ const Dashboard = () => {
         <Route path="profile" element={<Profile onLogout={logout} />} />
         <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate('/dashboard/profile')} />} />
         <Route path="notifications" element={<NotificationsView onUserSelect={handleUserSelect} />} />
-        <Route path="explore" element={<MapPage onUserSelect={handleUserSelect} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />} />
+        <Route path="explore" element={<ExplorePage onUserSelect={handleUserSelect} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />} />
         <Route path="connections" element={
           <ConnectionsView
             initialTab={activeConnectionTab}
@@ -306,9 +303,9 @@ const Dashboard = () => {
         <Route path="settings" element={<SettingsView onBack={() => navigate('/dashboard/profile')} />} />
         <Route path="search" element={<SearchView onUserSelect={handleUserSelect} />} />
         <Route path="user/:id" element={<MemberProfileWrapper onMessage={handleStartMessage} />} />
-        <Route path="crossings" element={<CrossingsView onUserSelect={handleUserSelect} />} />
-        <Route path="casting" element={<CastingPage />} />
-        <Route path="discovery" element={<DiscoveryPage onUserSelect={handleUserSelect} />} />
+        <Route path="crossings" element={<Navigate to="/dashboard/explore?tab=crossings" replace />} />
+        <Route path="casting" element={<Navigate to="/dashboard/explore?tab=casting" replace />} />
+        <Route path="discovery" element={<Navigate to="/dashboard/explore?tab=all" replace />} />
         <Route path="reels" element={<ReelsView onCreateReel={() => setIsCreateReelModalOpen(true)} />} />
         
         <Route path="messages/*" element={
@@ -320,8 +317,8 @@ const Dashboard = () => {
                   onClick={() => navigate('/dashboard/connections')}
                   className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-gray-500 hover:bg-gray-50 transition-all cursor-pointer"
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${totalUnreadCount > 0 ? 'bg-pink-500 animate-pulse' : 'bg-gray-300'}`} />
-                  {totalUnreadCount > 0 ? `${totalUnreadCount} pending requests` : '0 pending requests'}
+                  <span className={`w-1.5 h-1.5 rounded-full ${pendingRequestsCount > 0 ? 'bg-pink-500 animate-pulse' : 'bg-gray-300'}`} />
+                  {pendingRequestsCount > 0 ? `${pendingRequestsCount} pending requests` : '0 pending requests'}
                 </button>
                 <button
                   onClick={() => navigate('/dashboard/messages')}
@@ -334,19 +331,33 @@ const Dashboard = () => {
             </div>
 
             <div className="flex flex-1 overflow-hidden">
-              <Routes>
-                <Route path=":userId" element={
-                   <MessageThreadWrapper 
-                    onViewFullProfile={handleUserSelect}
-                    setShowChatProfile={setShowChatProfile}
-                    showChatProfile={showChatProfile}
-                   />
-                } />
-                <Route path="/" element={
-                  <div className="flex flex-1 overflow-hidden">
-                    <div className="h-full border-r border-border-base flex w-full md:w-[350px] shrink-0 bg-transparent">
-                      <ChatList onSelect={(id) => navigate(`/dashboard/messages/${id}`)} />
-                    </div>
+              {/* Left Sidebar: Conversations List (Persistent) */}
+              <div className={`h-full border-r border-border-base w-full md:w-[320px] lg:w-[380px] shrink-0 bg-transparent ${
+                pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages' 
+                  ? 'hidden md:flex' 
+                  : 'flex'
+              }`}>
+                <ChatList 
+                  onSelect={(id) => navigate(`/dashboard/messages/${id}`)} 
+                  selectedId={pathname.split('/').pop()} 
+                />
+              </div>
+
+              {/* Main Area: Chat Window + Profile Sidebar (Dynamic) */}
+              <div className={`flex-1 flex overflow-hidden ${
+                !(pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages') 
+                  ? 'hidden md:flex' 
+                  : 'flex'
+              }`}>
+                <Routes>
+                  <Route path=":userId" element={
+                    <MessageThreadWrapper 
+                      onViewFullProfile={handleUserSelect}
+                      setShowChatProfile={setShowChatProfile}
+                      showChatProfile={showChatProfile}
+                    />
+                  } />
+                  <Route path="/" element={
                     <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-transparent">
                       <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-5">
                         <MessageSquare className="w-9 h-9 text-gray-300" />
@@ -356,9 +367,9 @@ const Dashboard = () => {
                         Choose a chat from the list or start a new one
                       </p>
                     </div>
-                  </div>
-                } />
-              </Routes>
+                  } />
+                </Routes>
+              </div>
             </div>
           </div>
         } />
@@ -385,29 +396,38 @@ const Dashboard = () => {
       <Toaster position="top-right" reverseOrder={false} />
 
       {/* 2. Main Content Center (Scrollable) */}
-      <main className="flex-1 relative overflow-hidden flex flex-col bg-transparent z-10 w-full md:w-auto transition-colors duration-300">
+      <main className="flex-1 relative overflow-hidden flex flex-col bg-transparent z-10 w-full md:w-auto transition-colors duration-300 pb-20 md:pb-0">
 
-        {/* Mobile Header */}
-        <div className="md:hidden sticky top-0 left-0 right-0 z-50 px-5 py-4 flex items-center justify-between bg-bg-base/95 backdrop-blur-xl border-b border-border-base">
-          <div className="text-2xl font-black tracking-tighter italic">
-            <span className="text-primary">Locolive</span>
+        {/* Mobile Header — Optimized for smaller screens */}
+        <div className="md:hidden sticky top-0 left-0 right-0 z-50 px-4 py-2.5 flex items-center justify-between bg-bg-base/90 backdrop-blur-2xl transition-all">
+          <div className="flex items-center gap-2">
+            <div className="text-xl font-black tracking-tighter italic text-primary">
+              Locolive
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Theme Toggle — always visible, not inside collapsible sidebar */}
+          
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => navigate('/dashboard/search')}
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-bg-card border border-border-base text-text-muted hover:text-primary transition-all"
+              aria-label="Search"
+            >
+              <Search className="w-5 h-5" />
+            </button>
             <button
               onClick={toggleTheme}
-              className="w-9 h-9 flex items-center justify-center rounded-xl bg-bg-base border border-border-base text-text-muted hover:text-primary hover:border-primary/30 transition-all"
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-bg-card border border-border-base text-text-muted transition-all"
               aria-label="Toggle theme"
             >
-              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              {theme === 'light' ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5" />}
             </button>
-            <button className="relative hover:text-primary transition-colors text-text-muted" onClick={() => setActiveTab('notifications')}>
-              <Bell className="w-6 h-6" />
-              {totalUnreadCount > 0 && <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-primary text-white text-[9px] font-black rounded-full border-2 border-bg-card flex items-center justify-center shadow-sm">{totalUnreadCount > 99 ? '99+' : totalUnreadCount}</span>}
-            </button>
-            <button className="relative hover:text-primary transition-colors text-text-muted" onClick={() => setActiveTab('messages')}>
-              <MessageSquare className="w-6 h-6" />
-              {unreadMessagesCount > 0 && <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-primary text-white text-[9px] font-black rounded-full border-2 border-bg-card flex items-center justify-center shadow-sm">{unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}</span>}
+            <button className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-bg-card border border-border-base text-text-muted" onClick={() => setActiveTab('notifications')}>
+              <Bell className="w-5 h-5" />
+              {totalUnreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-4.5 px-1 bg-primary text-white text-[9px] font-black rounded-full border-2 border-bg-base flex items-center justify-center shadow-sm">
+                  {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -418,22 +438,25 @@ const Dashboard = () => {
         </div>
 
         {/* Mobile Bottom Navigation — 5 core tabs + floating create */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around bg-bg-card/95 backdrop-blur-2xl border-t border-border-base px-2 h-18 z-[60] shadow-[0_-8px_24px_rgba(255,0,110,0.06)]">
-          <MobileNavItem icon={<Home className="w-5 h-5" />} label="Home" active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
-          <MobileNavItem icon={<MapIcon className="w-5 h-5" />} label="Map" active={pathname.includes('explore')} onClick={() => navigate('/dashboard/explore')} />
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around bg-bg-card/95 backdrop-blur-2xl border-t border-border-base px-2 h-20 z-[60] shadow-[0_-8px_24px_rgba(255,0,110,0.06)] safe-area-bottom">
+          <MobileNavItem icon={<Home className="w-5.5 h-5.5" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
+          <MobileNavItem icon={<MapIcon className="w-5.5 h-5.5" />} active={pathname.includes('explore')} onClick={() => navigate('/dashboard/explore')} />
 
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            aria-label="Create new post"
-            className="w-14 h-14 bg-brand-gradient rounded-full flex items-center justify-center transform -translate-y-4 shadow-xl shadow-primary/30 active:scale-90 transition-all text-white border-4 border-bg-card"
-          >
-            <Plus className="w-6 h-6 stroke-[3]" aria-hidden="true" />
-          </button>
+          <div className="relative -top-3">
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              aria-label="Create new post"
+              className="w-15 h-15 bg-brand-gradient rounded-3xl flex items-center justify-center shadow-xl shadow-primary/40 active:scale-90 transition-all text-white border-4 border-bg-base"
+            >
+              <Plus className="w-7 h-7 stroke-[3]" aria-hidden="true" />
+            </button>
+          </div>
 
-          <MobileNavItem icon={<Users className="w-5 h-5" />} label="People" active={pathname.includes('connections')} onClick={() => navigate('/dashboard/connections')} />
-          <MobileNavItem icon={<User className="w-5 h-5" />} label="Profile" active={pathname.includes('profile')} onClick={() => navigate('/dashboard/profile')} />
+          <MobileNavItem icon={<Users className="w-5.5 h-5.5" />} active={pathname.includes('connections')} onClick={() => navigate('/dashboard/connections')} />
+          <MobileNavItem icon={<User className="w-5.5 h-5.5" />} active={pathname.includes('profile')} onClick={() => navigate('/dashboard/profile')} />
         </nav>
       </main>
+
 
       {/* Right Sidebar — collapsible */}
       <div
@@ -522,15 +545,14 @@ const Dashboard = () => {
 };
 
 // Mobile Nav Item helper
-const MobileNavItem = ({ icon, label, active, onClick }: { icon: React.ReactNode, label?: string, active: boolean, onClick: () => void }) => (
+const MobileNavItem = ({ icon, active, onClick }: { icon: React.ReactNode, active: boolean, onClick: () => void }) => (
     <button
       onClick={onClick}
-      aria-label={label || 'Navigate'}
+      aria-label="Navigate"
       aria-current={active ? 'page' : undefined}
-      className={`flex flex-col items-center gap-0.5 py-2 px-3 transition-all duration-300 ${active ? 'text-primary scale-105' : 'text-text-muted hover:text-primary/60'}`}
+      className={`flex flex-col items-center justify-center p-3 transition-all duration-300 ${active ? 'text-primary scale-110' : 'text-text-muted hover:text-primary/60'}`}
     >
       {icon}
-      {label && <span className={`text-[9px] font-black uppercase tracking-widest ${active ? 'text-primary' : 'text-text-muted'}`}>{label}</span>}
     </button>
 );
 

@@ -27,7 +27,7 @@ interface ManageHighlightsProps {
     onBack: () => void;
 }
 
-const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
+export const ManageHighlights: FC<ManageHighlightsProps> = ({ onBack }) => {
     const [step, setStep] = useState<'select' | 'details'>('select');
     const [archivedStories, setArchivedStories] = useState<ArchivedStory[]>([]);
     const [loading, setLoading] = useState(true);

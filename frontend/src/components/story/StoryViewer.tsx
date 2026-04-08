@@ -3,6 +3,7 @@ import { X, MoreHorizontal, Send, Trash2, Flag, Volume2, VolumeX, ChevronLeft, C
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
+import { BACKEND } from '../../utils/config';
 
 interface Story {
   id: string;
@@ -216,7 +217,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
             {isVideo ? (
               <video
                 ref={videoRef}
-                src={`http://localhost:8080${story.media_url}`}
+                src={`${BACKEND}${story.media_url}`}
                 className="w-full h-full object-cover"
                 autoPlay
                 loop
@@ -225,7 +226,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
               />
             ) : (
               <img
-                src={`http://localhost:8080${story.media_url}`}
+                src={`${BACKEND}${story.media_url}`}
                 alt="Story"
                 className="w-full h-full object-cover"
               />
@@ -256,7 +257,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
                   <div className="w-full h-full rounded-full border-2 border-transparent overflow-hidden">
                     {story.avatar_url ? (
                       <img 
-                        src={story.avatar_url.startsWith('http') ? story.avatar_url : `http://localhost:8080${story.avatar_url}`} 
+                        src={story.avatar_url.startsWith('http') ? story.avatar_url : `${BACKEND}${story.avatar_url}`} 
                         alt={story.username} 
                         className="w-full h-full object-cover" 
                       />

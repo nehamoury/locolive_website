@@ -38,13 +38,13 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
   }, []);
 
   return (
-    <div className="flex flex-col h-full bg-transparent overflow-y-auto no-scrollbar relative w-full pb-20 md:pb-0 font-poppins">
+    <div className="flex flex-col h-full bg-transparent overflow-y-auto no-scrollbar relative w-full font-poppins">
 
       {/* ── Header ─────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-40 bg-bg-card/95 backdrop-blur-xl px-6 pt-5 pb-5 flex items-center justify-between shrink-0 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border-b border-border-base transition-colors duration-300">
+      <div className="hidden md:flex sticky top-0 z-40 bg-bg-card/95 backdrop-blur-xl px-6 pt-5 pb-5 items-center justify-between shrink-0 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border-b border-border-base transition-colors duration-300">
         {/* Search bar on the left */}
         <div className="flex-1 relative group mr-6">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400 group-focus-within:text-[#FF3B8E] transition-colors" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400 group-focus-within:text-primary transition-colors" />
           <input
             type="text"
             placeholder="Search people, posts, locations..."
@@ -64,10 +64,9 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
             {unreadMessagesCount > 0 && <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-black rounded-full border-2 border-bg-card flex items-center justify-center shadow-sm">{unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}</span>}
           </button>
 
-
           <button
             onClick={onCreateStory}
-            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-[#FF3B8E] to-[#A436EE] text-white rounded-[20px] text-[13px] font-bold shadow-[0_8px_20px_-6px_rgba(255,59,142,0.4)] hover:shadow-[0_12px_25px_-6px_rgba(255,59,142,0.5)] hover:scale-[1.02] active:scale-95 transition-all whitespace-nowrap ml-1"
+            className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-primary to-accent text-white rounded-[20px] text-[13px] font-bold shadow-[0_8px_20px_-6px_rgba(var(--color-primary-rgb),0.4)] hover:shadow-[0_12px_25px_-6px_rgba(var(--color-primary-rgb),0.5)] hover:scale-[1.02] active:scale-95 transition-all whitespace-nowrap ml-1"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             Create Post
@@ -75,35 +74,25 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
         </div>
       </div>
 
-      {/* ── Left-Aligned Content ─────────────────────────────── */}
-      <div className="flex-1 w-full px-6 pt-6 pb-20 flex flex-col items-start bg-transparent">
 
-        {/* Stories Card */}
-        <div className="w-full bg-bg-card rounded-[24px] border border-border-base shadow-[0_8px_30px_rgba(0,0,0,0.02)] p-5 mb-6 transition-colors duration-300">
-          <div className="flex items-center justify-between mb-4 px-2">
-            <h2 className="text-[17px] font-bold text-text-base tracking-tight">Stories</h2>
-            <div className="flex items-center gap-1">
-               <button className="w-7 h-7 flex items-center justify-center rounded-full bg-bg-base text-text-muted hover:text-text-base hover:bg-bg-base/80 transition-colors">
-                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6"/></svg>
-               </button>
-               <button className="w-7 h-7 flex items-center justify-center rounded-full bg-bg-base text-text-muted hover:text-text-base hover:bg-bg-base/80 transition-colors">
-                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6"/></svg>
-               </button>
-            </div>
+      {/* ── Left-Aligned Content ─────────────────────────────── */}
+      <div className="flex-1 w-full px-6 pt-2 pb-20 flex flex-col items-start bg-transparent">
+
+        {/* Stories Section */}
+        <div className="w-full md:bg-bg-card md:rounded-[24px] md:border md:border-border-base md:shadow-[0_8px_30px_rgba(0,0,0,0.02)] md:p-5 p-0 mb-2 md:mb-6 border-b border-border-base/30 md:border-b-transparent transition-colors duration-300">
+          <div className="md:px-0 px-2">
+            <StoryBar
+              stories={stories}
+              user={user}
+              onCreateStory={onCreateStory}
+              onStoryClick={onStoryClick}
+            />
           </div>
-          <StoryBar
-            stories={stories}
-            user={user}
-            onCreateStory={onCreateStory}
-            onStoryClick={onStoryClick}
-          />
         </div>
 
         {/* Post Input Box */}
-        <div className="w-full max-w-3xl mb-6">
-          <div className="bg-bg-card rounded-full p-2 border border-border-base shadow-[0_8px_30px_rgba(0,0,0,0.02)] flex items-center justify-center transition-colors duration-300">
-            <PostInputBox user={user} onClick={onCreateStory} />
-          </div>
+        <div className="w-full max-w-4xl mb-4 md:mb-6">
+          <PostInputBox user={user} onClick={onCreateStory} />
         </div>
 
         {/* Feed List */}

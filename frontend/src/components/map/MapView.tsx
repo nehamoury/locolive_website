@@ -4,6 +4,7 @@ import L from 'leaflet';
 import { MapPin } from 'lucide-react';
 import api from '../../services/api';
 import 'leaflet/dist/leaflet.css';
+import { BACKEND } from '../../utils/config';
 
 // ─── Icon Factories ──────────────────────────────────────────────────────────
 
@@ -309,7 +310,7 @@ const MapView = ({ onStorySelect }: MapViewProps) => {
 
               const displayUsername = firstStory?.username || cluster.username || 'Users';
               const avatarUrl = firstStory?.avatar_url
-                ? `http://localhost:8080${firstStory.avatar_url}`
+                ? `${BACKEND}${firstStory.avatar_url}`
                 : undefined;
               
               const colors = ['#ec4899', '#06b6d4', '#f59e0b', '#10b981'];
@@ -337,7 +338,7 @@ const MapView = ({ onStorySelect }: MapViewProps) => {
                           maxHeight: 200,
                         }}>
                           <img
-                            src={`http://localhost:8080${firstStory.media_url}`}
+                            src={`${BACKEND}${firstStory.media_url}`}
                             alt="Story Preview"
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />

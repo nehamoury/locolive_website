@@ -5,6 +5,7 @@ import { X, Camera, Loader2, Check, User, AtSign, AlignLeft } from 'lucide-react
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
+import { BACKEND } from '../../utils/config';
 
 interface EditProfileModalProps {
     isOpen: boolean;
@@ -167,7 +168,7 @@ const EditProfileModal: FC<EditProfileModalProps> = ({ isOpen, onClose, initialD
                                 <div className="w-32 h-32 rounded-[40px] p-1 bg-gradient-to-tr from-pink-500 to-fuchsia-500 shadow-xl shadow-pink-500/20">
                                     <div className="w-full h-full rounded-[38px] bg-white dark:bg-bg-card overflow-hidden relative">
                                         <img 
-                                            src={image || (formData.avatar_url.startsWith('http') ? formData.avatar_url : `http://localhost:8080${formData.avatar_url}`)} 
+                                            src={image || (formData.avatar_url.startsWith('http') ? formData.avatar_url : `${BACKEND}${formData.avatar_url}`)} 
                                             alt="avatar" 
                                             className="w-full h-full object-cover"
                                         />

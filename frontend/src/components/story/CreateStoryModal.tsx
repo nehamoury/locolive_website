@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { X, Camera, Edit3, Video, Calendar, Globe, MapPin, Flame, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import { BACKEND } from '../../utils/config';
 
 interface CreateStoryModalProps {
   isOpen: boolean;
@@ -117,7 +118,7 @@ const CreateStoryModal = ({ isOpen, onClose, onSuccess }: CreateStoryModalProps)
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-[#D1794A] flex items-center justify-center overflow-hidden flex-shrink-0">
                {user?.avatar_url ? (
-                  <img src={user.avatar_url.startsWith('http') ? user.avatar_url : `http://localhost:8080${user.avatar_url}`} alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={user.avatar_url.startsWith('http') ? user.avatar_url : `${BACKEND}${user.avatar_url}`} alt="Avatar" className="w-full h-full object-cover" />
                ) : (
                   <span className="text-white font-bold">{user?.full_name?.charAt(0) || user?.username?.charAt(0) || 'P'}</span>
                )}
