@@ -33,12 +33,18 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Normalize NullString objects from Go backend
+  const bodyTextRaw = nullString(post.body_text);
   const caption = nullString(post.caption);
   const locationName = nullString(post.location_name);
   const avatarUrl = nullString(post.avatar_url);
 
   const hashtags = caption.match(/#[a-z0-9_]+/gi) || [];
   const cleanCaption = caption.replace(/#[a-z0-9_]+/gi, '').trim();
+
+  // Smart text display logic
+  const hasSeparateBody = !!bodyTextRaw;
+  const bubbleText = hasSeparateBody ? bodyTextRaw : caption;
+  const shouldShowCaption = cleanCaption && (!isTextOnly || hasSeparateBody);
 
   // Sync muted state with DOM element to bypass React reconciliation lag on media tags
   useEffect(() => {
@@ -84,7 +90,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
       className="flex flex-col bg-bg-card rounded-[24px] border border-border-base/50 shadow-[0_8px_30px_rgba(0,0,0,0.02)] hover:shadow-[0_15px_40px_rgba(0,0,0,0.05)] transition-all duration-500 overflow-hidden group/card"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+      <div className="flex items-center justify-between px-6 md:px-5 pt-5 pb-4 md:pb-3">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-primary to-accent shadow-sm">
             <div className="w-full h-full rounded-full bg-bg-card p-[1.5px]">
@@ -152,24 +158,19 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
         </div>
       </div>
 
-      {/* Caption */}
-      {cleanCaption && (
-        <p className="px-5 pb-3 text-text-base/80 font-medium text-[14px] leading-relaxed tracking-tight">
-          {cleanCaption}
-        </p>
-      )}
+    
 
       {/* Text Post Bubble */}
-      {isTextOnly && caption && (
-        <div className="mx-4 mb-4 p-10 rounded-[24px] bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/10 flex items-center justify-center text-center">
-          <p className="text-text-base font-black text-xl leading-snug tracking-tight">{caption}</p>
+      {isTextOnly && bubbleText && (
+        <div className="mx-4 md:mx-3 mb-4 p-10 rounded-[24px] bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/10 flex items-center justify-center text-center">
+          <p className="text-text-base font-black text-xl leading-snug tracking-tight whitespace-pre-wrap">{bubbleText}</p>
         </div>
       )}
 
-      {/* Media */}
+      {/* Media — Instagram Style Dynamic for Mobile, Normal for Desktop */}
       {!isTextOnly && post.media_url && (
         <div
-          className="mx-3 mb-3 aspect-[4/5] md:aspect-video rounded-[24px] overflow-hidden bg-bg-sidebar cursor-pointer relative group/media shadow-sm border border-border-base transition-colors duration-300"
+          className="w-full md:mx-3 mb-4 md:mb-3 md:aspect-[4/5] lg:md:aspect-video md:rounded-[24px] overflow-hidden bg-bg-sidebar/50 cursor-pointer relative group/media border-y md:border-x border-border-base/30 md:border-border-base transition-colors duration-300 md:shadow-sm"
           onClick={() => onImageClick?.(post)}
         >
           {post.media_type === 'video' ? (
@@ -177,7 +178,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
               <video
                 ref={videoRef}
                 src={`${BACKEND}${post.media_url}`}
-                className="w-full h-full object-cover group-hover/media:scale-105 transition-transform duration-700 ease-out"
+                className="w-full h-auto md:h-full max-h-[85vh] md:max-h-full object-contain md:object-cover transition-all duration-300"
                 muted={isMuted}
                 loop
                 autoPlay
@@ -188,50 +189,58 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
                 type="button"
                 onClick={(e) => { e.stopPropagation(); toggleMute(); }}
                 aria-label={isMuted ? "Unmute video" : "Mute video"}
-                className="absolute bottom-3 right-3 p-2.5 bg-black/50 backdrop-blur-xl rounded-full text-white transition-all duration-300 opacity-100 scale-100 hover:bg-black/70 hover:scale-110 active:scale-95 shadow-lg z-10"
+                className="absolute bottom-4 md:bottom-3 right-4 md:right-3 p-2.5 bg-black/40 backdrop-blur-xl rounded-full text-white transition-all duration-300"
               >
-                {isMuted ? <VolumeX className="w-4.5 h-4.5" /> : <Volume2 className="w-4.5 h-4.5" />}
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </button>
             </>
           ) : (
             <img
               src={post.media_url.startsWith('http') ? post.media_url : `${BACKEND}${post.media_url}`}
               alt=""
-              className="w-full h-full object-cover group-hover/media:scale-105 transition-transform duration-700 ease-out"
+              className="w-full h-auto md:h-full max-h-[85vh] md:max-h-full object-contain md:object-cover"
             />
           )}
           <div className="absolute inset-0 bg-black/5 opacity-0 group-hover/media:opacity-100 transition-opacity" />
         </div>
       )}
 
+      {/* Caption — Now below media like Instagram */}
+      {shouldShowCaption && (
+        <p className="px-6 md:px-5 pb-3 md:pb-2 text-text-base/90 font-medium text-[14.5px] md:text-[14px] leading-relaxed tracking-tight select-text">
+          <span className="font-black mr-2 text-text-base">{post.username}</span>
+          <span className="whitespace-pre-wrap">{cleanCaption}</span>
+        </p>
+      )}
+
       {/* Hashtags */}
       {hashtags.length > 0 && (
-        <div className="flex flex-wrap gap-x-3 gap-y-1 px-5 pb-3">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 px-6 md:px-5 pb-4 md:pb-3">
           {hashtags.map((tag: string, i: number) => (
-            <span key={i} className="text-accent font-black text-[10px] uppercase tracking-wider bg-accent/10 px-2 py-0.5 rounded-full">{tag}</span>
+            <span key={i} className="text-accent font-black text-[10.5px] md:text-[10px] uppercase tracking-wider bg-accent/10 px-2.5 py-1 rounded-full">{tag}</span>
           ))}
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex items-center justify-between px-5 pb-5 pt-1">
-        <div className="flex items-center gap-1">
+      <div className="flex items-center justify-between px-6 md:px-5 pb-6 md:pb-5 pt-1">
+        <div className="flex items-center gap-2">
           <button
             onClick={handleLike}
-            className={`flex items-center gap-2 p-2 rounded-2xl transition-all group cursor-pointer ${liked ? 'bg-primary/10 text-primary' : 'hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base'}`}
+            className={`flex items-center gap-2.5 p-2 rounded-2xl transition-all group cursor-pointer ${liked ? 'bg-primary/10 text-primary' : 'hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base'}`}
           >
-            <Heart className={`w-5 h-5 transition-transform group-hover:scale-110 group-active:scale-90 ${liked ? 'fill-primary' : ''}`} />
-            <span className="text-[12px] font-black">{likeCount}</span>
+            <Heart className={`w-5.5 md:w-5 h-5.5 md:h-5 transition-transform group-hover:scale-110 group-active:scale-90 ${liked ? 'fill-primary' : ''}`} />
+            <span className="text-[13px] md:text-[12px] font-black">{likeCount}</span>
           </button>
           
-          <button className="flex items-center gap-2 p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer">
-            <MessageSquare className="w-5 h-5 transition-transform group-hover:scale-110 rounded-full" />
-            <span className="text-[12px] font-black">{post.comments_count || 0}</span>
+          <button className="flex items-center gap-2.5 p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer">
+            <MessageSquare className="w-5.5 md:w-5 h-5.5 md:h-5 transition-transform group-hover:scale-110 rounded-full" />
+            <span className="text-[13px] md:text-[12px] font-black">{post.comments_count || 0}</span>
           </button>
         </div>
 
         <button className="p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer">
-          <Share2 className="w-5 h-5 transition-transform group-hover:rotate-12" />
+          <Share2 className="w-5.5 md:w-5 h-5.5 md:h-5 transition-transform group-hover:rotate-12" />
         </button>
       </div>
     </motion.div>

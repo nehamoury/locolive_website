@@ -9,7 +9,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      devOptions: {
+        enabled: true
+      },
+      includeAssets: ['favicon.svg'],
       manifest: {
         name: 'Locolive',
         short_name: 'Locolive',
@@ -17,21 +20,22 @@ export default defineConfig({
         theme_color: '#ff3b8e',
         background_color: '#0a0a0c',
         display: 'standalone',
+        start_url: '/',
         icons: [
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/jpeg'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/jpeg'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/png',
+            type: 'image/jpeg',
             purpose: 'any maskable'
           }
         ]
@@ -40,7 +44,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/localhost:8080\/(api\/stories|api\/reels|api\/feed|api\/posts\/feed)/,
+            urlPattern: /\/api\/(stories|reels|feed|posts\/feed)/,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-public-cache',
@@ -54,14 +58,10 @@ export default defineConfig({
             }
           },
           {
-            urlPattern: /^https:\/\/localhost:8080\/(api\/auth|api\/profile\/me|api\/messages)/,
+            urlPattern: /\/api\/(auth|profile\/me|messages)/,
             handler: 'NetworkOnly',
             options: {
-              cacheName: 'no-cache',
-              expiration: {
-                maxEntries: 0,
-                maxAgeSeconds: 0
-              }
+              cacheName: 'no-cache'
             }
           }
         ]

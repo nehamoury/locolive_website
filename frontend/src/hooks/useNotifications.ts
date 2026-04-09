@@ -25,12 +25,12 @@ export const useNotifications = () => {
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
-  
+
   const socketRef = useRef<WebSocket | null>(null);
   const crossingAudioRef = useRef<HTMLAudioElement | null>(null);
   const receiveAudioRef = useRef<HTMLAudioElement | null>(null);
   const sendAudioRef = useRef<HTMLAudioElement | null>(null);
-  
+
   const seenNotifIds = useRef<Set<string>>(new Set());
   const reconnectAttemptRef = useRef(0);
   const { alertsEnabled, toggleAlerts } = useSound();
@@ -118,12 +118,17 @@ export const useNotifications = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    const fallbackUrl = isLocalhost ? 'http://localhost:8080' : `http://${hostname}:8080`;
+
+    const baseUrl = import.meta.env.VITE_API_URL || fallbackUrl;
     const wsBaseUrl = baseUrl.replace('http://', 'ws://').replace('https://', 'wss://');
     const wsUrl = `${wsBaseUrl}/ws/chat?token=${encodeURIComponent(token)}`;
 
     let isSubscribed = true;
     let reconnectTimeout: any = null;
+    let initialConnectTimeout: any = null;
 
     const connect = () => {
       if (!isSubscribed) return;
@@ -140,7 +145,7 @@ export const useNotifications = () => {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          
+
           if (data.type === 'new_message') {
             fetchUnreadMessagesCount();
 
@@ -151,17 +156,17 @@ export const useNotifications = () => {
                 const jwtPayload = JSON.parse(payloadStr);
                 if (jwtPayload.user_id === data.sender_id) isMe = true;
               }
-            } catch (e) {}
+            } catch (e) { }
 
             if (isMe) return;
 
             playSound('receive');
             toast(`New message received! 💬`, {
               duration: 3000,
-              style: { 
-                borderRadius: '20px', 
-                background: '#FFF', 
-                color: '#333', 
+              style: {
+                borderRadius: '20px',
+                background: '#FFF',
+                color: '#333',
                 fontWeight: 'bold',
                 border: '1px solid #E5E7EB'
               },
@@ -175,13 +180,13 @@ export const useNotifications = () => {
             if (notifId && seenNotifIds.current.has(notifId)) return;
             if (notifId) seenNotifIds.current.add(notifId);
 
-            toast(notif.message, { 
-              id: notifId, 
+            toast(notif.message, {
+              id: notifId,
               icon: '📍',
-              style: { 
-                borderRadius: '20px', 
-                background: '#FFF', 
-                color: '#333', 
+              style: {
+                borderRadius: '20px',
+                background: '#FFF',
+                color: '#333',
                 fontWeight: 'bold',
                 border: '1px solid #FBCFE8'
               }
@@ -194,19 +199,19 @@ export const useNotifications = () => {
           }
 
           if (data.type === 'connection_request') {
-             fetchPendingRequestsCount();
-             toast('New Connection Request! 🤝', { 
-               icon: '✨',
-               style: { 
-                borderRadius: '20px', 
-                background: '#FFF', 
-                color: '#333', 
+            fetchPendingRequestsCount();
+            toast('New Connection Request! 🤝', {
+              icon: '✨',
+              style: {
+                borderRadius: '20px',
+                background: '#FFF',
+                color: '#333',
                 fontWeight: 'bold',
                 border: '1px solid #E5E7EB'
               }
-             });
-             playSound('receive');
-             return;
+            });
+            playSound('receive');
+            return;
           }
 
           if (data.type === 'connection_accepted') {
@@ -232,10 +237,13 @@ export const useNotifications = () => {
       ws.onerror = () => ws.close();
     };
 
-    connect();
+    // Give React StrictMode a tiny window to unmount before creating the socket, 
+    // which prevents the pesky 'WebSocket is closed before the connection is established' warning.
+    initialConnectTimeout = setTimeout(connect, 50);
 
     return () => {
       isSubscribed = false;
+      if (initialConnectTimeout) clearTimeout(initialConnectTimeout);
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
       if (socketRef.current) socketRef.current.close();
     };

@@ -14,15 +14,15 @@ import (
 )
 
 const createPost = `-- name: CreatePost :one
-INSERT INTO posts (user_id, media_url, media_type, caption, location_name, geohash, geom)
+INSERT INTO posts (user_id, media_url, media_type, caption, body_text, location_name, geohash, geom)
 VALUES (
     $1, $2, $3,
-    $4, $5, $6,
-    CASE WHEN $7::boolean
-         THEN ST_SetSRID(ST_MakePoint($8::float8, $9::float8), 4326)
+    $4, $5, $6, $7,
+    CASE WHEN $8::boolean
+         THEN ST_SetSRID(ST_MakePoint($9::float8, $10::float8), 4326)
          ELSE NULL END
 )
-RETURNING id, user_id, media_url, media_type, caption, location_name, geohash, geom, likes_count, comments_count, created_at, updated_at,
+RETURNING id, user_id, media_url, media_type, caption, body_text, location_name, geohash, geom, likes_count, comments_count, created_at, updated_at,
     CASE WHEN geom IS NOT NULL THEN ST_Y(geom::geometry) ELSE NULL END as lat_out,
     CASE WHEN geom IS NOT NULL THEN ST_X(geom::geometry) ELSE NULL END as lng_out
 `
@@ -32,6 +32,7 @@ type CreatePostParams struct {
 	MediaUrl     string         `json:"media_url"`
 	MediaType    string         `json:"media_type"`
 	Caption      sql.NullString `json:"caption"`
+	BodyText     sql.NullString `json:"body_text"`
 	LocationName sql.NullString `json:"location_name"`
 	Geohash      sql.NullString `json:"geohash"`
 	HasLocation  bool           `json:"has_location"`
@@ -45,6 +46,7 @@ type CreatePostRow struct {
 	MediaUrl      string         `json:"media_url"`
 	MediaType     string         `json:"media_type"`
 	Caption       sql.NullString `json:"caption"`
+	BodyText      sql.NullString `json:"body_text"`
 	LocationName  sql.NullString `json:"location_name"`
 	Geohash       sql.NullString `json:"geohash"`
 	Geom          interface{}    `json:"geom"`
@@ -62,6 +64,7 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (CreateP
 		arg.MediaUrl,
 		arg.MediaType,
 		arg.Caption,
+		arg.BodyText,
 		arg.LocationName,
 		arg.Geohash,
 		arg.HasLocation,
@@ -75,6 +78,7 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (CreateP
 		&i.MediaUrl,
 		&i.MediaType,
 		&i.Caption,
+		&i.BodyText,
 		&i.LocationName,
 		&i.Geohash,
 		&i.Geom,
@@ -183,7 +187,7 @@ func (q *Queries) LikePost(ctx context.Context, arg LikePostParams) (PostLike, e
 }
 
 const listConnectionsPosts = `-- name: ListConnectionsPosts :many
-SELECT p.id, p.user_id, p.media_url, p.media_type, p.caption, p.location_name,
+SELECT p.id, p.user_id, p.media_url, p.media_type, p.caption, p.body_text, p.location_name,
        p.likes_count, p.comments_count, p.created_at, p.updated_at,
        u.username, u.full_name, u.avatar_url,
        CASE WHEN p.geom IS NOT NULL THEN ST_Y(p.geom::geometry) ELSE NULL END as lat_out,
@@ -216,6 +220,7 @@ type ListConnectionsPostsRow struct {
 	MediaUrl      string         `json:"media_url"`
 	MediaType     string         `json:"media_type"`
 	Caption       sql.NullString `json:"caption"`
+	BodyText      sql.NullString `json:"body_text"`
 	LocationName  sql.NullString `json:"location_name"`
 	LikesCount    int32          `json:"likes_count"`
 	CommentsCount int32          `json:"comments_count"`
@@ -245,6 +250,7 @@ func (q *Queries) ListConnectionsPosts(ctx context.Context, arg ListConnectionsP
 			&i.MediaUrl,
 			&i.MediaType,
 			&i.Caption,
+			&i.BodyText,
 			&i.LocationName,
 			&i.LikesCount,
 			&i.CommentsCount,
@@ -324,7 +330,7 @@ func (q *Queries) ListPostComments(ctx context.Context, postID uuid.UUID) ([]Lis
 }
 
 const listPostsByUserID = `-- name: ListPostsByUserID :many
-SELECT p.id, p.user_id, p.media_url, p.media_type, p.caption, p.location_name,
+SELECT p.id, p.user_id, p.media_url, p.media_type, p.caption, p.body_text, p.location_name,
        p.likes_count, p.comments_count, p.created_at, p.updated_at,
        u.username, u.full_name, u.avatar_url,
        CASE WHEN p.geom IS NOT NULL THEN ST_Y(p.geom::geometry) ELSE NULL END as lat_out,
@@ -350,6 +356,7 @@ type ListPostsByUserIDRow struct {
 	MediaUrl      string         `json:"media_url"`
 	MediaType     string         `json:"media_type"`
 	Caption       sql.NullString `json:"caption"`
+	BodyText      sql.NullString `json:"body_text"`
 	LocationName  sql.NullString `json:"location_name"`
 	LikesCount    int32          `json:"likes_count"`
 	CommentsCount int32          `json:"comments_count"`
@@ -383,6 +390,7 @@ func (q *Queries) ListPostsByUserID(ctx context.Context, arg ListPostsByUserIDPa
 			&i.MediaUrl,
 			&i.MediaType,
 			&i.Caption,
+			&i.BodyText,
 			&i.LocationName,
 			&i.LikesCount,
 			&i.CommentsCount,

@@ -16,6 +16,7 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
   const [postType, setPostType] = useState<PostType>('post');
   const [mediaType, setMediaType] = useState<'image' | 'video' | 'text'>('image');
   const [caption, setCaption] = useState('');
+  const [bodyText, setBodyText] = useState('');
   const [locationName, setLocationName] = useState('');
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -42,7 +43,7 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
       setError('Please select an image or video.');
       return;
     }
-    if (mediaType === 'text' && !caption.trim()) {
+    if (mediaType === 'text' && !bodyText.trim()) {
       setError('Please write something for your text post.');
       return;
     }
@@ -88,6 +89,7 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
           media_url: mediaUrl || 'text',
           media_type: mediaType,
           caption,
+          body_text: bodyText,
           location_name: locationName,
           has_location: hasLocation,
           latitude: lat,
@@ -97,6 +99,7 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
 
       // Reset state
       setCaption('');
+      setBodyText('');
       setLocationName('');
       setMediaFile(null);
       setMediaPreview(null);
@@ -112,6 +115,7 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
   const handleClose = () => {
     if (!uploading) {
       setCaption('');
+      setBodyText('');
       setLocationName('');
       setMediaFile(null);
       setMediaPreview(null);
@@ -241,8 +245,8 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
                 <div className="rounded-[24px] bg-gradient-to-br from-pink-50 to-purple-50 border border-pink-100 p-6 min-h-[180px]">
                   <Type className="w-5 h-5 text-pink-300 mb-3" />
                   <textarea
-                    value={caption}
-                    onChange={(e) => setCaption(e.target.value)}
+                    value={bodyText}
+                    onChange={(e) => setBodyText(e.target.value)}
                     placeholder="What's on your mind?"
                     className="w-full bg-transparent resize-none outline-none text-gray-800 font-medium text-lg placeholder:text-gray-300"
                     rows={5}
@@ -251,17 +255,15 @@ const CreatePostModal: FC<CreatePostModalProps> = ({ isOpen, onClose, onSuccess,
                 </div>
               )}
 
-              {/* Caption for media posts */}
-              {mediaType !== 'text' && (
-                <textarea
-                  value={caption}
-                  onChange={(e) => setCaption(e.target.value)}
-                  placeholder="Write a caption..."
-                  className="w-full px-4 py-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm text-gray-700 placeholder:text-gray-300 resize-none outline-none focus:ring-2 focus:ring-pink-200 transition-all"
-                  rows={3}
-                  maxLength={500}
-                />
-              )}
+              {/* Caption (for both media and text posts) */}
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                placeholder={mediaType === 'text' ? "Add hashtags or description (optional)..." : "Write a caption..."}
+                className="w-full px-4 py-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm text-gray-700 placeholder:text-gray-300 resize-none outline-none focus:ring-2 focus:ring-pink-200 transition-all"
+                rows={3}
+                maxLength={500}
+              />
 
               {/* Location (Posts only) */}
               {postType === 'post' && (

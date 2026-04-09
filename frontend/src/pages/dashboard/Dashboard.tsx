@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldAlert, Home, Map as MapIcon, User, MessageSquare, Plus, Bell, Sun, Moon, Users, Search } from 'lucide-react';
+import { ShieldAlert, Home, Map as MapIcon, User, MessageSquare, Plus, Bell, Sun, Moon, Users, Search, Video, MoreVertical } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
@@ -44,11 +44,11 @@ const MemberProfileWrapper = ({ onMessage }: { onMessage: (id: string) => void }
   );
 };
 
-const MessageThreadWrapper = ({ 
-  onViewFullProfile, 
-  setShowChatProfile, 
-  showChatProfile 
-}: { 
+const MessageThreadWrapper = ({
+  onViewFullProfile,
+  setShowChatProfile,
+  showChatProfile
+}: {
   onViewFullProfile: (id: string) => void;
   setShowChatProfile: React.Dispatch<React.SetStateAction<boolean>>;
   showChatProfile: boolean;
@@ -69,14 +69,14 @@ const MessageThreadWrapper = ({
       </div>
       <AnimatePresence>
         {showChatProfile && (
-          <motion.div 
+          <motion.div
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: 320, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             className="hidden lg:flex h-full shrink-0 bg-white overflow-y-auto no-scrollbar border-l border-gray-100"
           >
-            <ChatProfileSidebar 
-              userId={userId} 
+            <ChatProfileSidebar
+              userId={userId}
               onViewFullProfile={onViewFullProfile}
             />
           </motion.div>
@@ -95,7 +95,7 @@ const Dashboard = () => {
   // Local Routing Helpers
   const activeTab = pathname.split('/').pop() || 'home';
   const setActiveTab = (tab: string) => navigate(`/dashboard/${tab}`);
-  
+
   // Real-time & Location Hooks
   const { position: currentGeoPos } = useGeolocation(true);
   const { unreadCount: totalUnreadCount, unreadMessagesCount, pendingRequestsCount } = useNotifications();
@@ -113,6 +113,27 @@ const Dashboard = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   const [showRightSidebar] = useState(true);
   const [showChatProfile, setShowChatProfile] = useState(true);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Click outside listener for mobile dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuRef.current && !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(event.target as Node)
+      ) {
+        setIsMenuOpen(false);
+      }
+    };
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   // Sidebar Stats State
   const [crossingsCount, setCrossingsCount] = useState<number>(0);
@@ -139,19 +160,19 @@ const Dashboard = () => {
         api.get('/stories/connections').catch(() => ({ data: [] })),
         api.get('/stories/me').catch(() => ({ data: [] }))
       ];
-      
+
       if (coords) {
-         promises.push(api.get('/feed', requestOptions).catch(() => ({ data: { stories: [] } })));
+        promises.push(api.get('/feed', requestOptions).catch(() => ({ data: { stories: [] } })));
       } else {
-         promises.push(Promise.resolve({ data: { stories: [] } }));
+        promises.push(Promise.resolve({ data: { stories: [] } }));
       }
 
       const [connResponse, meResponse, feedResponse] = await Promise.all(promises);
-      
+
       const mapStories = feedResponse.data?.stories || [];
       const connStories = connResponse.data || [];
       const myStories = meResponse.data || [];
-      
+
       const allStories = [...mapStories, ...connStories, ...myStories];
       const uniqueMap = new Map();
       allStories.forEach(s => {
@@ -160,8 +181,8 @@ const Dashboard = () => {
         }
       });
       const uniqueStories = Array.from(uniqueMap.values());
-      uniqueStories.sort((a,b) => new Date(Object(b).created_at).getTime() - new Date(Object(a).created_at).getTime());
-      
+      uniqueStories.sort((a, b) => new Date(Object(b).created_at).getTime() - new Date(Object(a).created_at).getTime());
+
       setStories(uniqueStories);
     } catch (err: any) {
       console.error('Failed to fetch stories:', err.response?.data || err.message);
@@ -307,7 +328,7 @@ const Dashboard = () => {
         <Route path="casting" element={<Navigate to="/dashboard/explore?tab=casting" replace />} />
         <Route path="discovery" element={<Navigate to="/dashboard/explore?tab=all" replace />} />
         <Route path="reels" element={<ReelsView onCreateReel={() => setIsCreateReelModalOpen(true)} />} />
-        
+
         <Route path="messages/*" element={
           <div className="flex flex-col h-full w-full overflow-hidden bg-transparent">
             <div className="flex items-center justify-between px-6 py-3.5 border-b border-border-base bg-transparent shrink-0">
@@ -332,26 +353,24 @@ const Dashboard = () => {
 
             <div className="flex flex-1 overflow-hidden">
               {/* Left Sidebar: Conversations List (Persistent) */}
-              <div className={`h-full border-r border-border-base w-full md:w-[320px] lg:w-[380px] shrink-0 bg-transparent ${
-                pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages' 
-                  ? 'hidden md:flex' 
-                  : 'flex'
-              }`}>
-                <ChatList 
-                  onSelect={(id) => navigate(`/dashboard/messages/${id}`)} 
-                  selectedId={pathname.split('/').pop()} 
+              <div className={`h-full border-r border-border-base w-full md:w-[320px] lg:w-[380px] shrink-0 bg-transparent ${pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages'
+                ? 'hidden md:flex'
+                : 'flex'
+                }`}>
+                <ChatList
+                  onSelect={(id) => navigate(`/dashboard/messages/${id}`)}
+                  selectedId={pathname.split('/').pop()}
                 />
               </div>
 
               {/* Main Area: Chat Window + Profile Sidebar (Dynamic) */}
-              <div className={`flex-1 flex overflow-hidden ${
-                !(pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages') 
-                  ? 'hidden md:flex' 
-                  : 'flex'
-              }`}>
+              <div className={`flex-1 flex overflow-hidden ${!(pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages')
+                ? 'hidden md:flex'
+                : 'flex'
+                }`}>
                 <Routes>
                   <Route path=":userId" element={
-                    <MessageThreadWrapper 
+                    <MessageThreadWrapper
                       onViewFullProfile={handleUserSelect}
                       setShowChatProfile={setShowChatProfile}
                       showChatProfile={showChatProfile}
@@ -380,7 +399,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-bg-base text-text-base font-poppins flex overflow-hidden p-0 md:p-3 md:gap-3 transition-colors duration-300">
+    <div className="h-screen w-full bg-slate-50/50 text-text-base font-poppins flex overflow-hidden p-0 md:p-3 md:gap-3 transition-colors duration-300">
 
       {/* 1. Left Sidebar */}
       <div className="hidden md:flex flex-col h-full bg-bg-sidebar md:rounded-[24px] shadow-sm relative flex-shrink-0 border border-border-base transition-all duration-300 overflow-hidden">
@@ -396,77 +415,139 @@ const Dashboard = () => {
       <Toaster position="top-right" reverseOrder={false} />
 
       {/* 2. Main Content Center (Scrollable) */}
-      <main className="flex-1 relative overflow-hidden flex flex-col bg-transparent z-10 w-full md:w-auto transition-colors duration-300 pb-20 md:pb-0">
+      <main className="flex-1 relative overflow-y-auto md:overflow-hidden flex flex-col bg-transparent z-10 w-full md:w-auto transition-colors duration-300 pb-20 md:pb-0 no-scrollbar">
 
-        {/* Mobile Header — Optimized for smaller screens */}
-        <div className="md:hidden sticky top-0 left-0 right-0 z-50 px-4 py-2.5 flex items-center justify-between bg-bg-base/90 backdrop-blur-2xl transition-all">
-          <div className="flex items-center gap-2">
-            <div className="text-xl font-black tracking-tighter italic text-primary">
+        {/* Mobile Header — Premium Glass Redesign */}
+        <div className="md:hidden pt-4 pb-2 px-4 flex items-center justify-between bg-transparent transition-all z-50">
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#fff5f7]/60 dark:bg-pink-500/10 backdrop-blur-xl border border-pink-200/30 dark:border-white/10 shadow-sm active:scale-95 transition-all text-primary"
+            aria-label="Create Post"
+          >
+            <Plus className="w-5.5 h-5.5 stroke-[2.5]" />
+          </button>
+
+          <div
+            className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center active:scale-95 transition-all cursor-pointer"
+            onClick={() => navigate('/dashboard/home')}
+          >
+            <span
+              className="text-2xl font-black italic tracking-tighter bg-brand-gradient text-transparent drop-shadow-md"
+              style={{ WebkitBackgroundClip: 'text', backgroundClip: 'text' }}
+            >
               Locolive
-            </div>
+            </span>
           </div>
-          
           <div className="flex items-center gap-2">
-            <button 
+            <button
               onClick={() => navigate('/dashboard/search')}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-bg-card border border-border-base text-text-muted hover:text-primary transition-all"
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#fff5f7]/60 dark:bg-pink-500/10 backdrop-blur-xl border border-pink-200/30 dark:border-white/10 shadow-sm active:scale-95 transition-all text-indigo-500"
               aria-label="Search"
             >
-              <Search className="w-5 h-5" />
+              <Search className="w-5 h-5 transition-transform group-active:scale-90" />
             </button>
             <button
-              onClick={toggleTheme}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-bg-card border border-border-base text-text-muted transition-all"
-              aria-label="Toggle theme"
+              ref={buttonRef}
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className={`w-10 h-10 flex items-center justify-center rounded-xl backdrop-blur-xl border shadow-sm transition-all active:scale-95 ${isMenuOpen ? 'bg-[#fff5f7] text-pink-600 border-pink-300/50 shadow-pink-100/30' : 'bg-[#fff5f7]/60 dark:bg-pink-500/10 text-pink-500 border-pink-200/30 dark:border-white/10'}`}
+              aria-label="More options"
             >
-              {theme === 'light' ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5" />}
+              <MoreVertical className="w-5 h-5" />
             </button>
-            <button className="relative w-10 h-10 flex items-center justify-center rounded-xl bg-bg-card border border-border-base text-text-muted" onClick={() => setActiveTab('notifications')}>
-              <Bell className="w-5 h-5" />
-              {totalUnreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-4.5 px-1 bg-primary text-white text-[9px] font-black rounded-full border-2 border-bg-base flex items-center justify-center shadow-sm">
-                  {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
-                </span>
+
+            {/* Premium Mobile Dropdown Menu */}
+            <AnimatePresence>
+              {isMenuOpen && (
+                <motion.div
+                  ref={menuRef}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                  className="absolute top-16 right-4 p-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-2xl shadow-2xl z-[100]"
+                >
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => { navigate('/dashboard/connections'); setIsMenuOpen(false); }}
+                      className="w-44 h-11 px-3 bg-brand-gradient rounded-xl flex items-center gap-3 shadow-lg shadow-primary/20 active:scale-95 transition-all text-white"
+                    >
+                      <Users className="w-5.5 h-5.5" />
+                      <span className="text-[13px] font-bold tracking-wide">Connections</span>
+                    </button>
+
+                    <button
+                      onClick={() => { toggleTheme(); setIsMenuOpen(false); }}
+                      className="w-44 h-11 px-3 bg-white/5 dark:bg-white/5 hover:bg-white/10 backdrop-blur-3xl border border-white/10 rounded-xl flex items-center gap-3 shadow-sm active:scale-95 transition-all"
+                    >
+                      <div className="w-9 h-9 bg-amber-500/10 rounded-lg flex items-center justify-center text-amber-500">
+                        {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                      </div>
+                      <span className="text-[13px] font-bold text-slate-100">Appearance</span>
+                    </button>
+
+                    <button
+                      onClick={() => { setActiveTab('notifications'); setIsMenuOpen(false); }}
+                      className="w-44 h-11 px-3 bg-white/5 dark:bg-white/5 hover:bg-white/10 backdrop-blur-3xl border border-white/10 rounded-xl flex items-center gap-3 shadow-sm active:scale-95 transition-all"
+                    >
+                      <div className="relative w-9 h-9 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                        <Bell className="w-5 h-5" />
+                        {totalUnreadCount > 0 && (
+                          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[9px] font-black rounded-full border-2 border-white dark:border-black flex items-center justify-center shadow-sm">
+                            {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[13px] font-bold text-slate-100">Notifications</span>
+                    </button>
+                  </div>
+                </motion.div>
               )}
-            </button>
+            </AnimatePresence>
           </div>
         </div>
 
         {/* Dynamic Route View */}
-        <div className="flex-1 overflow-hidden relative">
+        <div className="flex-1 overflow-visible md:overflow-hidden relative">
           {renderRoutes()}
         </div>
 
-        {/* Mobile Bottom Navigation — 5 core tabs + floating create */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around bg-bg-card/95 backdrop-blur-2xl border-t border-border-base px-2 h-20 z-[60] shadow-[0_-8px_24px_rgba(255,0,110,0.06)] safe-area-bottom">
-          <MobileNavItem icon={<Home className="w-5.5 h-5.5" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
-          <MobileNavItem icon={<MapIcon className="w-5.5 h-5.5" />} active={pathname.includes('explore')} onClick={() => navigate('/dashboard/explore')} />
+        {/* Mobile Bottom Navigation — Solid White Anchored Bar */}
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around bg-white dark:bg-bg-sidebar z-[60] safe-area-bottom border-t border-border-base/50">
+          <div className="flex-1 flex items-center justify-around p-1.5 h-16 pointer-events-auto">
+            <MobileNavItem icon={<Home className="w-5.5 h-5.5" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
+            <MobileNavItem icon={<MapIcon className="w-5.5 h-5.5" />} active={pathname.includes('explore')} onClick={() => navigate('/dashboard/explore')} />
 
-          <div className="relative -top-3">
-            <button
-              onClick={() => setIsCreateModalOpen(true)}
-              aria-label="Create new post"
-              className="w-15 h-15 bg-brand-gradient rounded-3xl flex items-center justify-center shadow-xl shadow-primary/40 active:scale-90 transition-all text-white border-4 border-bg-base"
-            >
-              <Plus className="w-7 h-7 stroke-[3]" aria-hidden="true" />
-            </button>
+            <div className="relative -top-4 mx-1">
+              <button
+                onClick={() => navigate('/dashboard/messages')}
+                aria-label="View messages"
+                className="relative w-14 h-14 bg-brand-gradient rounded-2xl flex items-center justify-center shadow-xl shadow-primary/30 active:scale-90 transition-all text-white border-4 border-white/60 backdrop-blur-xl"
+              >
+                <div className="absolute inset-0 rounded-2xl bg-white/10 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] pointer-events-none" />
+                <MessageSquare className="w-6.5 h-6.5 stroke-[2.5]" />
+                {unreadMessagesCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-4.5 px-1 bg-red-500 text-white text-[9px] font-black rounded-full border-2 border-white flex items-center justify-center shadow-md">
+                    {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <MobileNavItem icon={<Video className="w-5.5 h-5.5" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
+            <MobileNavItem icon={<User className="w-5.5 h-5.5" />} active={pathname.includes('profile')} onClick={() => navigate('/dashboard/profile')} />
           </div>
-
-          <MobileNavItem icon={<Users className="w-5.5 h-5.5" />} active={pathname.includes('connections')} onClick={() => navigate('/dashboard/connections')} />
-          <MobileNavItem icon={<User className="w-5.5 h-5.5" />} active={pathname.includes('profile')} onClick={() => navigate('/dashboard/profile')} />
         </nav>
       </main>
 
 
       {/* Right Sidebar — collapsible */}
       <div
-        className={`hidden lg:flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-transparent md:rounded-[24px] ${
-          showRightSidebar && isSidebarVisible ? 'w-80 opacity-100 px-0' : 'w-0 opacity-0 px-0 invisible'
-        }`}
+        className={`hidden lg:flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-transparent md:rounded-[24px] ${showRightSidebar && isSidebarVisible ? 'w-80 opacity-100 px-0' : 'w-0 opacity-0 px-0 invisible'
+          }`}
       >
         <div className="h-full bg-bg-sidebar border border-border-base md:rounded-[24px] overflow-hidden transition-colors duration-300">
-          <RightSidebar 
-            crossingsToday={crossingsCount} 
+          <RightSidebar
+            crossingsToday={crossingsCount}
             nearbyCount={nearbyCount}
             storiesCount={storiesCount}
             isSyncing={isSyncingStats}
@@ -546,14 +627,34 @@ const Dashboard = () => {
 
 // Mobile Nav Item helper
 const MobileNavItem = ({ icon, active, onClick }: { icon: React.ReactNode, active: boolean, onClick: () => void }) => (
-    <button
-      onClick={onClick}
-      aria-label="Navigate"
-      aria-current={active ? 'page' : undefined}
-      className={`flex flex-col items-center justify-center p-3 transition-all duration-300 ${active ? 'text-primary scale-110' : 'text-text-muted hover:text-primary/60'}`}
+  <button
+    onClick={onClick}
+    aria-label="Navigate"
+    aria-current={active ? 'page' : undefined}
+    className={`relative flex flex-col items-center justify-center p-3 transition-all duration-300 rounded-2xl ${active
+      ? 'text-primary bg-primary/10 shadow-sm border border-primary/10 scale-105'
+      : 'text-slate-900/60 hover:text-slate-900'
+      }`}
+  >
+    
+    <motion.div
+      animate={{
+        scale: active ? 1.05 : 1,
+        y: active ? -1 : 0
+      }}
+      transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+      className="relative z-10"
     >
       {icon}
-    </button>
+    </motion.div>
+    {active && (
+      <motion.div
+        layoutId="active-mobile-nav-indicator"
+        className="absolute -bottom-1 w-1.5 h-1.5 rounded-full bg-primary shadow-[0_0_8px_rgba(255,0,110,0.6)]"
+        transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+      />
+    )}
+  </button>
 );
 
 export default Dashboard;

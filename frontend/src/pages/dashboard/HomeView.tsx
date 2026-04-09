@@ -3,7 +3,6 @@ import { MapPin, Plus, Search, Bell, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { StoryBar } from '../../components/story/StoryBar';
 import PostCard from '../../components/post/PostCard';
-import PostInputBox from '../../components/post/PostInputBox';
 import api from '../../services/api';
 
 interface HomeViewProps {
@@ -38,7 +37,7 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
   }, []);
 
   return (
-    <div className="flex flex-col h-full bg-transparent overflow-y-auto no-scrollbar relative w-full font-poppins">
+    <div className="flex flex-col h-auto md:h-full bg-transparent overflow-y-visible md:overflow-y-auto no-scrollbar relative w-full font-poppins">
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="hidden md:flex sticky top-0 z-40 bg-bg-card/95 backdrop-blur-xl px-6 pt-5 pb-5 items-center justify-between shrink-0 shadow-[0_8px_30px_rgba(0,0,0,0.03)] border-b border-border-base transition-colors duration-300">
@@ -75,11 +74,11 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
       </div>
 
 
-      {/* ── Left-Aligned Content ─────────────────────────────── */}
-      <div className="flex-1 w-full px-6 pt-2 pb-20 flex flex-col items-start bg-transparent">
+      {/* ── Feed Content Container ─────────────────────────────── */}
+      <div className="flex-1 w-full px-0 md:px-6 pt-2 pb-20 flex flex-col items-start bg-transparent">
 
         {/* Stories Section */}
-        <div className="w-full md:bg-bg-card md:rounded-[24px] md:border md:border-border-base md:shadow-[0_8px_30px_rgba(0,0,0,0.02)] md:p-5 p-0 mb-2 md:mb-6 border-b border-border-base/30 md:border-b-transparent transition-colors duration-300">
+        <div className="w-full md:bg-bg-card md:rounded-[24px] md:border md:border-border-base md:shadow-[0_8px_30px_rgba(0,0,0,0.02)] md:p-5 p-0 mb-0.5 md:mb-6 border-b border-border-base/30 md:border-b-transparent transition-colors duration-300">
           <div className="md:px-0 px-2">
             <StoryBar
               stories={stories}
@@ -88,11 +87,6 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
               onStoryClick={onStoryClick}
             />
           </div>
-        </div>
-
-        {/* Post Input Box */}
-        <div className="w-full max-w-4xl mb-4 md:mb-6">
-          <PostInputBox user={user} onClick={onCreateStory} />
         </div>
 
         {/* Feed List */}
@@ -113,7 +107,7 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
             </div>
           ) : (
             posts.map((post: any) => (
-              <div key={post.id} className="w-full max-w-3xl">
+              <div key={post.id} className="w-full max-w-full md:max-w-3xl">
                 <PostCard
                   post={post}
                   currentUserID={user?.id}

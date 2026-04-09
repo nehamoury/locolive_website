@@ -18,6 +18,7 @@ type createPostRequest struct {
 	MediaURL     string  `json:"media_url"   binding:"required"`
 	MediaType    string  `json:"media_type"  binding:"required,oneof=image video text"`
 	Caption      string  `json:"caption"`
+	BodyText     string  `json:"body_text"`
 	LocationName string  `json:"location_name"`
 	Latitude     float64 `json:"latitude"`
 	Longitude    float64 `json:"longitude"`
@@ -41,6 +42,7 @@ func (server *Server) createPost(ctx *gin.Context) {
 		MediaUrl:    req.MediaURL,
 		MediaType:   req.MediaType,
 		Caption:     sql.NullString{String: req.Caption, Valid: req.Caption != ""},
+		BodyText:    sql.NullString{String: req.BodyText, Valid: req.BodyText != ""},
 		LocationName: sql.NullString{String: req.LocationName, Valid: req.LocationName != ""},
 		Geohash:     sql.NullString{},
 		HasLocation: req.HasLocation,

@@ -38,12 +38,20 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
     try {
       let endpoint = '/reels/feed';
       if (feedType === 'nearby') {
-        endpoint = '/reels/nearby?lat=0&lng=0';
+        const storedPos = localStorage.getItem('lastPosition');
+        let lat = 0, lng = 0;
+        if (storedPos) {
+          const pos = JSON.parse(storedPos);
+          lat = pos.lat || 0;
+          lng = pos.lng || 0;
+        }
+        endpoint = `/reels/nearby?lat=${lat}&lng=${lng}`;
       }
       const { data } = await api.get(endpoint);
       setReels(data.reels || []);
     } catch (err) {
       console.error('Fetch reels failed:', err);
+      setReels([]);
     } finally {
       setLoading(false);
     }
@@ -74,16 +82,16 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
   }
 
   return (
-    <div className="relative w-full h-full bg-bg-base overflow-hidden flex flex-col md:flex-row p-0 md:p-6 gap-6">
+    <div className="relative w-full h-full bg-black overflow-hidden flex flex-col md:flex-row">
 
       {/* main snaps */}
-      <div className="flex-1 flex flex-col items-center justify-center overflow-hidden h-full">
+      <div className="flex-1 flex flex-col items-center justify-center overflow-hidden h-full w-full">
         
-        {/* Card Wrapper: Responsive Height to prevent top/bottom clipping */}
-        <div className="relative w-full h-[calc(100vh-100px)] max-h-[850px] max-w-[420px] mx-auto group">
+        {/* Card Wrapper: Full height for mobile */}
+        <div className="relative w-full h-full max-w-[420px] mx-auto group">
           
-          {/* Floating Create Button: Relocated to Left Top & Smaller */}
-          <div className="absolute top-5 left-5 z-50 pointer-events-auto hidden md:block">
+          {/* Floating Create Button */}
+          <div className="absolute top-5 left-5 z-50 pointer-events-auto">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -98,30 +106,30 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
           <div
             ref={containerRef}
             onScroll={handleScroll}
-            className="w-full h-full bg-black md:rounded-[40px] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] overflow-y-scroll snap-y snap-mandatory no-scrollbar relative z-10 border border-white/10"
+            className="w-full h-full bg-black overflow-y-scroll snap-y snap-mandatory no-scrollbar relative z-10"
           >
             {reels.length > 0 ? (
               reels.map((reel, idx) => (
                 <ReelItem key={reel.id} reel={reel} isActive={idx === activeIndex} />
               ))
             ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-white/40 gap-6 p-8 text-center bg-[#0a0a0a]">
+              <div className="w-full h-screen flex flex-col items-center justify-center text-white/40 gap-6 p-8 text-center bg-black">
                 <div className="w-24 h-24 bg-white/5 rounded-full flex items-center justify-center shadow-inner">
                   <Compass className="w-12 h-12 text-primary/60" />
                 </div>
                 <div className="space-y-3">
                   <h4 className="text-white flex items-center justify-center gap-2 font-black uppercase tracking-widest text-sm">
                     <Map className="w-4 h-4 text-primary" />
-                    Quiet Neighborhood
+                    No Reels Yet
                   </h4>
                   <p className="text-xs font-medium text-white/40 max-w-[240px] leading-relaxed">
-                    There are no locolive reels around your current location. Be the first to drop one!
+                    There are no reels around your location. Be the first to create one!
                   </p>
                 </div>
                 <div className="flex gap-3 mt-4">
                   <button
                     onClick={() => setFeedType('foryou')}
-                    className="px-6 py-3.5 bg-brand-gradient rounded-full text-white font-black uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                    className="px-6 py-3.5 bg-gradient-to-r from-pink-500 to-purple-600 rounded-full text-white font-black uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
                   >
                     Explore Global
                   </button>
@@ -129,7 +137,7 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
                     onClick={onCreateReel}
                     className="px-6 py-3.5 bg-white/10 border border-white/20 hover:bg-white/20 rounded-full text-white font-black uppercase text-[10px] tracking-[0.2em] transition-all"
                   >
-                    Drop Reel
+                    Create Reel
                   </button>
                 </div>
               </div>

@@ -25,10 +25,10 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
       {/* Your Story */}
       <div 
         onClick={() => hasMyStories ? onStoryClick(myStories, 0) : onCreateStory()}
-        className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group w-[72px]"
+        className="flex flex-col items-center gap-2 flex-shrink-0 cursor-pointer group w-[86px]"
       >
         <div className={`
-          w-[68px] h-[68px] rounded-full p-[2.5px] transition-all duration-300 group-hover:scale-105 active:scale-95 relative
+          w-[82px] h-[82px] rounded-full p-[3px] transition-all duration-300 group-hover:scale-105 active:scale-95 relative
           ${hasMyStories ? 'bg-gradient-to-tr from-primary to-accent' : 'bg-transparent border border-border-base'}
         `}>
           <div className="w-full h-full rounded-full border-[2.5px] border-bg-card bg-bg-card overflow-hidden flex items-center justify-center">
@@ -55,8 +55,8 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
             </div>
           )}
         </div>
-        <div className="flex flex-col items-center text-center mt-0.5">
-          <span className="text-[11px] font-bold text-text-base transition-colors tracking-tight leading-none text-center truncate w-full italic">Your Story</span>
+        <div className="flex flex-col items-center text-center mt-1">
+          <span className="text-[12px] font-bold text-text-base transition-colors tracking-tight leading-none text-center truncate w-full italic">Your Story</span>
         </div>
       </div>
 
@@ -69,10 +69,10 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
           <div 
             key={story.id} 
             onClick={() => onStoryClick(thisUserStories, 0)}
-            className="flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer w-[72px]"
+            className="flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer w-[86px]"
           >
             <div className={`
-              w-[68px] h-[68px] rounded-full p-[2.5px] transition-all duration-300 group-hover:scale-105 active:scale-95 relative
+              w-[82px] h-[82px] rounded-full p-[3px] transition-all duration-300 group-hover:scale-105 active:scale-95 relative
               ${isViewed ? 'border border-border-base bg-transparent p-0' : 'bg-gradient-to-tr from-primary to-accent'}
             `}>
               <div className="w-full h-full rounded-full border-[2.5px] border-bg-card bg-bg-card overflow-hidden">
@@ -90,8 +90,8 @@ const StoryBar: FC<StoryBarProps> = ({ stories = [], user, onCreateStory, onStor
               </div>
             </div>
             
-            <div className="flex flex-col items-center text-center mt-0.5">
-              <span className={`text-[11px] font-bold max-w-[68px] truncate transition-colors tracking-tight leading-none text-center italic ${isViewed ? 'text-text-muted/60' : 'text-text-base'}`}>
+            <div className="flex flex-col items-center text-center mt-1">
+              <span className={`text-[12px] font-bold max-w-[86px] transition-colors tracking-tight leading-tight text-center italic ${isViewed ? 'text-text-muted/60' : 'text-text-base'}`}>
                 {story?.full_name?.split(' ')[0] || story?.username || 'User'}
               </span>
             </div>

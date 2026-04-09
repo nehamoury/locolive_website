@@ -2,9 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../services/api';
 import { calculateDistance } from '../utils/geo';
 
-const MIN_DISTANCE_METERS = 25; // Trigger update if moved >25m
-const MIN_TIME_MS = 15000;       // Or if >15 seconds have passed
-const FORCED_PING_INTERVAL = 15000; // Forced periodic ping every 15s
+const MIN_DISTANCE_METERS = 50; // Trigger update if moved >50m
+const MIN_TIME_MS = 30000;       // Or if >30 seconds have passed
+const FORCED_PING_INTERVAL = 60000; // Forced periodic ping every 60s
 
 /**
  * Custom hook to track user location and send it to the backend.

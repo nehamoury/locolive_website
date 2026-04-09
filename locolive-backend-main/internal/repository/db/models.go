@@ -355,6 +355,7 @@ type Post struct {
 	MediaUrl      string         `json:"media_url"`
 	MediaType     string         `json:"media_type"`
 	Caption       sql.NullString `json:"caption"`
+	BodyText      sql.NullString `json:"body_text"`
 	LocationName  sql.NullString `json:"location_name"`
 	Geohash       sql.NullString `json:"geohash"`
 	Geom          interface{}    `json:"geom"`
