@@ -30,6 +30,7 @@ import StoryViewer from '../../components/story/StoryViewer';
 import ChatList from '../../components/chat/ChatList';
 import ChatWindow from '../../components/chat/ChatWindow';
 import ChatProfileSidebar from '../../components/chat/ChatProfileSidebar';
+import { IOSInstallBanner } from '../../components/ui/IOSInstallBanner';
 
 const MemberProfileWrapper = ({ onMessage }: { onMessage: (id: string) => void }) => {
   const { id } = useParams();
@@ -621,6 +622,8 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      <IOSInstallBanner />
     </div>
   );
 };

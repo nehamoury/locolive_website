@@ -9,6 +9,7 @@ interface User {
   avatar_url?: string;
   connections_count?: number;
   is_ghost_mode?: boolean;
+  role?: 'user' | 'admin' | 'moderator';
 }
 
 interface AuthContextType {

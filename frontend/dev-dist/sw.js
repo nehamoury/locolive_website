@@ -67,7 +67,7 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-1cff22dc'], (function (workbox) { 'use strict';
+define(['./workbox-607cc067'], (function (workbox) { 'use strict';
 
   self.skipWaiting();
   workbox.clientsClaim();
@@ -79,22 +79,48 @@ define(['./workbox-1cff22dc'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "index.html",
-    "revision": "0.gllk0p5e5ic"
+    "revision": "0.8tqblontj18"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
     allowlist: [/^\/$/]
   }));
-  workbox.registerRoute(/\/api\/(stories|reels|feed|posts\/feed)/, new workbox.NetworkFirst({
+  workbox.registerRoute(/\/api\/media\//, new workbox.CacheFirst({
+    "cacheName": "media-cache",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 60,
+      maxAgeSeconds: 604800
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    }), new workbox.RangeRequestsPlugin()]
+  }), 'GET');
+  workbox.registerRoute(/\/api\/(feed|stories|reels)\//, new workbox.StaleWhileRevalidate({
     "cacheName": "api-public-cache",
     plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 50,
-      maxAgeSeconds: 300
+      maxEntries: 100,
+      maxAgeSeconds: 86400
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
+    })]
+  }), 'GET');
+  workbox.registerRoute(/\/api\/posts\/feed/, new workbox.StaleWhileRevalidate({
+    "cacheName": "api-public-cache",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 100,
+      maxAgeSeconds: 86400
     }), new workbox.CacheableResponsePlugin({
       statuses: [0, 200]
     })]
   }), 'GET');
   workbox.registerRoute(/\/api\/(auth|profile\/me|messages)/, new workbox.NetworkOnly({
+    "cacheName": "no-cache",
+    plugins: []
+  }), 'GET');
+  workbox.registerRoute(/\/ws\//, new workbox.NetworkOnly({
+    "cacheName": "no-cache",
+    plugins: []
+  }), 'GET');
+  workbox.registerRoute(/\/api\/location\//, new workbox.NetworkOnly({
     "cacheName": "no-cache",
     plugins: []
   }), 'GET');
