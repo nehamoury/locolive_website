@@ -25,6 +25,9 @@ export const useNotifications = () => {
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [wsStatus, setWsStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
+    typeof Notification !== 'undefined' ? Notification.permission : 'default'
+  );
 
   const socketRef = useRef<WebSocket | null>(null);
   const crossingAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -39,6 +42,40 @@ export const useNotifications = () => {
     crossingAudioRef.current = new Audio(CROSSING_SOUND_URL);
     receiveAudioRef.current = new Audio(MSG_RECEIVE_URL);
     sendAudioRef.current = new Audio(MSG_SEND_URL);
+  }, []);
+
+  const requestPermission = useCallback(async () => {
+    if (typeof Notification === 'undefined') return;
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+    if (permission === 'granted') {
+      toast.success('Notifications enabled! 🔔');
+    }
+  }, []);
+
+  const showSystemNotification = useCallback((title: string, options?: NotificationOptions) => {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+
+    // Only show system notification if the page is hidden
+    if (document.visibilityState === 'hidden') {
+      const defaultOptions: any = {
+        icon: '/pwa-192x192.png',
+        badge: '/favicon.svg',
+        vibrate: [200, 100, 200],
+        ...options
+      };
+      
+      try {
+        new Notification(title, defaultOptions);
+      } catch (err) {
+        // Fallback for devices that require service worker registration for notifications
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(registration => {
+            registration.showNotification(title, defaultOptions);
+          });
+        }
+      }
+    }
   }, []);
 
   const fetchUnreadCount = useCallback(async () => {
@@ -171,6 +208,11 @@ export const useNotifications = () => {
                 border: '1px solid #E5E7EB'
               },
             });
+
+            showSystemNotification('New Message', {
+              body: data.content || 'You have a new message on Locolive',
+              tag: 'new-message'
+            });
             return;
           }
 
@@ -192,6 +234,11 @@ export const useNotifications = () => {
               }
             });
             playSound('crossing');
+            showSystemNotification('Locolive Crossing', {
+              body: notif.message,
+              tag: 'crossing'
+            });
+
             setUnreadCount(prev => prev + 1);
             setNotifications(prev => [notif, ...prev]);
             window.dispatchEvent(new CustomEvent('crossing_detected', { detail: notif }));
@@ -211,12 +258,20 @@ export const useNotifications = () => {
               }
             });
             playSound('receive');
+            showSystemNotification('New Connection Request', {
+              body: 'Someone wants to connect with you!',
+              tag: 'connection-request'
+            });
             return;
           }
 
           if (data.type === 'connection_accepted') {
             fetchPendingRequestsCount();
             toast.success(`You are now connected! 🤝`);
+            showSystemNotification('Connection Accepted', {
+              body: 'Your connection request was accepted!',
+              tag: 'connection-accepted'
+            });
             window.dispatchEvent(new CustomEvent('connection_accepted', { detail: data.payload }));
             return;
           }
@@ -247,7 +302,7 @@ export const useNotifications = () => {
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
       if (socketRef.current) socketRef.current.close();
     };
-  }, [fetchUnreadCount, fetchUnreadMessagesCount, fetchPendingRequestsCount, playSound]);
+  }, [fetchUnreadCount, fetchUnreadMessagesCount, fetchPendingRequestsCount, playSound, showSystemNotification]);
 
   return {
     unreadCount,
@@ -256,7 +311,9 @@ export const useNotifications = () => {
     notifications,
     wsStatus,
     audioEnabled: alertsEnabled,
+    notificationPermission,
     toggleAudio,
+    requestPermission,
     playSendSound: () => playSound('send'),
     refreshUnread: () => {
       fetchUnreadCount();

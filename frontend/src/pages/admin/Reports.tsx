@@ -1,39 +1,6 @@
 import { useState } from 'react';
 import { Search, Check, X, Ban, User, Flag } from 'lucide-react';
-import type { AdminReport } from '../../types/admin';
-
-const mockReports: AdminReport[] = [
-  {
-    id: '1',
-    reporter: { id: '1', username: 'priya_singh', displayName: 'Priya Singh', avatar: '', status: 'online', lastLocation: { lat: 12.9716, lng: 77.5946 }, connectionsCount: 234, crossingsCount: 56, createdAt: '', isBanned: false },
-    reported: { id: '2', username: 'raj_kumar', displayName: 'Raj Kumar', avatar: '', status: 'online', lastLocation: { lat: 19.076, lng: 72.8777 }, connectionsCount: 189, crossingsCount: 42, createdAt: '', isBanned: false },
-    type: 'user',
-    contentId: '2',
-    reason: 'Inappropriate behavior',
-    status: 'pending',
-    createdAt: new Date(Date.now() - 1800000).toISOString(),
-  },
-  {
-    id: '2',
-    reporter: { id: '3', username: 'alex_m', displayName: 'Alex Martinez', avatar: '', status: 'offline', lastLocation: { lat: 28.6139, lng: 77.209 }, connectionsCount: 456, crossingsCount: 89, createdAt: '', isBanned: false },
-    reported: { id: '4', username: 'sarah_j', displayName: 'Sarah Johnson', avatar: '', status: 'online', lastLocation: { lat: 17.385, lng: 78.4867 }, connectionsCount: 312, crossingsCount: 67, createdAt: '', isBanned: false },
-    type: 'reel',
-    contentId: 'reel3',
-    reason: 'Spam content',
-    status: 'pending',
-    createdAt: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: '3',
-    reporter: { id: '5', username: 'mike_chen', displayName: 'Mike Chen', avatar: '', status: 'offline', lastLocation: { lat: 13.0827, lng: 80.27 }, connectionsCount: 78, crossingsCount: 12, createdAt: '', isBanned: false },
-    reported: { id: '1', username: 'priya_singh', displayName: 'Priya Singh', avatar: '', status: 'online', lastLocation: { lat: 12.9716, lng: 77.5946 }, connectionsCount: 234, crossingsCount: 56, createdAt: '', isBanned: false },
-    type: 'story',
-    contentId: 'story5',
-    reason: 'Harassment',
-    status: 'pending',
-    createdAt: new Date(Date.now() - 7200000).toISOString(),
-  },
-];
+import { useAdminReports, useResolveReport, useBanUser } from '../../hooks/useAdmin';
 
 function formatTime(timestamp: string) {
   const now = new Date();
@@ -46,42 +13,60 @@ function formatTime(timestamp: string) {
 }
 
 export function Reports() {
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending' | 'resolved'>('all');
-  const [reports, setReports] = useState<AdminReport[]>(mockReports);
+
+  const resolvedParam = filter === 'all' ? undefined : filter === 'resolved';
+
+  const { data, isLoading, isError } = useAdminReports(resolvedParam, page, pageSize);
+  const resolveMutation = useResolveReport();
+  const banMutation = useBanUser();
+
+  const reports = data?.items || [];
+  const total = data?.total || 0;
 
   const filteredReports = reports.filter(report => {
+    // Only apply client-side search if needed, backend handles pagination
     const matchesSearch = 
-      report.reporter.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.reported.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      report.reporter.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      report.reported.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       report.reason.toLowerCase().includes(searchQuery.toLowerCase());
-    if (filter === 'all') return matchesSearch;
-    if (filter === 'pending') return matchesSearch && report.status === 'pending';
-    if (filter === 'resolved') return matchesSearch && report.status !== 'pending';
     return matchesSearch;
   });
 
   const handleResolve = (reportId: string) => {
-    setReports(reports.map(r => r.id === reportId ? { ...r, status: 'resolved' } : r));
+    resolveMutation.mutate(reportId);
   };
 
   const handleIgnore = (reportId: string) => {
-    setReports(reports.map(r => r.id === reportId ? { ...r, status: 'ignored' } : r));
+    resolveMutation.mutate(reportId); // For now, treat ignore as resolve on backend
   };
 
-  const handleBan = (reportId: string) => {
-    const report = reports.find(r => r.id === reportId);
-    if (report) {
-      setReports(reports.map(r => r.id === reportId ? { ...r, status: 'resolved' } : r));
-      console.log(`Banned user: ${report.reported.displayName}`);
-    }
+  const handleBan = (reportId: string, reportedUserId: string) => {
+    banMutation.mutate({ userId: reportedUserId, ban: true });
+    resolveMutation.mutate(reportId);
   };
+
+  if (isError) {
+    return (
+      <div className="p-6 text-center">
+        <p className="text-red-500">Error loading reports. Please try again.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-        <span className="text-sm text-gray-500">{filteredReports.length} reports</span>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+          <p className="text-sm text-gray-500">Manage user reports and flagged content</p>
+        </div>
+        <span className="text-sm font-medium px-3 py-1 bg-gray-100 rounded-full text-gray-600">
+          {total} Total Reports
+        </span>
       </div>
 
       <div className="flex items-center gap-4">
@@ -101,7 +86,10 @@ export function Reports() {
         <div className="flex items-center gap-2">
           <select
             value={filter}
-            onChange={(e) => setFilter(e.target.value as typeof filter)}
+            onChange={(e) => {
+              setFilter(e.target.value as typeof filter);
+              setPage(1); // Reset page on filter change
+            }}
             className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF006E]/20 focus:border-[#FF006E]"
           >
             <option value="all">All Reports</option>
@@ -112,86 +100,101 @@ export function Reports() {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Reporter</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Reported</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Type</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Reason</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Time</th>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredReports.map((report) => (
-              <tr key={report.id} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                      <User className="w-4 h-4 text-gray-500" />
-                    </div>
-                    <span className="font-medium text-gray-900">{report.reporter.displayName}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-                      <Flag className="w-4 h-4 text-red-500" />
-                    </div>
-                    <span className="font-medium text-gray-900">{report.reported.displayName}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium uppercase">
-                    {report.type}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-600">{report.reason}</td>
-                <td className="px-4 py-3">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    report.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                    report.status === 'resolved' ? 'bg-green-100 text-green-700' :
-                    'bg-gray-100 text-gray-700'
-                  }`}>
-                    {report.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-500">{formatTime(report.createdAt)}</td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    {report.status === 'pending' && (
-                      <>
-                        <button
-                          onClick={() => handleResolve(report.id)}
-                          className="p-1.5 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors"
-                          title="Resolve"
-                        >
-                          <Check className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleBan(report.id)}
-                          className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
-                          title="Ban User"
-                        >
-                          <Ban className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleIgnore(report.id)}
-                          className="p-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
-                          title="Ignore"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </td>
+        {isLoading ? (
+           <div className="p-6 space-y-4">
+             {Array(5).fill(0).map((_, i) => (
+               <div key={i} className="h-12 bg-gray-50 animate-pulse rounded-lg w-full"></div>
+             ))}
+           </div>
+        ) : filteredReports.length === 0 ? (
+          <div className="p-12 text-center text-gray-500">
+             No reports found.
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Reporter</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Reported</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Type</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Reason</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Time</th>
+                <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredReports.map((report) => (
+                <tr key={report.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                        <User className="w-4 h-4 text-gray-500" />
+                      </div>
+                      <span className="font-medium text-gray-900">{report.reporter.username}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                        <Flag className="w-4 h-4 text-red-500" />
+                      </div>
+                      <span className="font-medium text-gray-900">{report.reported.username}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium uppercase">
+                      {report.type}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-[200px]" title={report.reason}>{report.reason}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      report.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                      report.status === 'resolved' ? 'bg-green-100 text-green-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {report.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{formatTime(report.createdAt)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      {report.status === 'pending' && (
+                        <>
+                          <button
+                            onClick={() => handleResolve(report.id)}
+                            disabled={resolveMutation.isPending}
+                            className="p-1.5 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50"
+                            title="Resolve"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleBan(report.id, report.reported.id)}
+                            disabled={banMutation.isPending || resolveMutation.isPending}
+                            className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50"
+                            title="Ban User & Resolve"
+                          >
+                            <Ban className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleIgnore(report.id)}
+                            disabled={resolveMutation.isPending}
+                            className="p-1.5 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                            title="Ignore"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

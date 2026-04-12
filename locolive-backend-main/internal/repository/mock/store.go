@@ -103,6 +103,20 @@ func (mr *MockStoreMockRecorder) BanUser(ctx, arg any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BanUser", reflect.TypeOf((*MockStore)(nil).BanUser), ctx, arg)
 }
 
+// BlockSession mocks base method.
+func (m *MockStore) BlockSession(ctx context.Context, userID uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BlockSession", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BlockSession indicates an expected call of BlockSession.
+func (mr *MockStoreMockRecorder) BlockSession(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BlockSession", reflect.TypeOf((*MockStore)(nil).BlockSession), ctx, userID)
+}
+
 // BlockUser mocks base method.
 func (m *MockStore) BlockUser(ctx context.Context, arg db.BlockUserParams) (db.BlockedUser, error) {
 	m.ctrl.T.Helper()
@@ -162,6 +176,21 @@ func (mr *MockStoreMockRecorder) ClearPasswordResetToken(ctx, id any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearPasswordResetToken", reflect.TypeOf((*MockStore)(nil).ClearPasswordResetToken), ctx, id)
 }
 
+// CountAdminCrossings mocks base method.
+func (m *MockStore) CountAdminCrossings(ctx context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountAdminCrossings", ctx)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountAdminCrossings indicates an expected call of CountAdminCrossings.
+func (mr *MockStoreMockRecorder) CountAdminCrossings(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountAdminCrossings", reflect.TypeOf((*MockStore)(nil).CountAdminCrossings), ctx)
+}
+
 // CountArchivedStories mocks base method.
 func (m *MockStore) CountArchivedStories(ctx context.Context, userID uuid.UUID) (int64, error) {
 	m.ctrl.T.Helper()
@@ -205,6 +234,21 @@ func (m *MockStore) CountCrossingsToday(ctx context.Context, userID1 uuid.UUID) 
 func (mr *MockStoreMockRecorder) CountCrossingsToday(ctx, userID1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountCrossingsToday", reflect.TypeOf((*MockStore)(nil).CountCrossingsToday), ctx, userID1)
+}
+
+// CountSearchUsersAdmin mocks base method.
+func (m *MockStore) CountSearchUsersAdmin(ctx context.Context, query string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountSearchUsersAdmin", ctx, query)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountSearchUsersAdmin indicates an expected call of CountSearchUsersAdmin.
+func (mr *MockStoreMockRecorder) CountSearchUsersAdmin(ctx, query any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountSearchUsersAdmin", reflect.TypeOf((*MockStore)(nil).CountSearchUsersAdmin), ctx, query)
 }
 
 // CountStoryReactions mocks base method.
@@ -1385,6 +1429,51 @@ func (mr *MockStoreMockRecorder) GetSystemStats(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSystemStats", reflect.TypeOf((*MockStore)(nil).GetSystemStats), ctx)
 }
 
+// GetTotalConnectionsCount mocks base method.
+func (m *MockStore) GetTotalConnectionsCount(ctx context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTotalConnectionsCount", ctx)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTotalConnectionsCount indicates an expected call of GetTotalConnectionsCount.
+func (mr *MockStoreMockRecorder) GetTotalConnectionsCount(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTotalConnectionsCount", reflect.TypeOf((*MockStore)(nil).GetTotalConnectionsCount), ctx)
+}
+
+// GetTotalCrossingsCountToday mocks base method.
+func (m *MockStore) GetTotalCrossingsCountToday(ctx context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTotalCrossingsCountToday", ctx)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTotalCrossingsCountToday indicates an expected call of GetTotalCrossingsCountToday.
+func (mr *MockStoreMockRecorder) GetTotalCrossingsCountToday(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTotalCrossingsCountToday", reflect.TypeOf((*MockStore)(nil).GetTotalCrossingsCountToday), ctx)
+}
+
+// GetTotalReelsCountToday mocks base method.
+func (m *MockStore) GetTotalReelsCountToday(ctx context.Context) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTotalReelsCountToday", ctx)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTotalReelsCountToday indicates an expected call of GetTotalReelsCountToday.
+func (mr *MockStoreMockRecorder) GetTotalReelsCountToday(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTotalReelsCountToday", reflect.TypeOf((*MockStore)(nil).GetTotalReelsCountToday), ctx)
+}
+
 // GetUnreadMessageCount mocks base method.
 func (m *MockStore) GetUnreadMessageCount(ctx context.Context, receiverID uuid.NullUUID) (int64, error) {
 	m.ctrl.T.Helper()
@@ -1693,6 +1782,36 @@ func (m *MockStore) LikeReel(ctx context.Context, arg db.LikeReelParams) (db.Ree
 func (mr *MockStoreMockRecorder) LikeReel(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LikeReel", reflect.TypeOf((*MockStore)(nil).LikeReel), ctx, arg)
+}
+
+// ListActiveUsersWithLocation mocks base method.
+func (m *MockStore) ListActiveUsersWithLocation(ctx context.Context) ([]db.ListActiveUsersWithLocationRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListActiveUsersWithLocation", ctx)
+	ret0, _ := ret[0].([]db.ListActiveUsersWithLocationRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListActiveUsersWithLocation indicates an expected call of ListActiveUsersWithLocation.
+func (mr *MockStoreMockRecorder) ListActiveUsersWithLocation(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListActiveUsersWithLocation", reflect.TypeOf((*MockStore)(nil).ListActiveUsersWithLocation), ctx)
+}
+
+// ListAdminCrossings mocks base method.
+func (m *MockStore) ListAdminCrossings(ctx context.Context, arg db.ListAdminCrossingsParams) ([]db.ListAdminCrossingsRow, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAdminCrossings", ctx, arg)
+	ret0, _ := ret[0].([]db.ListAdminCrossingsRow)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAdminCrossings indicates an expected call of ListAdminCrossings.
+func (mr *MockStoreMockRecorder) ListAdminCrossings(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAdminCrossings", reflect.TypeOf((*MockStore)(nil).ListAdminCrossings), ctx, arg)
 }
 
 // ListAllStories mocks base method.
@@ -2081,6 +2200,21 @@ func (mr *MockStoreMockRecorder) SearchUsers(ctx, query any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchUsers", reflect.TypeOf((*MockStore)(nil).SearchUsers), ctx, query)
 }
 
+// SearchUsersAdmin mocks base method.
+func (m *MockStore) SearchUsersAdmin(ctx context.Context, arg db.SearchUsersAdminParams) ([]db.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SearchUsersAdmin", ctx, arg)
+	ret0, _ := ret[0].([]db.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SearchUsersAdmin indicates an expected call of SearchUsersAdmin.
+func (mr *MockStoreMockRecorder) SearchUsersAdmin(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SearchUsersAdmin", reflect.TypeOf((*MockStore)(nil).SearchUsersAdmin), ctx, arg)
+}
+
 // SetPasswordResetToken mocks base method.
 func (m *MockStore) SetPasswordResetToken(ctx context.Context, arg db.SetPasswordResetTokenParams) (db.User, error) {
 	m.ctrl.T.Helper()
@@ -2314,6 +2448,21 @@ func (m *MockStore) UpdateUserProfile(ctx context.Context, arg db.UpdateUserProf
 func (mr *MockStoreMockRecorder) UpdateUserProfile(ctx, arg any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserProfile", reflect.TypeOf((*MockStore)(nil).UpdateUserProfile), ctx, arg)
+}
+
+// UpdateUserRole mocks base method.
+func (m *MockStore) UpdateUserRole(ctx context.Context, arg db.UpdateUserRoleParams) (db.User, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateUserRole", ctx, arg)
+	ret0, _ := ret[0].(db.User)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateUserRole indicates an expected call of UpdateUserRole.
+func (mr *MockStoreMockRecorder) UpdateUserRole(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserRole", reflect.TypeOf((*MockStore)(nil).UpdateUserRole), ctx, arg)
 }
 
 // UpdateUserTrust mocks base method.

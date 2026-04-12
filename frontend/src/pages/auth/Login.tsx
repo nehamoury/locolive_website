@@ -152,17 +152,30 @@ const Login: React.FC<LoginProps> = ({ onToggle, onBack }) => {
           </button>
 
           {/* Footer */}
-          <div className="text-center pt-4">
-            <span className="text-sm text-text-muted">Don't have an account? </span>
-            <button
-              type="button"
-              onClick={onToggle}
-              className="text-sm font-bold text-text-base hover:text-primary transition-colors cursor-pointer"
-            >
-              Sign up
-            </button>
+          <div className="text-center pt-4 flex flex-col gap-3">
+            <div>
+              <span className="text-sm text-text-muted">Don't have an account? </span>
+              <button
+                type="button"
+                onClick={onToggle}
+                className="text-sm font-bold text-text-base hover:text-primary transition-colors cursor-pointer"
+              >
+                Sign up
+              </button>
+            </div>
+            
+            <div className="pt-2 border-t border-border-base/50">
+              <button
+                type="button"
+                onClick={() => window.location.href = '/admin/login'}
+                className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em] hover:text-primary transition-colors cursor-pointer"
+              >
+                Administrator Login
+              </button>
+            </div>
           </div>
         </form>
+
 
       </motion.div>
     </div>

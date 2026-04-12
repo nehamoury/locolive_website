@@ -99,7 +99,13 @@ const Dashboard = () => {
 
   // Real-time & Location Hooks
   const { position: currentGeoPos } = useGeolocation(true);
-  const { unreadCount: totalUnreadCount, unreadMessagesCount, pendingRequestsCount } = useNotifications();
+  const {
+    unreadCount: totalUnreadCount,
+    unreadMessagesCount,
+    pendingRequestsCount,
+    notificationPermission,
+    requestPermission
+  } = useNotifications();
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCreateReelModalOpen, setIsCreateReelModalOpen] = useState(false);
@@ -409,6 +415,8 @@ const Dashboard = () => {
           logout={logout}
           unreadCount={totalUnreadCount}
           unreadMessagesCount={unreadMessagesCount}
+          notificationPermission={notificationPermission}
+          requestPermission={requestPermission}
           onCreatePost={() => setIsCreateModalOpen(true)}
         />
       </div>
@@ -416,10 +424,10 @@ const Dashboard = () => {
       <Toaster position="top-right" reverseOrder={false} />
 
       {/* 2. Main Content Center (Scrollable) */}
-      <main className="flex-1 relative overflow-y-auto md:overflow-hidden flex flex-col bg-transparent z-10 w-full md:w-auto transition-colors duration-300 pb-20 md:pb-0 no-scrollbar">
+      <main className={`flex-1 relative ${pathname.includes('reels') ? 'overflow-hidden h-full' : 'overflow-y-auto'} md:overflow-hidden flex flex-col bg-transparent z-10 w-full md:w-auto transition-colors duration-300 ${pathname.includes('reels') ? 'pb-0' : 'pb-20'} md:pb-0 no-scrollbar`}>
 
         {/* Mobile Header — Premium Glass Redesign */}
-        <div className="md:hidden pt-4 pb-2 px-4 flex items-center justify-between bg-transparent transition-all z-50">
+        <div className={`md:hidden pt-4 pb-2 px-4 flex items-center justify-between bg-transparent transition-all z-50 ${pathname.includes('reels') ? 'hidden' : 'flex'}`}>
           <button
             onClick={() => setIsCreateModalOpen(true)}
             className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#fff5f7]/60 dark:bg-pink-500/10 backdrop-blur-xl border border-pink-200/30 dark:border-white/10 shadow-sm active:scale-95 transition-all text-primary"
@@ -522,10 +530,10 @@ const Dashboard = () => {
               <button
                 onClick={() => navigate('/dashboard/messages')}
                 aria-label="View messages"
-                className="relative w-14 h-14 bg-brand-gradient rounded-2xl flex items-center justify-center shadow-xl shadow-primary/30 active:scale-90 transition-all text-white border-4 border-white/60 backdrop-blur-xl"
+                className="relative w-12 h-12 bg-brand-gradient rounded-[20px] flex items-center justify-center shadow-xl shadow-primary/30 active:scale-90 transition-all text-white border-2 border-white/80 backdrop-blur-xl"
               >
-                <div className="absolute inset-0 rounded-2xl bg-white/10 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] pointer-events-none" />
-                <MessageSquare className="w-6.5 h-6.5 stroke-[2.5]" />
+                <div className="absolute inset-0 rounded-[20px] bg-white/5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] pointer-events-none" />
+                <MessageSquare className="w-5.5 h-5.5 stroke-[2.5]" />
                 {unreadMessagesCount > 0 && (
                   <span className="absolute -top-1 -right-1 min-w-[18px] h-4.5 px-1 bg-red-500 text-white text-[9px] font-black rounded-full border-2 border-white flex items-center justify-center shadow-md">
                     {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
@@ -635,11 +643,11 @@ const MobileNavItem = ({ icon, active, onClick }: { icon: React.ReactNode, activ
     aria-label="Navigate"
     aria-current={active ? 'page' : undefined}
     className={`relative flex flex-col items-center justify-center p-3 transition-all duration-300 rounded-2xl ${active
-      ? 'text-primary bg-primary/10 shadow-sm border border-primary/10 scale-105'
-      : 'text-slate-900/60 hover:text-slate-900'
+      ? 'text-primary'
+      : 'text-slate-900/60 hover:text-slate-900 transition-colors'
       }`}
   >
-    
+
     <motion.div
       animate={{
         scale: active ? 1.05 : 1,

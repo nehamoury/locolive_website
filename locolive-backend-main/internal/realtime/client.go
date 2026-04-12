@@ -16,7 +16,9 @@ type Client struct {
 	Conn     *websocket.Conn
 	Send     chan []byte
 	Username string
+	IsAdmin  bool
 }
+
 
 // WSMessage defines the structure of WebSocket messages
 type WSMessage struct {

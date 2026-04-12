@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { MoreVertical, Eye, MapPin, Link2,Ban, Trash2 } from 'lucide-react';
+import { MoreVertical, Eye, Ban, Trash2 } from 'lucide-react';
 import type { AdminUser } from '../../types/admin';
 
 interface UserTableProps {
   users: AdminUser[];
   onView?: (user: AdminUser) => void;
   onBan?: (user: AdminUser, ban: boolean) => void;
-  onViewOnMap?: (user: AdminUser) => void;
 }
 
-export function UserTable({ users, onView, onBan, onViewOnMap }: UserTableProps) {
+export function UserTable({ users, onView, onBan }: UserTableProps) {
+
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   return (
@@ -31,16 +31,16 @@ export function UserTable({ users, onView, onBan, onViewOnMap }: UserTableProps)
               <td className="px-4 py-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#FF006E] to-[#833AB4] flex-shrink-0">
-                    {user.avatar ? (
-                      <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                    {user.avatar_url ? (
+                      <img src={user.avatar_url} alt="" className="w-full h-full rounded-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <span className="text-sm font-medium text-white">{user.displayName[0]}</span>
+                        <span className="text-sm font-medium text-white">{(user.full_name || user.username)[0]}</span>
                       </div>
                     )}
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">{user.displayName}</p>
+                    <p className="font-medium text-gray-900">{user.full_name || user.username}</p>
                     <p className="text-sm text-gray-500">@{user.username}</p>
                   </div>
                 </div>
@@ -62,25 +62,17 @@ export function UserTable({ users, onView, onBan, onViewOnMap }: UserTableProps)
                 </span>
               </td>
               <td className="px-4 py-3">
-                {user.lastLocation ? (
-                  <div className="flex items-center gap-1 text-sm text-gray-600">
-                    <MapPin className="w-4 h-4" />
-                    <span>
-                      {user.lastLocation.lat.toFixed(4)}, {user.lastLocation.lng.toFixed(4)}
-                    </span>
-                  </div>
-                ) : (
-                  <span className="text-sm text-gray-400">No location</span>
-                )}
+                <div className="text-sm text-gray-500">{user.email}</div>
               </td>
               <td className="px-4 py-3">
-                <div className="flex items-center gap-1 text-sm text-gray-600">
-                  <Link2 className="w-4 h-4" />
-                  <span>{user.connectionsCount}</span>
-                </div>
+                <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs font-medium uppercase">
+                  {user.role}
+                </span>
               </td>
               <td className="px-4 py-3">
-                <span className="text-sm font-medium text-gray-900">{user.crossingsCount}</span>
+                <span className="text-sm text-gray-500">
+                  {new Date(user.created_at).toLocaleDateString()}
+                </span>
               </td>
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
@@ -90,13 +82,6 @@ export function UserTable({ users, onView, onBan, onViewOnMap }: UserTableProps)
                     title="View"
                   >
                     <Eye className="w-4 h-4 text-gray-600" />
-                  </button>
-                  <button
-                    onClick={() => onViewOnMap?.(user)}
-                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                    title="View on Map"
-                  >
-                    <MapPin className="w-4 h-4 text-gray-600" />
                   </button>
                   <div className="relative">
                     <button
@@ -109,12 +94,12 @@ export function UserTable({ users, onView, onBan, onViewOnMap }: UserTableProps)
                       <div className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-10">
                         <button
                           onClick={() => {
-                            onBan?.(user, !user.isBanned);
+                            onBan?.(user, !user.is_banned);
                             setActiveMenu(null);
                           }}
                           className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                         >
-                          {user.isBanned ? (
+                          {user.is_banned ? (
                             <>
                               <Ban className="w-4 h-4" />
                               Unban User
@@ -140,6 +125,7 @@ export function UserTable({ users, onView, onBan, onViewOnMap }: UserTableProps)
               </td>
             </tr>
           ))}
+
         </tbody>
       </table>
     </div>

@@ -1,5 +1,5 @@
 @echo off
-cd locolive-backend-main
-go run cmd/server/main.go
+cd D:\locolive-backend-main\locolive-backend-main
+server.exe
 pause
 

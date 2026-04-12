@@ -67,7 +67,7 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-607cc067'], (function (workbox) { 'use strict';
+define(['./workbox-761c64c3'], (function (workbox) { 'use strict';
 
   self.skipWaiting();
   workbox.clientsClaim();
@@ -78,14 +78,17 @@ define(['./workbox-607cc067'], (function (workbox) { 'use strict';
    * See https://goo.gl/S9QRab
    */
   workbox.precacheAndRoute([{
-    "url": "index.html",
-    "revision": "0.8tqblontj18"
+    "url": "registerSW.js",
+    "revision": "3ca0b8505b4bec776b69afdba2768812"
+  }, {
+    "url": "/index.html",
+    "revision": "0.qahs01qej94"
   }], {});
   workbox.cleanupOutdatedCaches();
-  workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
+  workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
     allowlist: [/^\/$/]
   }));
-  workbox.registerRoute(/\/api\/media\//, new workbox.CacheFirst({
+  workbox.registerRoute(/\/(api\/)?(uploads|media)\//, new workbox.CacheFirst({
     "cacheName": "media-cache",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 60,
@@ -94,7 +97,7 @@ define(['./workbox-607cc067'], (function (workbox) { 'use strict';
       statuses: [0, 200]
     }), new workbox.RangeRequestsPlugin()]
   }), 'GET');
-  workbox.registerRoute(/\/api\/(feed|stories|reels)\//, new workbox.StaleWhileRevalidate({
+  workbox.registerRoute(/\/(feed|stories|reels)\b/, new workbox.StaleWhileRevalidate({
     "cacheName": "api-public-cache",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 100,
@@ -103,24 +106,22 @@ define(['./workbox-607cc067'], (function (workbox) { 'use strict';
       statuses: [0, 200]
     })]
   }), 'GET');
-  workbox.registerRoute(/\/api\/posts\/feed/, new workbox.StaleWhileRevalidate({
-    "cacheName": "api-public-cache",
+  workbox.registerRoute(/\/admin\/(stats|users|reports)/, new workbox.NetworkFirst({
+    "cacheName": "admin-cache",
     plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 100,
-      maxAgeSeconds: 86400
-    }), new workbox.CacheableResponsePlugin({
-      statuses: [0, 200]
+      maxEntries: 50,
+      maxAgeSeconds: 300
     })]
   }), 'GET');
-  workbox.registerRoute(/\/api\/(auth|profile\/me|messages)/, new workbox.NetworkOnly({
+  workbox.registerRoute(/\/users\/(login|register)|auth\//, new workbox.NetworkOnly({
     "cacheName": "no-cache",
     plugins: []
   }), 'GET');
-  workbox.registerRoute(/\/ws\//, new workbox.NetworkOnly({
+  workbox.registerRoute(/\/ws\/|admin\/activity/, new workbox.NetworkOnly({
     "cacheName": "no-cache",
     plugins: []
   }), 'GET');
-  workbox.registerRoute(/\/api\/location\//, new workbox.NetworkOnly({
+  workbox.registerRoute(/\/location\//, new workbox.NetworkOnly({
     "cacheName": "no-cache",
     plugins: []
   }), 'GET');

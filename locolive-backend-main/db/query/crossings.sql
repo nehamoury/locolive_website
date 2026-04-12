@@ -66,3 +66,27 @@ GROUP BY l1.user_id, l2.user_id, l1.geohash, l1.time_bucket;
 -- name: GetCrossingCount :one
 SELECT COUNT(*) FROM crossings 
 WHERE (user_id_1 = LEAST($1::uuid,$2::uuid) AND user_id_2 = GREATEST($1::uuid,$2::uuid));
+
+
+-- name: GetTotalCrossingsCountToday :one
+SELECT COUNT(*) FROM crossings
+WHERE occurred_at >= CURRENT_DATE;
+
+
+-- name: CountAdminCrossings :one
+SELECT COUNT(*) FROM crossings;
+
+-- name: ListAdminCrossings :many
+SELECT 
+    c.id, 
+    c.location_center, 
+    c.occurred_at, 
+    u1.id as u1_id, u1.username as u1_username, u1.full_name as u1_full_name, u1.avatar_url as u1_avatar_url,
+    u2.id as u2_id, u2.username as u2_username, u2.full_name as u2_full_name, u2.avatar_url as u2_avatar_url,
+    ST_Y(c.location_center::geometry) as lat,
+    ST_X(c.location_center::geometry) as lng
+FROM crossings c
+JOIN users u1 ON c.user_id_1 = u1.id
+JOIN users u2 ON c.user_id_2 = u2.id
+ORDER BY c.occurred_at DESC
+LIMIT CAST($1 AS int) OFFSET CAST($2 AS int);

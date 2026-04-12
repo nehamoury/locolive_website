@@ -155,7 +155,6 @@ func (server *Server) setupRouter() {
 	authRoutes.DELETE("/highlights/:id/stories/:storyId", server.removeStoryFromHighlight)
 	authRoutes.DELETE("/highlights/:id", server.deleteHighlight)
 
-
 	// Groups
 	authRoutes.POST("/groups", server.createGroup)
 	authRoutes.GET("/groups", server.getMyGroups)
@@ -170,11 +169,28 @@ func (server *Server) setupRouter() {
 	adminRoutes.GET("/users", server.listUsers)
 	adminRoutes.POST("/users/ban", server.banUser)
 	adminRoutes.DELETE("/users/:id", server.deleteUser)
+	adminRoutes.PUT("/users/:id/password", server.adminResetUserPassword)
 	adminRoutes.GET("/stats", server.getStats)
 	adminRoutes.GET("/reports", server.listReports)
 	adminRoutes.PUT("/reports/:id/resolve", server.resolveReport)
 	adminRoutes.GET("/stories", server.listAllStories)
 	adminRoutes.DELETE("/stories/:id", server.deleteStory)
+	adminRoutes.GET("/activity", server.activityWebSocket)
+	adminRoutes.GET("/map/active", server.getMapActiveUsers)
+	adminRoutes.GET("/crossings", server.listAdminCrossings)
+
+	// Frontend static files (SPA with fallback to index.html)
+	router.Static("/assets", "../frontend/dist/assets")
+	router.StaticFile("/manifest.webmanifest", "../frontend/dist/manifest.webmanifest")
+	router.StaticFile("/sw.js", "../frontend/dist/sw.js")
+	router.StaticFile("/pwa-192x192.png", "../frontend/dist/pwa-192x192.png")
+	router.StaticFile("/pwa-512x512.png", "../frontend/dist/pwa-512x512.png")
+	router.StaticFile("/favicon.svg", "../frontend/dist/favicon.svg")
+
+	// SPA fallback: serve index.html for all unmatched routes (allows client-side routing)
+	router.NoRoute(func(c *gin.Context) {
+		c.File("../frontend/dist/index.html")
+	})
 
 	server.router = router
 }

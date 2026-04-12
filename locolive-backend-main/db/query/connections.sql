@@ -109,3 +109,8 @@ WHERE u.id NOT IN (SELECT id FROM excluded_users)
 AND u.is_shadow_banned = false
 ORDER BY mutual_count DESC, u.created_at DESC
 LIMIT $2;
+
+-- name: GetTotalConnectionsCount :one
+SELECT COUNT(*) FROM connections
+WHERE status = 'accepted';
+

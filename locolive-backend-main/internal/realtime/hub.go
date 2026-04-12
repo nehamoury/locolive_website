@@ -11,10 +11,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const (
-	streamKey = "locolive:stream:routing"
-)
-
 // Hub maintains the set of active clients and broadcasts messages to the
 type Hub struct {
 	clients    map[uuid.UUID]map[*Client]bool
@@ -22,13 +18,20 @@ type Hub struct {
 	Unregister chan *Client
 	mutex      sync.RWMutex
 	redis      *redis.Client
+	adminPool  map[*Client]bool
 }
+
+const (
+	streamKey        = "locolive:stream:routing"
+	adminActivityKey = "locolive:admin:activity"
+)
 
 func NewHub(rdb *redis.Client) *Hub {
 	return &Hub{
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		clients:    make(map[uuid.UUID]map[*Client]bool),
+		adminPool:  make(map[*Client]bool),
 		redis:      rdb,
 	}
 }
@@ -36,20 +39,36 @@ func NewHub(rdb *redis.Client) *Hub {
 func (h *Hub) Run() {
 	// Start consuming Redis Stream messages
 	go h.listenRedisStream()
+	// Start consuming Admin Activity messages
+	go h.listenAdminActivity()
 
 	for {
 		select {
 		case client := <-h.Register:
 			h.mutex.Lock()
+			if client.IsAdmin {
+				h.adminPool[client] = true
+			}
 			if _, ok := h.clients[client.UserID]; !ok {
 				h.clients[client.UserID] = make(map[*Client]bool)
 			}
 			h.clients[client.UserID][client] = true
 			h.mutex.Unlock()
-			log.Info().Str("username", client.Username).Msg("Client registered")
+			log.Info().Str("username", client.Username).Bool("is_admin", client.IsAdmin).Msg("Client registered")
+
+			// Broadcast activity to admins
+			if !client.IsAdmin {
+				h.BroadcastActivity("user_online", map[string]interface{}{
+					"user_id":  client.UserID,
+					"username": client.Username,
+				})
+			}
 
 		case client := <-h.Unregister:
 			h.mutex.Lock()
+			if client.IsAdmin {
+				delete(h.adminPool, client)
+			}
 			if userClients, ok := h.clients[client.UserID]; ok {
 				if _, ok := userClients[client]; ok {
 					delete(userClients, client)
@@ -64,6 +83,7 @@ func (h *Hub) Run() {
 		}
 	}
 }
+
 
 // listenRedisStream pumps messages from Redis Stream to local clients
 func (h *Hub) listenRedisStream() {
@@ -197,4 +217,45 @@ func (h *Hub) BroadcastNewReelNearby(reel interface{}, targetUserIDs []uuid.UUID
 	for _, id := range targetUserIDs {
 		h.SendToUser(id, data)
 	}
+}
+
+// ─── Admin Broadcasting ──────────────────────────────────────────────────
+
+// listenAdminActivity listens for admin activity notifications via Redis Pub/Sub
+func (h *Hub) listenAdminActivity() {
+	pubsub := h.redis.Subscribe(context.Background(), adminActivityKey)
+	defer pubsub.Close()
+
+	ch := pubsub.Channel()
+	for msg := range ch {
+		h.broadcastToAdminsLocal([]byte(msg.Payload))
+	}
+}
+
+// broadcastToAdminsLocal sends a message to all locally connected admin clients
+func (h *Hub) broadcastToAdminsLocal(message []byte) {
+	h.mutex.RLock()
+	defer h.mutex.RUnlock()
+
+	for client := range h.adminPool {
+		select {
+		case client.Send <- message:
+		default:
+			// Buffer full, handled by Unregister in WritePump or just drop
+		}
+	}
+}
+
+// BroadcastActivity sends a system activity to all admin instances via Redis
+func (h *Hub) BroadcastActivity(eventType string, payload interface{}) {
+	msg := map[string]interface{}{
+		"type":    "activity",
+		"payload": map[string]interface{}{
+			"type":      eventType,
+			"payload":   payload,
+			"timestamp": time.Now().UTC(),
+		},
+	}
+	data, _ := json.Marshal(msg)
+	h.redis.Publish(context.Background(), adminActivityKey, data)
 }

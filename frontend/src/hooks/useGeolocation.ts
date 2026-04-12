@@ -40,6 +40,23 @@ export const useGeolocation = (enabled: boolean = true) => {
     }
   }, []);
 
+  const handleGeolocationError = (err: GeolocationPositionError, context: string) => {
+    let errorMsg = 'Unknown geolocation error';
+    
+    if (err.code === err.PERMISSION_DENIED) {
+      errorMsg = 'Geolocation permission denied. Enable location access in browser settings.';
+    } else if (err.code === err.POSITION_UNAVAILABLE) {
+      errorMsg = 'Location unavailable. Check your device settings.';
+    } else if (err.code === err.TIMEOUT) {
+      errorMsg = 'Location request timed out.';
+    }
+    
+    if (import.meta.env.DEV) {
+      console.warn(`[Geolocation] ${context}: ${errorMsg}`);
+    }
+    setError(errorMsg);
+  };
+
   useEffect(() => {
     if (!enabled) return;
     if (!('geolocation' in navigator)) {
@@ -55,8 +72,8 @@ export const useGeolocation = (enabled: boolean = true) => {
         latestCoordsRef.current = { lat: latitude, lng: longitude };
         sendPing(latitude, longitude, 'initial_sync');
       },
-      (err) => console.error('[Geolocation] Initial position failed:', err),
-      { enableHighAccuracy: true, timeout: 10000 }
+      (err) => handleGeolocationError(err, 'Initial position failed'),
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
     );
 
     // ── Watch for position changes with distance/time gating ──
@@ -94,11 +111,8 @@ export const useGeolocation = (enabled: boolean = true) => {
           sendPing(latitude, longitude, reason);
         }
       },
-      (err) => {
-        setError(err.message);
-        console.error('[Geolocation] Watch error:', err);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+      (err) => handleGeolocationError(err, 'Watch position error'),
+      { enableHighAccuracy: false, timeout: 15000, maximumAge: 10000 }
     );
 
     // ── Forced periodic ping to keep Redis fresh (every 15s) ──

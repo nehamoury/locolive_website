@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import { useState, useMemo } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
-import { Users, MapPin } from 'lucide-react';
+import { Users, MapPin, Loader2 } from 'lucide-react';
 import 'leaflet/dist/leaflet.css';
-import type { AdminUser } from '../../types/admin';
+import { useAdminMapUsers } from '../../hooks/useAdmin';
+import type { MapUser } from '../../services/adminApi';
 
 const pinkIcon = new L.Icon({
   iconUrl: 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FF006E" width="32" height="32"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`),
@@ -12,99 +13,25 @@ const pinkIcon = new L.Icon({
   iconAnchor: [16, 32],
 });
 
-interface MapCenterProps {
-  center: [number, number];
-}
-
-function MapCenter({ center }: MapCenterProps) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center);
-  }, [center, map]);
-  return null;
-}
-
-const mockUsers: AdminUser[] = [
-  {
-    id: '1',
-    username: 'priya_singh',
-    displayName: 'Priya Singh',
-    avatar: '',
-    status: 'online',
-    lastLocation: { lat: 12.9716, lng: 77.5946 },
-    connectionsCount: 234,
-    crossingsCount: 56,
-    createdAt: '2024-01-15',
-    isBanned: false,
-  },
-  {
-    id: '2',
-    username: 'raj_kumar',
-    displayName: 'Raj Kumar',
-    avatar: '',
-    status: 'online',
-    lastLocation: { lat: 12.9352, lng: 77.6245 },
-    connectionsCount: 189,
-    crossingsCount: 42,
-    createdAt: '2024-02-20',
-    isBanned: false,
-  },
-  {
-    id: '3',
-    username: 'alex_m',
-    displayName: 'Alex Martinez',
-    avatar: '',
-    status: 'online',
-    lastLocation: { lat: 12.9882, lng: 77.5711 },
-    connectionsCount: 456,
-    crossingsCount: 89,
-    createdAt: '2024-03-10',
-    isBanned: false,
-  },
-  {
-    id: '4',
-    username: 'sarah_j',
-    displayName: 'Sarah Johnson',
-    avatar: '',
-    status: 'online',
-    lastLocation: { lat: 13.0221, lng: 77.5678 },
-    connectionsCount: 312,
-    crossingsCount: 67,
-    createdAt: '2024-04-05',
-    isBanned: false,
-  },
-  {
-    id: '5',
-    username: 'mike_chen',
-    displayName: 'Mike Chen',
-    avatar: '',
-    status: 'offline',
-    lastLocation: { lat: 12.9012, lng: 77.6234 },
-    connectionsCount: 78,
-    crossingsCount: 12,
-    createdAt: '2024-05-12',
-    isBanned: false,
-  },
-];
-
 export function LiveMap() {
-  const [users] = useState<AdminUser[]>(mockUsers);
-  const [view, setView] = useState<'users' | 'crossings' | 'heatmap'>('users');
+  const { data, isLoading } = useAdminMapUsers();
+  const [view, setView] = useState<'users' | 'crossings'>('users');
   const [distance, setDistance] = useState<1 | 5 | 10>(5);
   const [center] = useState<[number, number]>([12.9716, 77.5946]);
 
-  const onlineUsers = users.filter(u => u.status === 'online' && u.lastLocation);
+  const users: MapUser[] = data?.users || [];
+  const onlineUsers = useMemo(() => users.filter(u => u.online), [users]);
 
   return (
-    <div className="h-[calc(100vh-64px)] flex">
+    <div className="h-[calc(100vh-64px)] flex flex-col md:flex-row">
       {/* Sidebar */}
-      <div className="w-72 bg-white border-r border-gray-200 p-4 overflow-y-auto">
-        <h1 className="text-xl font-bold text-gray-900 mb-4">Live Map</h1>
+      <div className="w-full md:w-72 bg-white border-b md:border-r border-gray-200 p-4 md:overflow-y-auto z-10 shrink-0 shadow-sm md:shadow-none">
+        <h1 className="text-xl font-bold text-gray-900 mb-4 hidden md:block">Live Map</h1>
         
         {/* Filters */}
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">View</label>
+            <label className="text-sm font-medium text-gray-700 mb-2 hidden md:block">View</label>
             <div className="flex gap-2">
               <button
                 onClick={() => setView('users')}
@@ -113,7 +40,7 @@ export function LiveMap() {
                 }`}
               >
                 <Users className="w-4 h-4" />
-                Users
+                <span className="hidden sm:inline">Users</span>
               </button>
               <button
                 onClick={() => setView('crossings')}
@@ -122,12 +49,12 @@ export function LiveMap() {
                 }`}
               >
                 <MapPin className="w-4 h-4" />
-                Crossings
+                <span className="hidden sm:inline">Crossings</span>
               </button>
             </div>
           </div>
 
-          <div>
+          <div className="hidden md:block">
             <label className="text-sm font-medium text-gray-700 mb-2 block">Distance</label>
             <div className="flex gap-2">
               {[1, 5, 10].map(d => (
@@ -145,44 +72,63 @@ export function LiveMap() {
           </div>
 
           {/* Stats */}
-          <div className="p-4 bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="p-3 md:p-4 bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl flex items-center md:items-start md:flex-col justify-between">
+            <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span className="text-sm font-medium text-gray-700">Live Now</span>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{onlineUsers.length}</p>
-            <p className="text-xs text-gray-500">active users</p>
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin text-gray-400 mt-0 md:mt-2" />
+            ) : (
+              <div className="flex items-baseline gap-1 mt-0 md:mt-1">
+                <p className="text-xl md:text-2xl font-bold text-gray-900">{onlineUsers.length}</p>
+                <p className="text-xs text-gray-500">active</p>
+              </div>
+            )}
           </div>
 
-          {/* User List */}
-          <div>
+          {/* User List - Hidden on mobile */}
+          <div className="hidden md:block">
             <label className="text-sm font-medium text-gray-700 mb-2 block">Active Users</label>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {onlineUsers.map(user => (
-                <div key={user.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#FF006E] to-[#833AB4] flex items-center justify-center">
-                    <span className="text-xs font-medium text-white">{user.displayName[0]}</span>
+            <div className="space-y-2 max-h-[calc(100vh-450px)] overflow-y-auto pr-1">
+              {isLoading ? (
+                Array(3).fill(0).map((_, i) => (
+                  <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg animate-pulse">
+                    <div className="w-8 h-8 rounded-full bg-gray-200" />
+                    <div className="flex-1">
+                      <div className="h-3 bg-gray-200 rounded w-20 mb-1" />
+                      <div className="h-2 bg-gray-100 rounded w-14" />
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">{user.displayName}</p>
-                    <p className="text-xs text-gray-500">@{user.username}</p>
+                ))
+              ) : onlineUsers.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-4 border border-dashed border-gray-200 rounded-lg">No active users currently</p>
+              ) : (
+                onlineUsers.map(user => (
+                  <div key={user.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#FF006E] to-[#833AB4] flex items-center justify-center shrink-0">
+                      <span className="text-xs font-medium text-white">{user.full_name[0]?.toUpperCase()}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{user.full_name}</p>
+                      <p className="text-xs text-gray-500">@{user.username}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>
       </div>
 
       {/* Map */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative min-h-[400px]">
         <MapContainer
           center={center}
           zoom={13}
-          className="h-full w-full"
+          className="h-full w-full z-0"
           zoomControl={true}
         >
-          <MapCenter center={center} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -190,16 +136,19 @@ export function LiveMap() {
           
           {view === 'users' && (
             <MarkerClusterGroup chunkedLoading>
-              {onlineUsers.map(user => user.lastLocation && (
+              {users.map((user, idx) => (
                 <Marker
-                  key={user.id}
-                  position={[user.lastLocation.lat, user.lastLocation.lng]}
+                  key={`${user.id}-${idx}`}
+                  position={[user.lat, user.lng]}
                   icon={pinkIcon}
                 >
                   <Popup>
-                    <div className="text-center">
-                      <p className="font-semibold">{user.displayName}</p>
-                      <p className="text-sm text-gray-500">@{user.username}</p>
+                    <div className="text-center p-1">
+                      <p className="font-semibold text-gray-900">{user.full_name}</p>
+                      <p className="text-sm text-gray-500 mb-2">@{user.username}</p>
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${user.online ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {user.online ? 'Online' : 'Offline'}
+                      </span>
                     </div>
                   </Popup>
                 </Marker>
@@ -209,15 +158,16 @@ export function LiveMap() {
 
           {view === 'crossings' && (
             <>
-              {onlineUsers.map(user => user.lastLocation && (
+              {users.map((user, idx) => (
                 <Circle
-                  key={user.id}
-                  center={[user.lastLocation.lat, user.lastLocation.lng]}
+                  key={`circle-${user.id}-${idx}`}
+                  center={[user.lat, user.lng]}
                   radius={distance * 1000}
                   pathOptions={{
                     color: '#FF006E',
                     fillColor: '#FF006E',
                     fillOpacity: 0.1,
+                    weight: 1
                   }}
                 />
               ))}
@@ -226,6 +176,7 @@ export function LiveMap() {
         </MapContainer>
       </div>
     </div>
+
   );
 }
 

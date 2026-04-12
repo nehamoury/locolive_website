@@ -108,3 +108,6 @@ UPDATE reels SET saves_count = saves_count - 1 WHERE id = $1;
 
 -- name: IncrementReelShares :exec
 UPDATE reels SET shares_count = shares_count + 1 WHERE id = $1;
+
+-- name: GetTotalReelsCountToday :one
+SELECT COUNT(*) FROM reels WHERE created_at >= CURRENT_DATE;

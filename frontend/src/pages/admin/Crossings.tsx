@@ -1,33 +1,6 @@
 import { useState } from 'react';
-import { Search, Filter, MapPin } from 'lucide-react';
-import type { AdminCrossing } from '../../types/admin';
-
-const mockCrossings: AdminCrossing[] = [
-  {
-    id: '1',
-    userA: { id: '1', username: 'priya_singh', displayName: 'Priya Singh', avatar: '', status: 'online', lastLocation: { lat: 12.9716, lng: 77.5946 }, connectionsCount: 234, crossingsCount: 56, createdAt: '', isBanned: false },
-    userB: { id: '2', username: 'raj_kumar', displayName: 'Raj Kumar', avatar: '', status: 'online', lastLocation: { lat: 12.9716, lng: 77.5946 }, connectionsCount: 189, crossingsCount: 42, createdAt: '', isBanned: false },
-    time: new Date(Date.now() - 300000).toISOString(),
-    location: { lat: 12.9716, lng: 77.5946 },
-    distance: 25,
-  },
-  {
-    id: '2',
-    userA: { id: '3', username: 'alex_m', displayName: 'Alex Martinez', avatar: '', status: 'offline', lastLocation: { lat: 19.076, lng: 72.8777 }, connectionsCount: 456, crossingsCount: 89, createdAt: '', isBanned: false },
-    userB: { id: '4', username: 'sarah_j', displayName: 'Sarah Johnson', avatar: '', status: 'online', lastLocation: { lat: 19.076, lng: 72.8777 }, connectionsCount: 312, crossingsCount: 67, createdAt: '', isBanned: false },
-    time: new Date(Date.now() - 600000).toISOString(),
-    location: { lat: 19.076, lng: 72.8777 },
-    distance: 45,
-  },
-  {
-    id: '3',
-    userA: { id: '5', username: 'mike_chen', displayName: 'Mike Chen', avatar: '', status: 'offline', lastLocation: { lat: 17.385, lng: 78.4867 }, connectionsCount: 78, crossingsCount: 12, createdAt: '', isBanned: false },
-    userB: { id: '1', username: 'priya_singh', displayName: 'Priya Singh', avatar: '', status: 'online', lastLocation: { lat: 17.385, lng: 78.4867 }, connectionsCount: 234, crossingsCount: 56, createdAt: '', isBanned: false },
-    time: new Date(Date.now() - 900000).toISOString(),
-    location: { lat: 17.385, lng: 78.4867 },
-    distance: 15,
-  },
-];
+import { Search, Filter, MapPin, Loader2 } from 'lucide-react';
+import { useAdminCrossings } from '../../hooks/useAdmin';
 
 function formatTime(timestamp: string) {
   const now = new Date();
@@ -42,15 +15,23 @@ function formatTime(timestamp: string) {
 export function Crossings() {
   const [searchQuery, setSearchQuery] = useState('');
   const [distanceFilter, setDistanceFilter] = useState<string>('all');
+  const { data, isLoading } = useAdminCrossings(1, 100); // Fetch top 100 recent crossings
 
-  const filteredCrossings = mockCrossings.filter(crossing => {
+  const crossings = data?.items || [];
+
+  const filteredCrossings = crossings.filter(crossing => {
     const matchesSearch = 
-      crossing.userA.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      crossing.userB.displayName.toLowerCase().includes(searchQuery.toLowerCase());
+      crossing.userA.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      crossing.userB.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      crossing.userA.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      crossing.userB.username?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+    // Server currently returns distance: 0, but if updated in future:
     const matchesDistance = distanceFilter === 'all' || 
       (distanceFilter === 'short' && crossing.distance < 30) ||
       (distanceFilter === 'medium' && crossing.distance >= 30 && crossing.distance < 50) ||
       (distanceFilter === 'long' && crossing.distance >= 50);
+      
     return matchesSearch && matchesDistance;
   });
 
@@ -103,22 +84,35 @@ export function Crossings() {
             </tr>
           </thead>
           <tbody>
-            {filteredCrossings.map((crossing) => (
-              <tr key={crossing.id} className="border-b border-gray-100 hover:bg-gray-50">
+            {isLoading ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+                  Loading crossings...
+                </td>
+              </tr>
+            ) : filteredCrossings.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                  No crossings found matching criteria.
+                </td>
+              </tr>
+            ) : filteredCrossings.map((crossing) => (
+                <tr key={crossing.id} className="border-b border-gray-100 hover:bg-gray-50">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#FF006E] to-[#833AB4] flex items-center justify-center">
-                      <span className="text-xs font-medium text-white">{crossing.userA.displayName[0]}</span>
+                      <span className="text-xs font-medium text-white">{crossing.userA.full_name[0]}</span>
                     </div>
-                    <span className="font-medium text-gray-900">{crossing.userA.displayName}</span>
+                    <span className="font-medium text-gray-900">{crossing.userA.full_name}</span>
                   </div>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#833AB4] to-[#FF006E] flex items-center justify-center">
-                      <span className="text-xs font-medium text-white">{crossing.userB.displayName[0]}</span>
+                      <span className="text-xs font-medium text-white">{crossing.userB.full_name[0]}</span>
                     </div>
-                    <span className="font-medium text-gray-900">{crossing.userB.displayName}</span>
+                    <span className="font-medium text-gray-900">{crossing.userB.full_name}</span>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600">{formatTime(crossing.time)}</td>

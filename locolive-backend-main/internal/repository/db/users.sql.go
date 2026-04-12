@@ -66,6 +66,15 @@ func (q *Queries) BanUser(ctx context.Context, arg BanUserParams) (User, error) 
 	return i, err
 }
 
+const blockSession = `-- name: BlockSession :exec
+UPDATE sessions SET is_blocked = true WHERE user_id = $1
+`
+
+func (q *Queries) BlockSession(ctx context.Context, userID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, blockSession, userID)
+	return err
+}
+
 const boostUser = `-- name: BoostUser :one
 UPDATE users
 SET boost_expires_at = $2
@@ -127,6 +136,21 @@ WHERE id = $1
 func (q *Queries) ClearPasswordResetToken(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, clearPasswordResetToken, id)
 	return err
+}
+
+const countSearchUsersAdmin = `-- name: CountSearchUsersAdmin :one
+SELECT COUNT(*) FROM users
+WHERE 
+  (username ILIKE '%' || $1::text || '%' 
+   OR full_name ILIKE '%' || $1::text || '%'
+   OR email ILIKE '%' || $1::text || '%')
+`
+
+func (q *Queries) CountSearchUsersAdmin(ctx context.Context, query string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countSearchUsersAdmin, query)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const countUsers = `-- name: CountUsers :one
@@ -664,6 +688,53 @@ func (q *Queries) GetUserProfile(ctx context.Context, id uuid.UUID) (GetUserProf
 	return i, err
 }
 
+const listActiveUsersWithLocation = `-- name: ListActiveUsersWithLocation :many
+SELECT u.id, u.username, u.full_name, u.avatar_url, u.last_active_at
+FROM users u
+WHERE u.last_active_at > NOW() - INTERVAL '5 minutes'
+  AND u.is_ghost_mode = false
+  AND u.is_shadow_banned = false
+ORDER BY u.last_active_at DESC
+LIMIT 200
+`
+
+type ListActiveUsersWithLocationRow struct {
+	ID           uuid.UUID      `json:"id"`
+	Username     string         `json:"username"`
+	FullName     string         `json:"full_name"`
+	AvatarUrl    sql.NullString `json:"avatar_url"`
+	LastActiveAt sql.NullTime   `json:"last_active_at"`
+}
+
+func (q *Queries) ListActiveUsersWithLocation(ctx context.Context) ([]ListActiveUsersWithLocationRow, error) {
+	rows, err := q.db.QueryContext(ctx, listActiveUsersWithLocation)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListActiveUsersWithLocationRow
+	for rows.Next() {
+		var i ListActiveUsersWithLocationRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Username,
+			&i.FullName,
+			&i.AvatarUrl,
+			&i.LastActiveAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUsers = `-- name: ListUsers :many
 
 SELECT id, phone, password_hash, username, full_name, avatar_url, bio, role, trust_level, is_verified, is_shadow_banned, last_active_at, created_at, is_ghost_mode, activity_streak, streak_updated_at, is_premium, streak_freezes_remaining, boost_expires_at, banner_url, theme, profile_visibility, email, website_url, links, google_id, password_reset_token, password_reset_expires_at, ghost_mode_expires_at, interests FROM users
@@ -774,6 +845,76 @@ func (q *Queries) SearchUsers(ctx context.Context, query string) ([]SearchUsersR
 			&i.Bio,
 			&i.IsVerified,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchUsersAdmin = `-- name: SearchUsersAdmin :many
+SELECT id, phone, password_hash, username, full_name, avatar_url, bio, role, trust_level, is_verified, is_shadow_banned, last_active_at, created_at, is_ghost_mode, activity_streak, streak_updated_at, is_premium, streak_freezes_remaining, boost_expires_at, banner_url, theme, profile_visibility, email, website_url, links, google_id, password_reset_token, password_reset_expires_at, ghost_mode_expires_at, interests FROM users
+WHERE 
+  (username ILIKE '%' || $3::text || '%' 
+   OR full_name ILIKE '%' || $3::text || '%'
+   OR email ILIKE '%' || $3::text || '%')
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type SearchUsersAdminParams struct {
+	Limit  int32  `json:"limit"`
+	Offset int32  `json:"offset"`
+	Query  string `json:"query"`
+}
+
+func (q *Queries) SearchUsersAdmin(ctx context.Context, arg SearchUsersAdminParams) ([]User, error) {
+	rows, err := q.db.QueryContext(ctx, searchUsersAdmin, arg.Limit, arg.Offset, arg.Query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []User
+	for rows.Next() {
+		var i User
+		if err := rows.Scan(
+			&i.ID,
+			&i.Phone,
+			&i.PasswordHash,
+			&i.Username,
+			&i.FullName,
+			&i.AvatarUrl,
+			&i.Bio,
+			&i.Role,
+			&i.TrustLevel,
+			&i.IsVerified,
+			&i.IsShadowBanned,
+			&i.LastActiveAt,
+			&i.CreatedAt,
+			&i.IsGhostMode,
+			&i.ActivityStreak,
+			&i.StreakUpdatedAt,
+			&i.IsPremium,
+			&i.StreakFreezesRemaining,
+			&i.BoostExpiresAt,
+			&i.BannerUrl,
+			&i.Theme,
+			&i.ProfileVisibility,
+			&i.Email,
+			&i.WebsiteUrl,
+			&i.Links,
+			&i.GoogleID,
+			&i.PasswordResetToken,
+			&i.PasswordResetExpiresAt,
+			&i.GhostModeExpiresAt,
+			pq.Array(&i.Interests),
 		); err != nil {
 			return nil, err
 		}
@@ -1129,6 +1270,53 @@ func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfilePa
 		&i.Links,
 		pq.Array(&i.Interests),
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateUserRole = `-- name: UpdateUserRole :one
+UPDATE users SET role = $2::user_role WHERE id = $1 RETURNING id, phone, password_hash, username, full_name, avatar_url, bio, role, trust_level, is_verified, is_shadow_banned, last_active_at, created_at, is_ghost_mode, activity_streak, streak_updated_at, is_premium, streak_freezes_remaining, boost_expires_at, banner_url, theme, profile_visibility, email, website_url, links, google_id, password_reset_token, password_reset_expires_at, ghost_mode_expires_at, interests
+`
+
+type UpdateUserRoleParams struct {
+	ID   uuid.UUID `json:"id"`
+	Role UserRole  `json:"role"`
+}
+
+func (q *Queries) UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUserRole, arg.ID, arg.Role)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Phone,
+		&i.PasswordHash,
+		&i.Username,
+		&i.FullName,
+		&i.AvatarUrl,
+		&i.Bio,
+		&i.Role,
+		&i.TrustLevel,
+		&i.IsVerified,
+		&i.IsShadowBanned,
+		&i.LastActiveAt,
+		&i.CreatedAt,
+		&i.IsGhostMode,
+		&i.ActivityStreak,
+		&i.StreakUpdatedAt,
+		&i.IsPremium,
+		&i.StreakFreezesRemaining,
+		&i.BoostExpiresAt,
+		&i.BannerUrl,
+		&i.Theme,
+		&i.ProfileVisibility,
+		&i.Email,
+		&i.WebsiteUrl,
+		&i.Links,
+		&i.GoogleID,
+		&i.PasswordResetToken,
+		&i.PasswordResetExpiresAt,
+		&i.GhostModeExpiresAt,
+		pq.Array(&i.Interests),
 	)
 	return i, err
 }

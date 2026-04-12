@@ -1,11 +1,12 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, BrowserRouter as Router } from 'react-router-dom'
 import { ThemeProvider } from './context/ThemeContext'
-import { BrowserRouter as Router } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { SoundProvider } from './context/SoundContext'
 import { NetworkProvider } from './context/NetworkContext'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import Login from './pages/auth/Login'
+import AdminLogin from './pages/auth/AdminLogin'
 import Signup from './pages/auth/Signup'
 import Dashboard from './pages/dashboard/Dashboard'
 import { OfflineBanner } from './components/ui/OfflineBanner'
@@ -21,7 +22,15 @@ import Settings from './pages/admin/Settings'
 import Admins from './pages/admin/Admins'
 import ActivityPage from './pages/admin/Activity'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 120000, // 2 minutes
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 
 function AppContent() {
   const { user, loading } = useAuth();
@@ -36,6 +45,7 @@ function AppContent() {
 
   const isAdmin = user?.role === 'admin' || user?.role === 'moderator';
 
+
   return (
     <>
       <OfflineBanner />
@@ -45,6 +55,11 @@ function AppContent() {
           path="/login" 
           element={!user ? <Login onToggle={() => {}} /> : <Navigate to="/dashboard/home" replace />} 
         />
+        <Route 
+          path="/admin/login" 
+          element={!isAdmin ? <AdminLogin /> : <Navigate to="/admin" replace />} 
+        />
+
         <Route 
           path="/signup" 
           element={!user ? <Signup onToggle={() => {}} /> : <Navigate to="/dashboard/home" replace />} 
@@ -61,26 +76,13 @@ function AppContent() {
           path="/admin" 
           element={
             !user ? (
-              <Navigate to="/login" replace />
+              <Navigate to="/admin/login" replace />
             ) : isAdmin ? (
               <AdminLayout />
             ) : (
-              <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center p-8 bg-white rounded-2xl shadow-lg max-w-md">
-                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl">🔒</span>
-                  </div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
-                  <p className="text-gray-500 mb-6">You don't have admin privileges to access this panel.</p>
-                  <button 
-                    onClick={() => window.location.href = '/dashboard/home'}
-                    className="px-6 py-2.5 bg-[#FF006E] text-white rounded-xl font-semibold hover:bg-[#e0005f] transition-colors"
-                  >
-                    Go to Dashboard
-                  </button>
-                </div>
-              </div>
+              <Navigate to="/admin/login" replace />
             )
+
           } 
         >
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
@@ -119,6 +121,7 @@ function App() {
             </SoundProvider>
           </AuthProvider>
         </ThemeProvider>
+        {import.meta.env.DEV && <ReactQueryDevtools initialIsOpen={false} />}
       </QueryClientProvider>
     </Router>
   );

@@ -37,7 +37,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                 const [userRes, , postsRes] = await Promise.all([
                     api.get(`/users/${userId}`),
                     api.get(`/stories/user/${userId}`).catch(() => ({ data: [] })),
-                    api.get(`/posts/user/${userId}`).catch(() => ({ data: [] }))
+                    api.get(`/users/${userId}/posts`).catch(() => ({ data: [] }))
                 ]);
                 setProfile(userRes.data);
                 setPosts(postsRes.data || []);

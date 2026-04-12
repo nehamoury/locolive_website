@@ -1,27 +1,26 @@
 export interface AdminStats {
   totalUsers: number;
-  totalUsersGrowth: number;
+  newUsers24h: number;
   activeUsers: number;
+  totalConnections: number;
+  reelsToday: number;
   crossingsToday: number;
-  newConnections: number;
-  reelsUploaded: number;
+  totalUsersGrowth: number;
 }
+
 
 export interface AdminUser {
   id: string;
   username: string;
-  displayName: string;
-  avatar: string;
+  full_name: string;
+  avatar_url: string;
+  email: string;
+  role: string;
   status: 'online' | 'offline';
-  lastLocation: {
-    lat: number;
-    lng: number;
-  } | null;
-  connectionsCount: number;
-  crossingsCount: number;
-  createdAt: string;
-  isBanned: boolean;
+  is_banned: boolean;
+  created_at: string;
 }
+
 
 export interface AdminCrossing {
   id: string;
@@ -88,8 +87,7 @@ export interface DailyStats {
 }
 
 export interface LiveActivity {
-  id: string;
-  type: 'user_joined' | 'crossing_detected' | 'reel_uploaded' | 'user_online';
-  description: string;
+  type: 'user_created' | 'crossing_detected' | 'reel_uploaded' | 'user_online';
+  payload: any;
   timestamp: string;
 }

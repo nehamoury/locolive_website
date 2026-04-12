@@ -225,3 +225,34 @@ SET
     password_reset_token = NULL,
     password_reset_expires_at = NULL
 WHERE id = $1;
+
+-- name: SearchUsersAdmin :many
+SELECT * FROM users
+WHERE 
+  (username ILIKE '%' || sqlc.arg(query)::text || '%' 
+   OR full_name ILIKE '%' || sqlc.arg(query)::text || '%'
+   OR email ILIKE '%' || sqlc.arg(query)::text || '%')
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2;
+
+-- name: CountSearchUsersAdmin :one
+SELECT COUNT(*) FROM users
+WHERE 
+  (username ILIKE '%' || sqlc.arg(query)::text || '%' 
+   OR full_name ILIKE '%' || sqlc.arg(query)::text || '%'
+   OR email ILIKE '%' || sqlc.arg(query)::text || '%');
+
+-- name: ListActiveUsersWithLocation :many
+SELECT u.id, u.username, u.full_name, u.avatar_url, u.last_active_at
+FROM users u
+WHERE u.last_active_at > NOW() - INTERVAL '5 minutes'
+  AND u.is_ghost_mode = false
+  AND u.is_shadow_banned = false
+ORDER BY u.last_active_at DESC
+LIMIT 200;
+
+-- name: BlockSession :exec
+UPDATE sessions SET is_blocked = true WHERE user_id = $1;
+
+-- name: UpdateUserRole :one
+UPDATE users SET role = sqlc.arg(role)::user_role WHERE id = $1 RETURNING *;

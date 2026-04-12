@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
 type ConnectionStatus string
@@ -232,6 +233,15 @@ func (ns NullUserRole) Value() (driver.Value, error) {
 	return string(ns.UserRole), nil
 }
 
+type AdminLog struct {
+	ID        uuid.UUID             `json:"id"`
+	AdminID   uuid.UUID             `json:"admin_id"`
+	Action    string                `json:"action"`
+	TargetID  uuid.NullUUID         `json:"target_id"`
+	Details   pqtype.NullRawMessage `json:"details"`
+	CreatedAt time.Time             `json:"created_at"`
+}
+
 type ArchivedStory struct {
 	ID                uuid.UUID      `json:"id"`
 	UserID            uuid.UUID      `json:"user_id"`
@@ -355,7 +365,6 @@ type Post struct {
 	MediaUrl      string         `json:"media_url"`
 	MediaType     string         `json:"media_type"`
 	Caption       sql.NullString `json:"caption"`
-	BodyText      sql.NullString `json:"body_text"`
 	LocationName  sql.NullString `json:"location_name"`
 	Geohash       sql.NullString `json:"geohash"`
 	Geom          interface{}    `json:"geom"`
@@ -363,6 +372,7 @@ type Post struct {
 	CommentsCount int32          `json:"comments_count"`
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`
+	BodyText      sql.NullString `json:"body_text"`
 }
 
 type PostComment struct {

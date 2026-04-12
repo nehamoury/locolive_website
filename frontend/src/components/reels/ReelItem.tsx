@@ -29,6 +29,7 @@ interface ReelItemProps {
 
 const ReelItem = ({ reel, isActive }: ReelItemProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const bgVideoRef = useRef<HTMLVideoElement>(null);
   const [liked, setLiked] = useState(reel.is_liked);
   const [saved, setSaved] = useState(reel.is_saved);
   const [likesCount, setLikesCount] = useState(reel.likes_count);
@@ -38,9 +39,12 @@ const ReelItem = ({ reel, isActive }: ReelItemProps) => {
   useEffect(() => {
     if (isActive) {
       videoRef.current?.play().catch(() => { });
+      bgVideoRef.current?.play().catch(() => { });
     } else {
       videoRef.current?.pause();
+      bgVideoRef.current?.pause();
       if (videoRef.current) videoRef.current.currentTime = 0;
+      if (bgVideoRef.current) bgVideoRef.current.currentTime = 0;
     }
   }, [isActive]);
 
@@ -81,12 +85,25 @@ const ReelItem = ({ reel, isActive }: ReelItemProps) => {
   };
 
   return (
-    <div className="relative w-full h-full bg-black snap-start overflow-hidden flex items-center justify-center">
-      {/* Video Background */}
+    <div className="relative w-full h-full bg-black snap-start snap-always overflow-hidden flex items-center justify-center flex-shrink-0">
+      {/* Cinematic Blurred Background Wrapper */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <video
+          ref={bgVideoRef}
+          src={`${BACKEND}${reel.video_url}`}
+          className="w-full h-full object-cover blur-2xl scale-110 opacity-40 brightness-75"
+          muted
+          playsInline
+          autoPlay
+          loop
+        />
+      </div>
+
+      {/* Primary High-Fidelity Video Foreground */}
       <video
         ref={videoRef}
         src={`${BACKEND}${reel.video_url}`}
-        className="w-full h-full object-cover"
+        className="relative z-10 w-full h-full object-contain drop-shadow-2xl"
         loop
         muted={muted}
         playsInline
@@ -108,11 +125,11 @@ const ReelItem = ({ reel, isActive }: ReelItemProps) => {
       </AnimatePresence>
 
       {/* Overlay Gradients - Refined for depth */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent via-50% to-black/90 pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent via-40% to-black pointer-events-none" />
 
       {/* Right Side Actions: Compact & Functional */}
-      <div className="absolute right-4 bottom-24 flex flex-col items-center gap-6 z-20">
-        
+      <div className="absolute right-4 bottom-38 flex flex-col items-center gap-6 z-20">
+
         {/* Like */}
         <div className="flex flex-col items-center gap-1">
           <motion.button
@@ -121,8 +138,8 @@ const ReelItem = ({ reel, isActive }: ReelItemProps) => {
             onClick={handleLike}
             aria-label={liked ? "Unlike" : "Like"}
             className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-xl transition-all duration-300 ${liked
-                ? 'bg-primary text-white shadow-[0_0_15px_rgba(255,0,110,0.5)]'
-                : 'bg-black/40 text-white border border-white/10 hover:bg-black/60'
+              ? 'bg-primary text-white shadow-[0_0_15px_rgba(255,0,110,0.5)]'
+              : 'bg-black/40 text-white border border-white/10 hover:bg-black/60'
               }`}
           >
             <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`} />
@@ -158,8 +175,8 @@ const ReelItem = ({ reel, isActive }: ReelItemProps) => {
           onClick={handleSave}
           aria-label={saved ? "Unsave" : "Save"}
           className={`w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-xl transition-all duration-300 ${saved
-              ? 'bg-yellow-500 text-white shadow-[0_0_15px_rgba(234,179,8,0.5)]'
-              : 'bg-black/40 text-white border border-white/10 hover:bg-black/60'
+            ? 'bg-yellow-500 text-white shadow-[0_0_15px_rgba(234,179,8,0.5)]'
+            : 'bg-black/40 text-white border border-white/10 hover:bg-black/60'
             }`}
         >
           <Bookmark className={`w-4 h-4 ${saved ? 'fill-current' : ''}`} />
@@ -167,11 +184,11 @@ const ReelItem = ({ reel, isActive }: ReelItemProps) => {
 
         {/* Volume Button: Compact & Bottom-Right as requested */}
         <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setMuted(!muted)} 
-            aria-label={muted ? "Unmute" : "Mute"}
-            className="w-10 h-10 rounded-2xl flex items-center justify-center bg-black/40 backdrop-blur-xl border border-white/20 text-white hover:bg-black/60 transition-all shadow-2xl"
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setMuted(!muted)}
+          aria-label={muted ? "Unmute" : "Mute"}
+          className="w-10 h-10 rounded-2xl flex items-center justify-center bg-black/40 backdrop-blur-xl border border-white/20 text-white hover:bg-black/60 transition-all shadow-2xl"
         >
           {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
         </motion.button>
@@ -187,7 +204,7 @@ const ReelItem = ({ reel, isActive }: ReelItemProps) => {
       </div>
 
       {/* Bottom Information: Legibility Focused */}
-      <div className="absolute bottom-8 left-6 right-24 z-20 space-y-5">
+      <div className="absolute bottom-32 left-6 right-24 z-20 space-y-5">
         {/* User Info & Follow */}
         <div className="flex items-center gap-4">
           <div className="relative group">

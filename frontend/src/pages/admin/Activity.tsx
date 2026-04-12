@@ -1,23 +1,15 @@
-import { Search, Activity, User, MapPin, Film, Shield, AlertTriangle, Info } from 'lucide-react';
+import { Activity, User, MapPin, Film, Shield, AlertTriangle, Info, Wifi } from 'lucide-react';
+import { useAdminStore } from '../../stores/adminStore';
+import { useAdminWebSocket } from '../../hooks/useAdminWebSocket';
+import type { LiveActivity } from '../../types/admin';
 
-const mockLogs = [
-  { id: '1', type: 'user', action: 'user.login', description: 'User @priya_singh logged in', timestamp: new Date(Date.now() - 30000).toISOString() },
-  { id: '2', type: 'location', action: 'location.update', description: 'Location updated for @raj_kumar', timestamp: new Date(Date.now() - 60000).toISOString() },
-  { id: '3', type: 'crossing', action: 'crossing.detected', description: 'Crossing detected between @alex_m and @sarah_j', timestamp: new Date(Date.now() - 90000).toISOString() },
-  { id: '4', type: 'content', action: 'reel.uploaded', description: 'New reel uploaded by @mike_chen', timestamp: new Date(Date.now() - 120000).toISOString() },
-  { id: '5', type: 'admin', action: 'user.ban', description: 'User @fake_account banned', timestamp: new Date(Date.now() - 180000).toISOString() },
-  { id: '6', type: 'system', action: 'cache.clear', description: 'Cache cleared successfully', timestamp: new Date(Date.now() - 300000).toISOString() },
-  { id: '7', type: 'safety', action: 'report.received', description: 'New report received', timestamp: new Date(Date.now() - 360000).toISOString() },
-];
-
-const iconMap = {
-  user: User,
-  location: MapPin,
-  crossing: MapPin,
-  content: Film,
-  admin: Shield,
-  system: Info,
-  safety: AlertTriangle,
+const iconMap: Record<string, any> = {
+  user_created: User,
+  user_online: Wifi,
+  crossing_detected: MapPin,
+  reel_uploaded: Film,
+  report_created: AlertTriangle,
+  admin_action: Shield,
 };
 
 function formatTime(timestamp: string) {
@@ -30,23 +22,38 @@ function formatTime(timestamp: string) {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
+function getActivityDescription(activity: LiveActivity): string {
+  const p = activity.payload;
+  switch (activity.type) {
+    case 'user_online':
+      return `User @${p?.username || 'unknown'} came online`;
+    case 'user_created':
+      return `New user registered: @${p?.username || 'unknown'}`;
+    case 'crossing_detected':
+      return `Crossing detected between two users`;
+    case 'reel_uploaded':
+      return `New reel uploaded`;
+    default:
+      return `System event: ${activity.type}`;
+  }
+}
+
 export function ActivityPage() {
+  const { activities } = useAdminStore();
+  
+  // Keep WebSocket alive on this page
+  useAdminWebSocket();
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Logs & Activity</h1>
-      </div>
-
-      <div className="flex items-center gap-4">
-        <div className="flex-1 max-w-md">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search logs..."
-              className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#FF006E]/20 focus:border-[#FF006E]"
-            />
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Logs & Activity</h1>
+          <p className="text-sm text-gray-500">Real-time system events via WebSocket</p>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-full">
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+          <span className="text-xs font-medium text-green-700">Live</span>
         </div>
       </div>
 
@@ -54,25 +61,38 @@ export function ActivityPage() {
         <div className="flex items-center gap-2 mb-4">
           <Activity className="w-5 h-5 text-[#FF006E]" />
           <h2 className="font-semibold text-gray-900">System Logs</h2>
+          <span className="text-xs text-gray-400 ml-auto">{activities.length} events</span>
         </div>
 
-        <div className="space-y-2">
-          {mockLogs.map((log) => {
-            const Icon = iconMap[log.type as keyof typeof iconMap] || Info;
-            return (
-              <div key={log.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className="w-8 h-8 rounded-full bg-[#FF006E]/10 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-4 h-4 text-[#FF006E]" />
+        {activities.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Activity className="w-8 h-8 text-gray-300" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-1">No activity yet</h3>
+            <p className="text-sm text-gray-500 max-w-xs mx-auto">
+              Real-time events will appear here as they happen. User logins, crossings, and system events will be streamed live.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {activities.map((activity, index) => {
+              const Icon = iconMap[activity.type] || Info;
+              return (
+                <div key={`${activity.timestamp}-${index}`} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="w-8 h-8 rounded-full bg-[#FF006E]/10 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-4 h-4 text-[#FF006E]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{getActivityDescription(activity)}</p>
+                    <p className="text-xs text-gray-500">{activity.type}</p>
+                  </div>
+                  <span className="text-xs text-gray-500 whitespace-nowrap">{formatTime(activity.timestamp)}</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{log.description}</p>
-                  <p className="text-xs text-gray-500">{log.action}</p>
-                </div>
-                <span className="text-xs text-gray-500">{formatTime(log.timestamp)}</span>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

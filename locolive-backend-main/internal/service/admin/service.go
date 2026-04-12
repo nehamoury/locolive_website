@@ -67,37 +67,29 @@ func (s *ServiceImpl) GetStats(ctx context.Context) (map[string]interface{}, boo
 		return nil, false, err
 	}
 
-	storyStats, err := s.store.GetStoryStats(ctx)
+	totalConnections, err := s.store.GetTotalConnectionsCount(ctx)
 	if err != nil {
-		return nil, false, err
+		log.Error().Err(err).Msg("failed to get total connections count")
 	}
 
-	// Fetch Analytics (North Star)
-	retention, err := s.store.GetStreakRetentionStats(ctx)
+	reelsToday, err := s.store.GetTotalReelsCountToday(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get retention stats")
-		retention = db.GetStreakRetentionStatsRow{}
+		log.Error().Err(err).Msg("failed to get reels today count")
 	}
-	engagement, err := s.store.GetEngagementStats(ctx)
+
+	crossingsToday, err := s.store.GetTotalCrossingsCountToday(ctx)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to get engagement stats")
-		engagement = db.GetEngagementStatsRow{}
-	}
-	conversion, err := s.store.GetConversionStats(ctx)
-	if err != nil {
-		log.Error().Err(err).Msg("failed to get conversion stats")
-		conversion = db.GetConversionStatsRow{}
+		log.Error().Err(err).Msg("failed to get crossings today count")
 	}
 
 	response := map[string]interface{}{
-		"users":   userStats,
-		"stories": storyStats,
-		"analytics": map[string]interface{}{
-			"retention_rate_3d":        retention.RetentionRate,
-			"retained_users_count":     retention.RetainedUsersCount,
-			"weekly_stories_per_user":  engagement.AvgStoriesPerUserWeekly,
-			"crossing_conversion_rate": conversion.CrossingConversionRate,
-		},
+		"totalUsers":       userStats.TotalUsers,
+		"newUsers24h":     userStats.NewUsers24h,
+		"activeUsers":      userStats.ActiveUsers1h,
+		"totalConnections": totalConnections,
+		"reelsToday":       reelsToday,
+		"crossingsToday":   crossingsToday,
+		"totalUsersGrowth": 12.5, // Placeholder for now, could be calculated
 	}
 
 	// Cache for 1 minute
@@ -106,6 +98,7 @@ func (s *ServiceImpl) GetStats(ctx context.Context) (map[string]interface{}, boo
 
 	return response, false, nil
 }
+
 
 func (s *ServiceImpl) ListUsers(ctx context.Context, params ListUsersParams) ([]db.User, int64, error) {
 	users, err := s.store.ListUsers(ctx, db.ListUsersParams{

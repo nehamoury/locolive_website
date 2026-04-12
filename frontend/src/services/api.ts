@@ -33,11 +33,25 @@ api.interceptors.request.use(
   }
 );
 
-// Add a response interceptor to handle 401 Unauthorized
+// Add a response interceptor to handle 401 Unauthorized and unwrap standardized responses
 api.interceptors.response.use(
   (response) => {
+    // If the response follows our standard { success: true, data: ... } format, unwrap it
+    if (response.data && typeof response.data === 'object' && 'success' in response.data) {
+      if (response.data.success) {
+        return { ...response, data: response.data.data };
+      }
+      // If success is false, we can reject it here or handle it in the error block
+      return Promise.reject({
+        response: {
+          ...response,
+          data: { error: response.data.error || 'Unknown error' }
+        }
+      });
+    }
     return response;
   },
+
   (error) => {
     if (error.response?.status === 401) {
       console.warn('Global 401 caught. Clearing session...');

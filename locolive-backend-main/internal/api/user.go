@@ -118,7 +118,15 @@ func (server *Server) createUser(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusCreated, rsp)
+
+	// Broadcast activity to admins
+	server.hub.BroadcastActivity("user_created", gin.H{
+		"id":       user.ID,
+		"username": user.Username,
+		"fullName": user.FullName,
+	})
 }
+
 
 type loginUserRequest struct {
 	Email    string `json:"email" binding:"required,email"`

@@ -173,6 +173,17 @@ func (q *Queries) GetReel(ctx context.Context, id uuid.UUID) (GetReelRow, error)
 	return i, err
 }
 
+const getTotalReelsCountToday = `-- name: GetTotalReelsCountToday :one
+SELECT COUNT(*) FROM reels WHERE created_at >= CURRENT_DATE
+`
+
+func (q *Queries) GetTotalReelsCountToday(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getTotalReelsCountToday)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const incrementReelComments = `-- name: IncrementReelComments :exec
 UPDATE reels SET comments_count = comments_count + 1 WHERE id = $1
 `

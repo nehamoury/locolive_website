@@ -16,13 +16,16 @@ type Querier interface {
 	AddStoryToHighlight(ctx context.Context, arg AddStoryToHighlightParams) (HighlightStory, error)
 	ArchiveStory(ctx context.Context, arg ArchiveStoryParams) (ArchivedStory, error)
 	BanUser(ctx context.Context, arg BanUserParams) (User, error)
+	BlockSession(ctx context.Context, userID uuid.UUID) error
 	BlockUser(ctx context.Context, arg BlockUserParams) (BlockedUser, error)
 	BoostUser(ctx context.Context, arg BoostUserParams) (User, error)
 	CheckGroupMembership(ctx context.Context, arg CheckGroupMembershipParams) (bool, error)
 	ClearPasswordResetToken(ctx context.Context, id uuid.UUID) error
+	CountAdminCrossings(ctx context.Context) (int64, error)
 	CountArchivedStories(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountConnectionRequestsToday(ctx context.Context, requesterID uuid.UUID) (int64, error)
 	CountCrossingsToday(ctx context.Context, userID1 uuid.UUID) (int64, error)
+	CountSearchUsersAdmin(ctx context.Context, query string) (int64, error)
 	CountStoryReactions(ctx context.Context, storyID uuid.UUID) (int64, error)
 	CountStoryViews(ctx context.Context, storyID uuid.UUID) (int64, error)
 	CountUnreadNotifications(ctx context.Context, userID uuid.UUID) (int64, error)
@@ -115,6 +118,9 @@ type Querier interface {
 	GetStreakRetentionStats(ctx context.Context) (GetStreakRetentionStatsRow, error)
 	GetSuggestedConnections(ctx context.Context, arg GetSuggestedConnectionsParams) ([]GetSuggestedConnectionsRow, error)
 	GetSystemStats(ctx context.Context) (GetSystemStatsRow, error)
+	GetTotalConnectionsCount(ctx context.Context) (int64, error)
+	GetTotalCrossingsCountToday(ctx context.Context) (int64, error)
+	GetTotalReelsCountToday(ctx context.Context) (int64, error)
 	GetUnreadMessageCount(ctx context.Context, receiverID uuid.NullUUID) (int64, error)
 	// Get user's activity status and visibility
 	GetUserActivityStatus(ctx context.Context, id uuid.UUID) (GetUserActivityStatusRow, error)
@@ -137,6 +143,8 @@ type Querier interface {
 	IsUserBlocked(ctx context.Context, arg IsUserBlockedParams) (bool, error)
 	LikePost(ctx context.Context, arg LikePostParams) (PostLike, error)
 	LikeReel(ctx context.Context, arg LikeReelParams) (ReelLike, error)
+	ListActiveUsersWithLocation(ctx context.Context) ([]ListActiveUsersWithLocationRow, error)
+	ListAdminCrossings(ctx context.Context, arg ListAdminCrossingsParams) ([]ListAdminCrossingsRow, error)
 	// Admin: List all stories
 	ListAllStories(ctx context.Context, arg ListAllStoriesParams) ([]ListAllStoriesRow, error)
 	ListConnections(ctx context.Context, requesterID uuid.UUID) ([]ListConnectionsRow, error)
@@ -168,6 +176,7 @@ type Querier interface {
 	SaveMessage(ctx context.Context, id uuid.UUID) (Message, error)
 	SaveReel(ctx context.Context, arg SaveReelParams) (ReelSafe, error)
 	SearchUsers(ctx context.Context, query string) ([]SearchUsersRow, error)
+	SearchUsersAdmin(ctx context.Context, arg SearchUsersAdminParams) ([]User, error)
 	SetPasswordResetToken(ctx context.Context, arg SetPasswordResetTokenParams) (User, error)
 	// Privacy Features
 	ToggleGhostMode(ctx context.Context, arg ToggleGhostModeParams) (User, error)
@@ -186,6 +195,7 @@ type Querier interface {
 	UpdateUserGoogleID(ctx context.Context, arg UpdateUserGoogleIDParams) (User, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (UpdateUserProfileRow, error)
+	UpdateUserRole(ctx context.Context, arg UpdateUserRoleParams) (User, error)
 	UpdateUserTrust(ctx context.Context, arg UpdateUserTrustParams) (User, error)
 	UpsertPrivacySettings(ctx context.Context, arg UpsertPrivacySettingsParams) (PrivacySetting, error)
 }

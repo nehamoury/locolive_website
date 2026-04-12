@@ -1,5 +1,5 @@
 import { useState, type FC } from 'react';
-import { Home, Compass, User, Plus, Users, LogOut, ChevronLeft, ChevronRight, Video, MessageSquare, Download } from 'lucide-react';
+import { Home, Compass, User, Plus, Users, LogOut, ChevronLeft, ChevronRight, Video, MessageSquare, Download, Bell } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { usePWA } from '../../hooks/usePWA';
@@ -47,11 +47,20 @@ interface SidebarProps {
   user: any;
   unreadMessagesCount?: number;
   unreadCount?: number;
+  notificationPermission?: 'default' | 'granted' | 'denied';
+  requestPermission?: () => void;
   logout: () => void;
   onCreatePost: () => void;
 }
 
-const Sidebar: FC<SidebarProps> = ({ user, logout, onCreatePost, unreadMessagesCount = 0 }) => {
+const Sidebar: FC<SidebarProps> = ({ 
+  user, 
+  logout, 
+  onCreatePost, 
+  unreadMessagesCount = 0,
+  notificationPermission,
+  requestPermission
+}) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -103,8 +112,9 @@ const Sidebar: FC<SidebarProps> = ({ user, logout, onCreatePost, unreadMessagesC
           <NavItem icon={<User className="w-5 h-5" />} label="Profile" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} color="text-[#495057]" isCollapsed={isCollapsed} />
         </nav>
 
-        {/* Create Post Button */}
-        <div className="mb-4 flex justify-center px-1">
+        {/* Action Buttons Section */}
+        <div className="mb-4 space-y-2 flex flex-col justify-center px-1">
+          {/* Create Post Button */}
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -114,20 +124,33 @@ const Sidebar: FC<SidebarProps> = ({ user, logout, onCreatePost, unreadMessagesC
             <Plus className="w-5 h-5 stroke-[3] shrink-0" />
             {!isCollapsed && <span>Create Post</span>}
           </motion.button>
-        </div>
 
-        {/* PWA Install Button */}
-        {isInstallable && (
-          <div className="mb-4 flex justify-center px-1">
-            <button
+          {/* PWA Install Button */}
+          {isInstallable && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
               onClick={installApp}
               className={`${isCollapsed ? 'w-11 h-11 p-0 rounded-full' : 'w-full py-2.5 px-4 rounded-[20px]'} bg-primary/10 border border-primary/20 flex items-center justify-center gap-2 font-bold text-primary text-[13px] hover:bg-primary/15 transition-all`}
             >
               <Download className="w-4 h-4 shrink-0" />
               {!isCollapsed && <span>Install App</span>}
-            </button>
-          </div>
-        )}
+            </motion.button>
+          )}
+
+          {/* Enable Notifications Button */}
+          {notificationPermission === 'default' && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={requestPermission}
+              className={`${isCollapsed ? 'w-11 h-11 p-0 rounded-full' : 'w-full py-2.5 px-4 rounded-[20px]'} bg-orange-500/10 border border-orange-500/20 flex items-center justify-center gap-2 font-bold text-orange-500 text-[13px] hover:bg-orange-500/15 transition-all`}
+            >
+              <Bell className="w-4 h-4 shrink-0" />
+              {!isCollapsed && <span>Enable Alerts</span>}
+            </motion.button>
+          )}
+        </div>
 
         {/* Profile Snippet */}
         <div className="border-t border-border-base pt-4">

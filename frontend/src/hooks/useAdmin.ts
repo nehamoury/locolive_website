@@ -17,6 +17,30 @@ export const useAdminUsers = (page: number = 1, pageSize: number = 20) => {
   });
 };
 
+export const useAdminSearchUsers = (query: string, page: number = 1, pageSize: number = 20) => {
+  return useQuery({
+    queryKey: ['admin', 'users', 'search', query, page, pageSize],
+    queryFn: () => adminApi.searchUsers(query, page, pageSize),
+    enabled: query.length > 0,
+  });
+};
+
+export const useAdminMapUsers = () => {
+  return useQuery({
+    queryKey: ['admin', 'map', 'active'],
+    queryFn: () => adminApi.getMapActiveUsers(),
+    refetchInterval: 15000, // Refresh map every 15s
+  });
+};
+
+export const useAdminCrossings = (page: number = 1, pageSize: number = 20) => {
+  return useQuery({
+    queryKey: ['admin', 'crossings', page, pageSize],
+    queryFn: () => adminApi.getCrossings(page, pageSize),
+    refetchInterval: 15000, // Live updates
+  });
+};
+
 export const useAdminReports = (resolved?: boolean, page: number = 1, pageSize: number = 20) => {
   return useQuery({
     queryKey: ['admin', 'reports', resolved, page, pageSize],
@@ -41,6 +65,29 @@ export const useResolveReport = () => {
     mutationFn: (reportId: string) => adminApi.resolveReport(reportId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'reports'] });
+    },
+  });
+};
+
+export const useAdminLogout = () => {
+  return useMutation({
+    mutationFn: () => adminApi.logout(),
+  });
+};
+
+export const useAdminStories = (page: number = 1, pageSize: number = 20) => {
+  return useQuery({
+    queryKey: ['admin', 'stories', page, pageSize],
+    queryFn: () => adminApi.getStories(page, pageSize),
+  });
+};
+
+export const useAdminDeleteStory = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (storyId: string) => adminApi.deleteStory(storyId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stories'] });
     },
   });
 };

@@ -184,6 +184,18 @@ func (q *Queries) GetSuggestedConnections(ctx context.Context, arg GetSuggestedC
 	return items, nil
 }
 
+const getTotalConnectionsCount = `-- name: GetTotalConnectionsCount :one
+SELECT COUNT(*) FROM connections
+WHERE status = 'accepted'
+`
+
+func (q *Queries) GetTotalConnectionsCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getTotalConnectionsCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const listConnections = `-- name: ListConnections :many
 SELECT 
     u.id, 

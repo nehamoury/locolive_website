@@ -1,8 +1,9 @@
 -- name: CreatePost :one
-INSERT INTO posts (user_id, media_url, media_type, caption, location_name, geohash, geom)
+INSERT INTO posts (user_id, media_url, media_type, caption, body_text, location_name, geohash, geom)
 VALUES (
     sqlc.arg(user_id), sqlc.arg(media_url), sqlc.arg(media_type),
-    sqlc.narg(caption), sqlc.narg(location_name), sqlc.narg(geohash),
+    sqlc.narg(caption), sqlc.narg(body_text), sqlc.narg(location_name), sqlc.narg(geohash),
+
     CASE WHEN sqlc.arg(has_location)::boolean
          THEN ST_SetSRID(ST_MakePoint(sqlc.arg(lng)::float8, sqlc.arg(lat)::float8), 4326)
          ELSE NULL END

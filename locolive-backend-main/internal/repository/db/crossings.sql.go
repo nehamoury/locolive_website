@@ -7,10 +7,22 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+const countAdminCrossings = `-- name: CountAdminCrossings :one
+SELECT COUNT(*) FROM crossings
+`
+
+func (q *Queries) CountAdminCrossings(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countAdminCrossings)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
 
 const countCrossingsToday = `-- name: CountCrossingsToday :one
 SELECT COUNT(*) FROM crossings
@@ -187,6 +199,92 @@ func (q *Queries) GetCrossingsForUser(ctx context.Context, userID1 uuid.UUID) ([
 			&i.LocationCenter,
 			&i.OccurredAt,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTotalCrossingsCountToday = `-- name: GetTotalCrossingsCountToday :one
+SELECT COUNT(*) FROM crossings
+WHERE occurred_at >= CURRENT_DATE
+`
+
+func (q *Queries) GetTotalCrossingsCountToday(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getTotalCrossingsCountToday)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const listAdminCrossings = `-- name: ListAdminCrossings :many
+SELECT 
+    c.id, 
+    c.location_center, 
+    c.occurred_at, 
+    u1.id as u1_id, u1.username as u1_username, u1.full_name as u1_full_name, u1.avatar_url as u1_avatar_url,
+    u2.id as u2_id, u2.username as u2_username, u2.full_name as u2_full_name, u2.avatar_url as u2_avatar_url,
+    ST_Y(c.location_center::geometry) as lat,
+    ST_X(c.location_center::geometry) as lng
+FROM crossings c
+JOIN users u1 ON c.user_id_1 = u1.id
+JOIN users u2 ON c.user_id_2 = u2.id
+ORDER BY c.occurred_at DESC
+LIMIT CAST($1 AS int) OFFSET CAST($2 AS int)
+`
+
+type ListAdminCrossingsParams struct {
+	Column1 int32 `json:"column_1"`
+	Column2 int32 `json:"column_2"`
+}
+
+type ListAdminCrossingsRow struct {
+	ID             uuid.UUID      `json:"id"`
+	LocationCenter string         `json:"location_center"`
+	OccurredAt     time.Time      `json:"occurred_at"`
+	U1ID           uuid.UUID      `json:"u1_id"`
+	U1Username     string         `json:"u1_username"`
+	U1FullName     string         `json:"u1_full_name"`
+	U1AvatarUrl    sql.NullString `json:"u1_avatar_url"`
+	U2ID           uuid.UUID      `json:"u2_id"`
+	U2Username     string         `json:"u2_username"`
+	U2FullName     string         `json:"u2_full_name"`
+	U2AvatarUrl    sql.NullString `json:"u2_avatar_url"`
+	Lat            interface{}    `json:"lat"`
+	Lng            interface{}    `json:"lng"`
+}
+
+func (q *Queries) ListAdminCrossings(ctx context.Context, arg ListAdminCrossingsParams) ([]ListAdminCrossingsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listAdminCrossings, arg.Column1, arg.Column2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListAdminCrossingsRow
+	for rows.Next() {
+		var i ListAdminCrossingsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.LocationCenter,
+			&i.OccurredAt,
+			&i.U1ID,
+			&i.U1Username,
+			&i.U1FullName,
+			&i.U1AvatarUrl,
+			&i.U2ID,
+			&i.U2Username,
+			&i.U2FullName,
+			&i.U2AvatarUrl,
+			&i.Lat,
+			&i.Lng,
 		); err != nil {
 			return nil, err
 		}
