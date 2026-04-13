@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import api from '../../services/api';
 import { useSound } from '../../context/SoundContext';
 import { nullString } from '../../utils/string';
+import { CommentsModal, ReportModal } from '../ui';
 
 interface PostCardProps {
   post: any;
@@ -26,7 +27,10 @@ import { BACKEND } from '../../utils/config';
 const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageClick }) => {
   const [liked, setLiked] = useState<boolean>(post.liked_by_viewer ?? false);
   const [likeCount, setLikeCount] = useState<number>(post.likes_count ?? 0);
+  const [commentsCount, setCommentsCount] = useState<number>(post.comments_count ?? 0);
   const [showMenu, setShowMenu] = useState(false);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const isTextOnly = post.media_type === 'text' || !post.media_url || post.media_url === 'text';
   const isOwner = currentUserID && post.user_id === currentUserID;
   const { isMuted, toggleMute } = useSound();
@@ -80,6 +84,25 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
       onDelete?.(post.id);
     } catch (err) {
       console.error('Failed to delete post', err);
+    }
+  };
+
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `Post by @${post.username}`,
+          text: cleanCaption,
+          url: `${window.location.origin}/posts/${post.id}`,
+        });
+        await api.post(`/posts/${post.id}/share`);
+      } else {
+        await navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`);
+        alert('Link copied to clipboard!');
+        await api.post(`/posts/${post.id}/share`);
+      }
+    } catch (err) {
+      console.error('Share failed', err);
     }
   };
 
@@ -148,10 +171,18 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
                 </button>
               )}
               <button
-                onClick={() => setShowMenu(false)}
+                onClick={() => { setShowMenu(false); handleShare(); }}
                 className="flex items-center gap-2 w-full px-4 py-2.5 text-text-base hover:bg-bg-sidebar text-sm font-medium transition-colors cursor-pointer"
               >
+                <Share2 className="w-4 h-4" />
                 Share
+              </button>
+              <button
+                onClick={() => { setShowMenu(false); setIsReportOpen(true); }}
+                className="flex items-center gap-2 w-full px-4 py-2.5 text-orange-500 hover:bg-orange-500/10 text-sm font-medium transition-colors cursor-pointer"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+                Report
               </button>
             </div>
           )}
@@ -233,16 +264,36 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
             <span className="text-[13px] md:text-[12px] font-black">{likeCount}</span>
           </button>
           
-          <button className="flex items-center gap-2.5 p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer">
+          <button 
+            onClick={() => setIsCommentsOpen(true)}
+            className="flex items-center gap-2.5 p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer"
+          >
             <MessageSquare className="w-5.5 md:w-5 h-5.5 md:h-5 transition-transform group-hover:scale-110 rounded-full" />
-            <span className="text-[13px] md:text-[12px] font-black">{post.comments_count || 0}</span>
+            <span className="text-[13px] md:text-[12px] font-black">{commentsCount}</span>
           </button>
         </div>
 
-        <button className="p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer">
+        <button 
+          onClick={handleShare}
+          className="p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer"
+        >
           <Share2 className="w-5.5 md:w-5 h-5.5 md:h-5 transition-transform group-hover:rotate-12" />
         </button>
       </div>
+
+      <CommentsModal 
+        isOpen={isCommentsOpen} 
+        onClose={() => setIsCommentsOpen(false)} 
+        targetId={post.id} 
+        targetType="post" 
+        onCommentSuccess={() => setCommentsCount(prev => prev + 1)}
+      />
+      <ReportModal 
+        isOpen={isReportOpen} 
+        onClose={() => setIsReportOpen(false)} 
+        targetId={post.id} 
+        targetType="post" 
+      />
     </motion.div>
   );
 };

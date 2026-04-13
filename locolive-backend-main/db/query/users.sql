@@ -4,9 +4,10 @@ INSERT INTO users (
   email,
   password_hash,
   username,
-  full_name
+  full_name,
+  is_ghost_mode
 ) VALUES (
-  $1, $2, $3, $4, $5
+  $1, $2, $3, $4, $5, $6
 ) RETURNING *;
 
 -- name: GetUserByPhone :one
@@ -256,3 +257,9 @@ UPDATE sessions SET is_blocked = true WHERE user_id = $1;
 
 -- name: UpdateUserRole :one
 UPDATE users SET role = sqlc.arg(role)::user_role WHERE id = $1 RETURNING *;
+
+-- Admin: List all admin/moderator users
+-- name: ListAdminUsers :many
+SELECT * FROM users
+WHERE role IN ('admin', 'moderator')
+ORDER BY created_at DESC;

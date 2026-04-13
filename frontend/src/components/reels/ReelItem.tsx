@@ -128,7 +128,7 @@ const ReelItem = ({ reel, isActive }: ReelItemProps) => {
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent via-40% to-black pointer-events-none" />
 
       {/* Right Side Actions: Compact & Functional */}
-      <div className="absolute right-4 bottom-38 flex flex-col items-center gap-6 z-20">
+      <div className="absolute right-4 bottom-44 flex flex-col items-center gap-6 z-20">
 
         {/* Like */}
         <div className="flex flex-col items-center gap-1">
@@ -204,7 +204,7 @@ const ReelItem = ({ reel, isActive }: ReelItemProps) => {
       </div>
 
       {/* Bottom Information: Legibility Focused */}
-      <div className="absolute bottom-32 left-6 right-24 z-20 space-y-5">
+      <div className="absolute bottom-52 left-6 right-24 z-20 space-y-5">
         {/* User Info & Follow */}
         <div className="flex items-center gap-4">
           <div className="relative group">

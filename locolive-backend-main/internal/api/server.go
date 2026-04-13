@@ -13,6 +13,7 @@ import (
 	"privacy-social-backend/internal/service/location"
 	"privacy-social-backend/internal/service/safety"
 	"privacy-social-backend/internal/service/storage"
+	"privacy-social-backend/internal/service/moderation"
 	"privacy-social-backend/internal/service/story"
 	"privacy-social-backend/internal/service/user"
 	"privacy-social-backend/internal/token"
@@ -32,6 +33,7 @@ type Server struct {
 	user       user.Service
 	admin      admin.Service
 	storage    storage.Service
+	moderation *moderation.Service
 }
 
 // NewServer creates a new HTTP server and setup routing
@@ -63,6 +65,8 @@ func NewServer(
 		RefreshTokenDuration: config.RefreshTokenDuration,
 	})
 	adminService := admin.NewService(store, rdb)
+	modService := moderation.NewService(store)
+
 
 	server := &Server{
 		config:     config,
@@ -76,6 +80,7 @@ func NewServer(
 		user:       userService,
 		admin:      adminService,
 		storage:    storageService,
+		moderation: modService,
 	}
 
 	server.setupRouter()

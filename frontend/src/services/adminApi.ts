@@ -16,6 +16,41 @@ export interface MapUser {
   online: boolean;
 }
 
+export interface AppSettings {
+  discovery_radius: number;
+  crossing_distance: number;
+  location_update_seconds: number;
+  reels_enabled: boolean;
+  crossings_enabled: boolean;
+  version: string;
+  build_date: string;
+  environment: string;
+}
+
+export interface AdminNotification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface SendNotificationParams {
+  title: string;
+  message: string;
+  target: 'all' | 'online' | 'location';
+  city?: string;
+}
+
+export interface CreateAdminParams {
+  username: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'moderator';
+}
+
 export const adminApi = {
   // Stats
   getStats: async (): Promise<AdminStats> => {
@@ -85,6 +120,69 @@ export const adminApi = {
   resolveReport: async (reportId: string): Promise<AdminReport> => {
     const { data } = await api.put<AdminReport>(`/admin/reports/${reportId}/resolve`);
     return data;
+  },
+
+  // Activity Logs
+  getActivityLogs: async (page: number = 1, pageSize: number = 20): Promise<{ items: any[]; total: number }> => {
+    const { data } = await api.get<{ data: { items: any[]; total: number } }>('/admin/activity/logs', {
+      params: { page, page_size: pageSize },
+    });
+    return data.data;
+  },
+
+  // Comments
+  getComments: async (page: number = 1, pageSize: number = 20): Promise<{ items: any[]; total: number }> => {
+    const { data } = await api.get<{ data: { items: any[]; total: number } }>('/admin/comments', {
+      params: { page, page_size: pageSize },
+    });
+    return data.data;
+  },
+
+  moderateComment: async (commentId: string, source: 'post' | 'reel', action: 'approve' | 'delete'): Promise<void> => {
+    await api.post('/admin/comments/moderate', { comment_id: commentId, source, action });
+  },
+
+  // Notifications (Admin)
+  getNotifications: async (page: number = 1, pageSize: number = 20): Promise<{ items: AdminNotification[]; total: number }> => {
+    const { data } = await api.get<{ data: { items: AdminNotification[]; total: number } }>('/admin/notifications', {
+      params: { page, page_size: pageSize },
+    });
+    return data.data;
+  },
+
+  sendNotification: async (params: SendNotificationParams): Promise<{ recipients: number; total_target: number }> => {
+    const { data } = await api.post<{ data: { recipients: number; total_target: number } }>('/admin/notifications/send', params);
+    return data.data;
+  },
+
+  // Settings
+  getSettings: async (): Promise<AppSettings> => {
+    const { data } = await api.get<{ data: AppSettings }>('/admin/settings');
+    return data.data;
+  },
+
+  updateSettings: async (settings: Partial<AppSettings>): Promise<void> => {
+    await api.put('/admin/settings', settings);
+  },
+
+  // Admin Users
+  getAdmins: async (): Promise<{ items: AdminUser[] }> => {
+    const { data } = await api.get<{ data: { items: AdminUser[] } }>('/admin/admins');
+    return data.data;
+  },
+
+  createAdmin: async (params: CreateAdminParams): Promise<AdminUser> => {
+    const { data } = await api.post<{ data: AdminUser }>('/admin/admins', params);
+    return data.data;
+  },
+
+  updateAdmin: async (adminId: string, role: string): Promise<AdminUser> => {
+    const { data } = await api.put<{ data: AdminUser }>(`/admin/admins/${adminId}`, { role });
+    return data.data;
+  },
+
+  deleteAdmin: async (adminId: string): Promise<void> => {
+    await api.delete(`/admin/admins/${adminId}`);
   },
 
   // Logout

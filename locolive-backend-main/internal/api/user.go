@@ -18,7 +18,8 @@ type createUserRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Username string `json:"username" binding:"required,alphanum"`
 	FullName string `json:"full_name" binding:"required"`
-	Password string `json:"password" binding:"required,min=6"`
+	Password    string `json:"password" binding:"required,min=6"`
+	IsGhostMode bool   `json:"is_ghost_mode"`
 }
 
 type userResponse struct {
@@ -35,6 +36,16 @@ type userResponse struct {
 	IsGhostMode       bool      `json:"is_ghost_mode"`
 	Role              string    `json:"role"`
 	CreatedAt         time.Time `json:"created_at"`
+}
+
+type searchUserResponse struct {
+	ID         uuid.UUID `json:"id"`
+	Username   string    `json:"username"`
+	FullName   string    `json:"full_name"`
+	AvatarUrl  string    `json:"avatar_url"`
+	Bio        string    `json:"bio"`
+	IsVerified bool      `json:"is_verified"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 func newUserResponse(user db.User) userResponse {
@@ -66,8 +77,9 @@ func (server *Server) createUser(ctx *gin.Context) {
 		Phone:    req.Phone,
 		Email:    req.Email,
 		Username: req.Username,
-		FullName: req.FullName,
-		Password: req.Password,
+		FullName:    req.FullName,
+		Password:    req.Password,
+		IsGhostMode: req.IsGhostMode,
 	})
 	if err != nil {
 		if pqErr, ok := err.(*pq.Error); ok {
@@ -196,7 +208,20 @@ func (server *Server) searchUsers(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, users)
+	rsp := make([]searchUserResponse, len(users))
+	for i, u := range users {
+		rsp[i] = searchUserResponse{
+			ID:         u.ID,
+			Username:   u.Username,
+			FullName:   u.FullName,
+			AvatarUrl:  u.AvatarUrl.String,
+			Bio:        u.Bio.String,
+			IsVerified: u.IsVerified,
+			CreatedAt:  u.CreatedAt,
+		}
+	}
+
+	ctx.JSON(http.StatusOK, rsp)
 }
 
 type updateEmailRequest struct {

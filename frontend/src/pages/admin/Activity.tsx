@@ -1,4 +1,4 @@
-import { Activity, User, MapPin, Film, Shield, AlertTriangle, Info, Wifi } from 'lucide-react';
+import { Activity, User, MapPin, Film, Shield, AlertTriangle, Info, Wifi, MessageSquare } from 'lucide-react';
 import { useAdminStore } from '../../stores/adminStore';
 import { useAdminWebSocket } from '../../hooks/useAdminWebSocket';
 import type { LiveActivity } from '../../types/admin';
@@ -10,6 +10,9 @@ const iconMap: Record<string, any> = {
   reel_uploaded: Film,
   report_created: AlertTriangle,
   admin_action: Shield,
+  post_liked: Activity,
+  reel_liked: Activity,
+  comment_created: MessageSquare,
 };
 
 function formatTime(timestamp: string) {
@@ -33,6 +36,14 @@ function getActivityDescription(activity: LiveActivity): string {
       return `Crossing detected between two users`;
     case 'reel_uploaded':
       return `New reel uploaded`;
+    case 'comment_created':
+      return `New comment: "${p?.content}"`;
+    case 'post_liked':
+      return `User liked a post`;
+    case 'reel_liked':
+      return `User liked a reel`;
+    case 'report_created':
+      return `New report submitted: ${p?.reason}`;
     default:
       return `System event: ${activity.type}`;
   }

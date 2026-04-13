@@ -36,64 +36,53 @@ export const useAdminWebSocket = () => {
           // SMART CACHE UPDATES
           switch (activity.type) {
             case 'user_created':
-              // Invalidate user list to show new user
               queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-              // Small update to stats
               queryClient.setQueryData(['admin', 'stats'], (old: any) => {
                 if (!old) return old;
-                return {
-                  ...old,
-                  totalUsers: (old.totalUsers || 0) + 1,
-                  newUsers24h: (old.newUsers24h || 0) + 1,
-                };
+                return { ...old, totalUsers: (old.totalUsers || 0) + 1, newUsers24h: (old.newUsers24h || 0) + 1 };
               });
+              break;
+
+            case 'comment_created':
+              queryClient.invalidateQueries({ queryKey: ['admin', 'comments'] });
+              break;
+
+            case 'report_created':
+              queryClient.invalidateQueries({ queryKey: ['admin', 'reports'] });
               break;
 
             case 'user_online':
-              // Update user status in cache without refetching list
-              queryClient.setQueriesData<any>(
-                { queryKey: ['admin', 'users'] },
-                (old: any) => {
-                  if (!old || !old.items) return old;
-                  return {
-                    ...old,
-                    items: old.items.map((user: AdminUser) =>
-                      user.id === (activity.payload as any).user_id
-                        ? { ...user, status: 'online' }
-                        : user
-                    ),
-                  };
-                }
-              );
-              // Update active users count
-              queryClient.setQueryData(['admin', 'stats'], (old: any) => {
-                if (!old) return old;
+              queryClient.setQueriesData<any>({ queryKey: ['admin', 'users'] }, (old: any) => {
+                if (!old || !old.items) return old;
                 return {
                   ...old,
-                  activeUsers: (old.activeUsers || 0) + 1,
+                  items: old.items.map((user: AdminUser) =>
+                    user.id === (activity.payload as any).user_id ? { ...user, status: 'online' } : user
+                  ),
                 };
+              });
+              queryClient.setQueryData(['admin', 'stats'], (old: any) => {
+                if (!old) return old;
+                return { ...old, activeUsers: (old.activeUsers || 0) + 1 };
               });
               break;
 
+            case 'post_liked':
+            case 'reel_liked':
+              // Optional: Update some live counter if we had it
+              break;
+
             case 'crossing_detected':
-              // Update crossing count in stats
               queryClient.setQueryData(['admin', 'stats'], (old: any) => {
                 if (!old) return old;
-                return {
-                  ...old,
-                  crossingsToday: (old.crossingsToday || 0) + 1,
-                };
+                return { ...old, crossingsToday: (old.crossingsToday || 0) + 1 };
               });
               break;
 
             case 'reel_uploaded':
-              // Update reel count in stats
               queryClient.setQueryData(['admin', 'stats'], (old: any) => {
                 if (!old) return old;
-                return {
-                  ...old,
-                  reelsToday: (old.reelsToday || 0) + 1,
-                };
+                return { ...old, reelsToday: (old.reelsToday || 0) + 1 };
               });
               break;
           }

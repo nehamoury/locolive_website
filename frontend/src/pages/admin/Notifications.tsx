@@ -1,29 +1,46 @@
 import { useState } from 'react';
-import { Send, Users, MapPin, Bell, CheckCircle } from 'lucide-react';
+import { Send, Users, MapPin, Bell, Loader2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import adminApi from '../../services/adminApi';
+import { toast } from 'react-hot-toast';
 
 export function Notifications() {
+  const queryClient = useQueryClient();
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
-  const [targetType, setTargetType] = useState<'all' | 'location' | 'custom'>('all');
+  const [targetType, setTargetType] = useState<'all' | 'online' | 'location'>('all');
   const [location, setLocation] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [sent, setSent] = useState(false);
 
-  const handleSend = async () => {
+  const { data: notificationsData, isLoading } = useQuery({
+    queryKey: ['admin', 'notifications'],
+    queryFn: () => adminApi.getNotifications(1, 20),
+  });
+
+  const sendMutation = useMutation({
+    mutationFn: () => adminApi.sendNotification({
+      title,
+      message,
+      target: targetType,
+      city: targetType === 'location' ? location : undefined,
+    }),
+    onSuccess: (data) => {
+      toast.success(`Notification sent to ${data.recipients} users!`);
+      queryClient.invalidateQueries({ queryKey: ['admin', 'notifications'] });
+      setTitle('');
+      setMessage('');
+      setLocation('');
+    },
+    onError: () => {
+      toast.error('Failed to send notification');
+    },
+  });
+
+  const handleSend = () => {
     if (!title || !message) return;
-    
-    setIsSending(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    setIsSending(false);
-    setSent(true);
-    setTitle('');
-    setMessage('');
-    
-    setTimeout(() => setSent(false), 3000);
+    sendMutation.mutate();
   };
+
+  const notifications = notificationsData?.items || [];
 
   return (
     <div className="p-6 space-y-6">
@@ -74,6 +91,17 @@ export function Notifications() {
                   All Users
                 </button>
                 <button
+                  onClick={() => setTargetType('online')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    targetType === 'online' 
+                      ? 'bg-[#FF006E] text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <MapPin className="w-4 h-4" />
+                  Online
+                </button>
+                <button
                   onClick={() => setTargetType('location')}
                   className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     targetType === 'location' 
@@ -82,18 +110,7 @@ export function Notifications() {
                   }`}
                 >
                   <MapPin className="w-4 h-4" />
-                  By Location
-                </button>
-                <button
-                  onClick={() => setTargetType('custom')}
-                  className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    targetType === 'custom' 
-                      ? 'bg-[#FF006E] text-white' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <Users className="w-4 h-4" />
-                  Custom
+                  Location
                 </button>
               </div>
             </div>
@@ -113,18 +130,13 @@ export function Notifications() {
 
             <button
               onClick={handleSend}
-              disabled={!title || !message || isSending}
+              disabled={!title || !message || sendMutation.isPending}
               className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-[#FF006E] to-[#833AB4] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSending ? (
+              {sendMutation.isPending ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   Sending...
-                </>
-              ) : sent ? (
-                <>
-                  <CheckCircle className="w-5 h-5" />
-                  Sent Successfully!
                 </>
               ) : (
                 <>
@@ -140,23 +152,38 @@ export function Notifications() {
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Notifications</h2>
           
-          <div className="space-y-3">
-            {[
-              { title: 'Welcome to Locolive!', time: '2 hours ago', delivery: 125430 },
-              { title: 'New Reels Feature', time: '1 day ago', delivery: 98234 },
-              { title: 'Crossing Updates', time: '3 days ago', delivery: 87654 },
-            ].map((notif, index) => (
-              <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 rounded-full bg-[#FF006E]/10 flex items-center justify-center flex-shrink-0">
-                  <Bell className="w-5 h-5 text-[#FF006E]" />
+          <div className="space-y-3 max-h-[500px] overflow-y-auto">
+            {isLoading ? (
+              Array(3).fill(0).map((_, i) => (
+                <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg animate-pulse">
+                  <div className="w-10 h-10 rounded-full bg-gray-200" />
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
+                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="font-medium text-gray-900">{notif.title}</p>
-                  <p className="text-sm text-gray-500">{notif.time}</p>
-                </div>
-                <span className="text-sm text-gray-500">{notif.delivery.toLocaleString()}</span>
+              ))
+            ) : notifications.length === 0 ? (
+              <div className="text-center py-8">
+                <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">No notifications sent yet</p>
               </div>
-            ))}
+            ) : (
+              notifications.map((notif) => (
+                <div key={notif.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="w-10 h-10 rounded-full bg-[#FF006E]/10 flex items-center justify-center flex-shrink-0">
+                    <Bell className="w-5 h-5 text-[#FF006E]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{notif.title}</p>
+                    <p className="text-sm text-gray-500 truncate">{notif.message}</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {new Date(notif.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

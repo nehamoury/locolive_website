@@ -19,7 +19,8 @@ type CreateUserParams struct {
 	Email    string
 	Username string
 	FullName string
-	Password string
+	Password    string
+	IsGhostMode bool
 }
 
 type LoginUserParams struct {
@@ -83,6 +84,7 @@ func (s *ServiceImpl) CreateUser(ctx context.Context, req CreateUserParams) (db.
 		Username:     req.Username,
 		FullName:     req.FullName,
 		PasswordHash: hashedPassword,
+		IsGhostMode:  req.IsGhostMode,
 	}
 
 	user, err := s.store.CreateUser(ctx, arg)

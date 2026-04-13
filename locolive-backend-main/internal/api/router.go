@@ -132,6 +132,7 @@ func (server *Server) setupRouter() {
 	authRoutes.DELETE("/posts/:id/like", server.unlikePost)
 	authRoutes.GET("/posts/:id/comments", server.listPostComments)
 	authRoutes.POST("/posts/:id/comments", server.addPostComment)
+	authRoutes.POST("/posts/:id/share", server.sharePost)
 	authRoutes.DELETE("/posts/:id/comments/:commentId", server.deletePostComment)
 
 	// Reels (Vertical video content)
@@ -143,8 +144,10 @@ func (server *Server) setupRouter() {
 	authRoutes.DELETE("/reels/:id/like", server.unlikeReel)
 	authRoutes.POST("/reels/:id/comments", server.addReelComment)
 	authRoutes.GET("/reels/:id/comments", server.listReelComments)
+	authRoutes.POST("/reels/:id/share", server.shareReel)
 	authRoutes.POST("/reels/:id/save", server.saveReel)
 	authRoutes.DELETE("/reels/:id/save", server.unsaveReel)
+	authRoutes.DELETE("/reels/:id/comments/:commentId", server.deleteReelComment)
 
 	// Highlights (Permanent story collections)
 	authRoutes.POST("/highlights", server.createHighlight)
@@ -176,8 +179,28 @@ func (server *Server) setupRouter() {
 	adminRoutes.GET("/stories", server.listAllStories)
 	adminRoutes.DELETE("/stories/:id", server.deleteStory)
 	adminRoutes.GET("/activity", server.activityWebSocket)
+	adminRoutes.GET("/activity/logs", server.listActivityLogs)
+	adminRoutes.GET("/comments", server.listAllComments)
+	adminRoutes.POST("/comments/moderate", server.moderateComment)
 	adminRoutes.GET("/map/active", server.getMapActiveUsers)
 	adminRoutes.GET("/crossings", server.listAdminCrossings)
+
+	// Notifications
+	adminRoutes.POST("/notifications/send", server.sendBroadcastNotification)
+	adminRoutes.GET("/notifications", server.listAdminNotifications)
+
+	// Settings
+	adminRoutes.GET("/settings", server.getAppSettings)
+	adminRoutes.PUT("/settings", server.updateAppSettings)
+
+	// Admin Users CRUD
+	adminRoutes.GET("/admins", server.listAdminUsers)
+	adminRoutes.POST("/admins", server.createAdminUser)
+	adminRoutes.PUT("/admins/:id", server.updateAdminUser)
+	adminRoutes.DELETE("/admins/:id", server.deleteAdminUser)
+
+	// Search Users
+	adminRoutes.GET("/users/search", server.searchUsersAdmin)
 
 	// Frontend static files (SPA with fallback to index.html)
 	router.Static("/assets", "../frontend/dist/assets")

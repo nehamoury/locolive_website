@@ -36,3 +36,15 @@ WHERE user_id = $1 AND is_read = false;
 -- Delete notifications older than 30 days
 DELETE FROM notifications
 WHERE created_at < NOW() - INTERVAL '30 days';
+
+-- Admin: List all notifications (for admin panel)
+-- name: ListNotificationsAdmin :many
+SELECT * FROM notifications
+WHERE type = 'system_announcement'
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2;
+
+-- Admin: Count notifications
+-- name: CountNotificationsAdmin :one
+SELECT COUNT(*) FROM notifications
+WHERE type = 'system_announcement';

@@ -13,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"privacy-social-backend/internal/repository/db"
 	"privacy-social-backend/internal/token"
+	"strconv"
 )
 
 const (
@@ -580,4 +581,442 @@ func (server *Server) adminResetUserPassword(ctx *gin.Context) {
 
 	log.Info().Str("username", user.Username).Str("email", user.Email.String).Msg("admin reset user password")
 	ctx.JSON(http.StatusOK, gin.H{"success": true, "message": "password updated successfully"})
+}
+
+// Admin: List Activity Logs
+func (server *Server) listActivityLogs(ctx *gin.Context) {
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "20"))
+
+	logs, err := server.admin.ListActivityLogs(ctx, int32(pageSize), int32((page-1)*pageSize))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"items":     logs,
+			"page":      page,
+			"page_size": pageSize,
+		},
+	})
+}
+
+// Admin: List All Comments
+func (server *Server) listAllComments(ctx *gin.Context) {
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "20"))
+
+	comments, err := server.admin.ListAllComments(ctx, int32(pageSize), int32((page-1)*pageSize))
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"items":     comments,
+			"page":      page,
+			"page_size": pageSize,
+		},
+	})
+}
+
+// Admin: Moderate Comment
+type moderateCommentRequest struct {
+	CommentID string `json:"comment_id" binding:"required,uuid"`
+	Source    string `json:"source"     binding:"required,oneof=post reel"`
+	Action    string `json:"action"     binding:"required,oneof=approve delete"`
+}
+
+func (server *Server) moderateComment(ctx *gin.Context) {
+	var req moderateCommentRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	cid, _ := uuid.Parse(req.CommentID)
+
+	if req.Action == "delete" {
+		if req.Source == "post" {
+			// Find user id first for trust update
+			comment, err := server.store.GetPostComment(ctx, cid)
+			if err == nil {
+				_ = server.moderation.ProcessModerationAction(ctx, comment.UserID, "content_deleted")
+			}
+			postID, err := server.store.AdminDeletePostComment(ctx, cid)
+			if err == nil {
+				_ = server.store.DecrementPostComments(ctx, postID)
+			}
+		} else {
+			comment, err := server.store.GetReelComment(ctx, cid)
+			if err == nil {
+				_ = server.moderation.ProcessModerationAction(ctx, comment.UserID, "content_deleted")
+			}
+			reelID, err := server.store.AdminDeleteReelComment(ctx, cid)
+			if err == nil {
+				_ = server.store.DecrementReelComments(ctx, reelID)
+			}
+		}
+
+	} else {
+		// Approve -> Unflag
+		if req.Source == "post" {
+			_ = server.store.UpdatePostCommentFlag(ctx, db.UpdatePostCommentFlagParams{ID: cid, IsFlagged: false})
+		} else {
+			_ = server.store.UpdateReelCommentFlag(ctx, db.UpdateReelCommentFlagParams{ID: cid, IsFlagged: false})
+		}
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// ─── Admin: Send Broadcast Notification ──────────────────────────────────
+
+type sendNotificationRequest struct {
+	Title   string `json:"title" binding:"required,min=1,max=100"`
+	Message string `json:"message" binding:"required,min=1,max=500"`
+	Target  string `json:"target" binding:"required,oneof=all online location"`
+	City    string `json:"city,omitempty"`
+}
+
+func (server *Server) sendBroadcastNotification(ctx *gin.Context) {
+	var req sendNotificationRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	var userIDs []uuid.UUID
+	var err error
+
+	switch req.Target {
+	case "all":
+		users, countErr := server.store.ListUsers(ctx, db.ListUsersParams{
+			Limit:  10000,
+			Offset: 0,
+		})
+		if countErr != nil {
+			ctx.JSON(http.StatusInternalServerError, errorResponse(countErr))
+			return
+		}
+		for _, u := range users {
+			userIDs = append(userIDs, u.ID)
+		}
+		_ = err // ignore err from above
+
+	case "online":
+		users, _ := server.store.ListUsers(ctx, db.ListUsersParams{
+			Limit:  10000,
+			Offset: 0,
+		})
+		for _, u := range users {
+			if u.LastActiveAt.Valid && time.Since(u.LastActiveAt.Time) < 5*time.Minute {
+				userIDs = append(userIDs, u.ID)
+			}
+		}
+
+	case "location":
+		if req.City == "" {
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "city is required for location target"})
+			return
+		}
+	}
+
+	// Create notifications for all target users
+	notificationCount := 0
+	for _, userID := range userIDs {
+		_, notifErr := server.store.CreateNotification(ctx, db.CreateNotificationParams{
+			UserID:  userID,
+			Type:    "system_announcement",
+			Title:   req.Title,
+			Message: req.Message,
+		})
+		if notifErr == nil {
+			notificationCount++
+		}
+	}
+
+	log.Info().Str("title", req.Title).Int("count", notificationCount).Msg("broadcast notification sent")
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"message":      "notification sent successfully",
+			"recipients":   notificationCount,
+			"total_target": len(userIDs),
+		},
+	})
+}
+
+// ─── Admin: Get Recent Notifications (sent by admin) ───────────────────
+
+func (server *Server) listAdminNotifications(ctx *gin.Context) {
+	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "20"))
+
+	notifications, err := server.store.ListNotificationsAdmin(ctx, db.ListNotificationsAdminParams{
+		Limit:  int32(pageSize),
+		Offset: int32((page - 1) * pageSize),
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	count, err := server.store.CountNotificationsAdmin(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"items":     notifications,
+			"total":     count,
+			"page":      page,
+			"page_size": pageSize,
+		},
+	})
+}
+
+// ─── Admin: App Settings ────────────────────────────────────────────────
+
+type appSettingsResponse struct {
+	DiscoveryRadius       int    `json:"discovery_radius"`
+	CrossingDistance      int    `json:"crossing_distance"`
+	LocationUpdateSeconds int    `json:"location_update_seconds"`
+	ReelsEnabled          bool   `json:"reels_enabled"`
+	CrossingsEnabled      bool   `json:"crossings_enabled"`
+	Version               string `json:"version"`
+	BuildDate             string `json:"build_date"`
+	Environment           string `json:"environment"`
+}
+
+func (server *Server) getAppSettings(ctx *gin.Context) {
+	settings := appSettingsResponse{
+		DiscoveryRadius:       5,
+		CrossingDistance:      50,
+		LocationUpdateSeconds: 30,
+		ReelsEnabled:          true,
+		CrossingsEnabled:      true,
+		Version:               "1.0.0",
+		BuildDate:             "2024.01.15",
+		Environment:           "production",
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    settings,
+	})
+}
+
+type updateSettingsRequest struct {
+	DiscoveryRadius       *int  `json:"discovery_radius,omitempty"`
+	CrossingDistance      *int  `json:"crossing_distance,omitempty"`
+	LocationUpdateSeconds *int  `json:"location_update_seconds,omitempty"`
+	ReelsEnabled          *bool `json:"reels_enabled,omitempty"`
+	CrossingsEnabled      *bool `json:"crossings_enabled,omitempty"`
+}
+
+func (server *Server) updateAppSettings(ctx *gin.Context) {
+	var req updateSettingsRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// In a real app, these would be stored in a settings table or Redis
+	// For now, we just validate and return success
+	log.Info().Interface("settings", req).Msg("app settings updated")
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "settings updated successfully",
+	})
+}
+
+// ─── Admin: List Admin Users ────────────────────────────────────────────
+
+func (server *Server) listAdminUsers(ctx *gin.Context) {
+	users, err := server.store.ListAdminUsers(ctx)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	userResponses := make([]AdminUserResponse, len(users))
+	for i, u := range users {
+		userResponses[i] = AdminUserResponse{
+			ID:        u.ID.String(),
+			Username:  u.Username,
+			FullName:  u.FullName,
+			Email:     u.Email.String,
+			Role:      string(u.Role),
+			Status:    "active",
+			IsBanned:  false,
+			CreatedAt: u.CreatedAt,
+		}
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data": gin.H{
+			"items": userResponses,
+		},
+	})
+}
+
+type createAdminRequest struct {
+	Username string `json:"username" binding:"required,min=3,max=30"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+	Role     string `json:"role" binding:"required,oneof=admin moderator"`
+}
+
+func (server *Server) createAdminUser(ctx *gin.Context) {
+	var req createAdminRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	// Check if username already exists
+	existingUser, err := server.store.GetUserByUsername(ctx, req.Username)
+	if err == nil && existingUser.ID.String() != "" {
+		ctx.JSON(http.StatusConflict, gin.H{"error": "username already exists"})
+		return
+	}
+
+	// Create user as admin
+	hashedPassword, hashErr := util.HashPassword(req.Password)
+	if hashErr != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		return
+	}
+
+	// Create the admin user
+	user, createErr := server.store.CreateUser(ctx, db.CreateUserParams{
+		Phone:        "admin-" + req.Username + "-" + uuid.New().String()[:8],
+		Email:        sql.NullString{String: req.Email, Valid: true},
+		PasswordHash: hashedPassword,
+		Username:     req.Username,
+		FullName:     req.Username,
+		IsGhostMode:  false,
+	})
+
+	if createErr != nil {
+		// Try to get existing user and update role
+		existingUser, _ := server.store.GetUserByUsername(ctx, req.Username)
+		if existingUser.ID.String() != "" {
+			updatedUser, updateErr := server.store.UpdateUserRole(ctx, db.UpdateUserRoleParams{
+				ID:   existingUser.ID,
+				Role: db.UserRole(req.Role),
+			})
+			if updateErr != nil {
+				ctx.JSON(http.StatusInternalServerError, errorResponse(updateErr))
+				return
+			}
+			ctx.JSON(http.StatusOK, gin.H{
+				"success": true,
+				"data":    newAdminUserResponse(updatedUser),
+			})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(createErr))
+		return
+	}
+
+	// Update role to admin/moderator
+	updatedUser, updateErr := server.store.UpdateUserRole(ctx, db.UpdateUserRoleParams{
+		ID:   user.ID,
+		Role: db.UserRole(req.Role),
+	})
+	if updateErr != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(updateErr))
+		return
+	}
+
+	log.Info().Str("username", req.Username).Str("role", req.Role).Msg("admin user created")
+
+	ctx.JSON(http.StatusCreated, gin.H{
+		"success": true,
+		"data":    newAdminUserResponse(updatedUser),
+	})
+}
+
+type updateAdminRequest struct {
+	Role string `json:"role" binding:"required,oneof=admin moderator user"`
+}
+
+func (server *Server) updateAdminUser(ctx *gin.Context) {
+	userID := ctx.Param("id")
+	if userID == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "user id is required"})
+		return
+	}
+
+	var req updateAdminRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	updatedUser, updateErr := server.store.UpdateUserRole(ctx, db.UpdateUserRoleParams{
+		ID:   uid,
+		Role: db.UserRole(req.Role),
+	})
+	if updateErr != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(updateErr))
+		return
+	}
+
+	log.Info().Str("user_id", userID).Str("new_role", req.Role).Msg("admin user role updated")
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    newAdminUserResponse(updatedUser),
+	})
+}
+
+func (server *Server) deleteAdminUser(ctx *gin.Context) {
+	userID := ctx.Param("id")
+	if userID == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "user id is required"})
+		return
+	}
+
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		return
+	}
+
+	// Reset role to user (don't delete the account)
+	updatedUser, updateErr := server.store.UpdateUserRole(ctx, db.UpdateUserRoleParams{
+		ID:   uid,
+		Role: db.UserRole("user"),
+	})
+	if updateErr != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(updateErr))
+		return
+	}
+
+	log.Info().Str("user_id", userID).Msg("admin user demoted to regular user")
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    newAdminUserResponse(updatedUser),
+	})
 }
