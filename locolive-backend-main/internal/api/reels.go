@@ -276,8 +276,12 @@ func (server *Server) getReelsFeed(ctx *gin.Context) {
 
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "10"))
-	if page < 1 { page = 1 }
-	if pageSize < 1 || pageSize > 30 { pageSize = 10 }
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 30 {
+		pageSize = 10
+	}
 
 	reels, err := server.store.ListReelsFeed(ctx, db.ListReelsFeedParams{
 		UserID: authPayload.UserID,
@@ -421,7 +425,7 @@ func (server *Server) likeReel(ctx *gin.Context) {
 	}
 
 	_ = server.store.IncrementReelLikes(ctx, reelID)
-	
+
 	// WebSocket event to owner
 	reel, err := server.store.GetReel(ctx, reelID)
 	if err == nil {
@@ -482,7 +486,7 @@ func (server *Server) addReelComment(ctx *gin.Context) {
 	}
 
 	_ = server.store.IncrementReelComments(ctx, reelID)
-	
+
 	// WebSocket event to owner
 	reel, err := server.store.GetReel(ctx, reelID)
 	if err == nil {
@@ -604,4 +608,3 @@ func (server *Server) deleteReelComment(ctx *gin.Context) {
 	_ = server.store.DecrementReelComments(ctx, reelID)
 	ctx.JSON(http.StatusOK, gin.H{"message": "comment deleted"})
 }
-
