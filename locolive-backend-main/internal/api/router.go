@@ -29,6 +29,7 @@ func (server *Server) setupRouter() {
 	router.POST("/auth/google", server.authRateLimiter(), server.googleLogin)
 	router.GET("/auth/google/callback", server.googleCallback) // New Relay for Expo Go
 	router.POST("/auth/forgot-password", server.authRateLimiter(), server.forgotPassword)
+	router.POST("/auth/verify-reset-token", server.authRateLimiter(), server.verifyResetToken)
 	router.POST("/auth/reset-password", server.authRateLimiter(), server.resetPassword)
 
 	// Static uploads

@@ -19,14 +19,24 @@ interface CommentsModalProps {
   targetId: string;
   targetType: 'post' | 'reel';
   onCommentSuccess?: () => void;
+  variant?: 'modal' | 'sidebar';
 }
 
-export const CommentsModal: React.FC<CommentsModalProps> = ({ isOpen, onClose, targetId, targetType, onCommentSuccess }) => {
+export const CommentsModal: React.FC<CommentsModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  targetId, 
+  targetType, 
+  onCommentSuccess,
+  variant = 'modal'
+}) => {
   const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const isSidebar = variant === 'sidebar';
 
   useEffect(() => {
     if (isOpen) {
@@ -77,19 +87,26 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({ isOpen, onClose, t
     <AnimatePresence>
       {isOpen && (
         <>
+          {!isSidebar && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100]"
+            />
+          )}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100]"
-          />
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
+            initial={isSidebar ? { x: '100%', opacity: 0 } : { y: '100%' }}
+            animate={isSidebar ? { x: 0, opacity: 1 } : { y: 0 }}
+            exit={isSidebar ? { x: '100%', opacity: 0 } : { y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed bottom-0 left-0 right-0 md:bottom-10 md:left-1/2 md:-translate-x-1/2 w-full md:max-w-lg h-[85vh] md:h-[600px] bg-bg-card border-t md:border border-border-base rounded-t-[32px] md:rounded-[32px] shadow-2xl z-[101] flex flex-col overflow-hidden"
+            className={`
+              ${isSidebar 
+                ? 'relative h-full w-[380px] bg-bg-card border-l border-border-base flex flex-col overflow-hidden z-[50]' 
+                : 'fixed bottom-0 left-0 right-0 md:bottom-10 md:left-1/2 md:-translate-x-1/2 w-full md:max-w-lg h-[85vh] md:h-[600px] bg-bg-card border-t md:border border-border-base rounded-t-[32px] md:rounded-[32px] shadow-2xl z-[101] flex flex-col overflow-hidden'
+              }
+            `}
           >
             {/* Grab Handle for Mobile */}
             <div className="md:hidden w-full flex justify-center pt-3 pb-1">

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, type FC } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart, MessageSquare, Share2, MapPin, MoreHorizontal, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
@@ -35,6 +36,7 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
   const isOwner = currentUserID && post.user_id === currentUserID;
   const { isMuted, toggleMute } = useSound();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const navigate = useNavigate();
 
   // Normalize NullString objects from Go backend
   const bodyTextRaw = nullString(post.body_text);
@@ -114,8 +116,11 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
     >
       {/* Header */}
       <div className="flex items-center justify-between px-6 md:px-5 pt-5 pb-4 md:pb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-primary to-accent shadow-sm">
+        <div 
+          className="flex items-center gap-3 cursor-pointer group/header"
+          onClick={() => navigate(`/dashboard/user/${post.user_id}`)}
+        >
+          <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-primary to-accent shadow-sm group-hover/header:scale-105 transition-transform duration-300">
             <div className="w-full h-full rounded-full bg-bg-card p-[1.5px]">
               <div className="w-full h-full rounded-full overflow-hidden bg-bg-sidebar flex items-center justify-center">
                 {avatarUrl ? (
@@ -125,15 +130,17 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
                     alt=""
                   />
                 ) : (
-                  <span className="text-primary font-black text-sm">
-                    {post.username?.charAt(0)?.toUpperCase()}
-                  </span>
+                  <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-primary font-black text-sm">
+                      {post.username?.charAt(0)?.toUpperCase()}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
           </div>
           <div className="flex flex-col">
-            <h4 className="font-black text-text-base text-[14px] leading-none tracking-tight">
+            <h4 className="font-black text-text-base text-[14px] leading-none tracking-tight group-hover/header:text-primary transition-colors">
               {post.full_name || post.username}
             </h4>
             <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-text-muted/60">
@@ -239,7 +246,12 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
       {/* Caption — Now below media like Instagram */}
       {shouldShowCaption && (
         <p className="px-6 md:px-5 pb-3 md:pb-2 text-text-base/90 font-medium text-[14.5px] md:text-[14px] leading-relaxed tracking-tight select-text">
-          <span className="font-black mr-2 text-text-base">{post.username}</span>
+          <span 
+            className="font-black mr-2 text-text-base cursor-pointer hover:text-primary transition-colors"
+            onClick={() => navigate(`/dashboard/user/${post.user_id}`)}
+          >
+            {post.username}
+          </span>
           <span className="whitespace-pre-wrap">{cleanCaption}</span>
         </p>
       )}

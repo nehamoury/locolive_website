@@ -336,51 +336,57 @@ const Dashboard = () => {
         <Route path="reels" element={<ReelsView onCreateReel={() => setIsCreateReelModalOpen(true)} />} />
 
         <Route path="messages/*" element={
-          <div className="flex flex-col h-full w-full overflow-hidden bg-transparent">
-            <div className="flex items-center justify-between px-6 py-3.5 border-b border-border-base bg-transparent shrink-0">
-              <h2 className="text-xl font-black text-gray-900 italic tracking-tight">Messages</h2>
-              <div className="flex items-center gap-2">
-                {/* Removed New Chat and Pending Requests buttons as requested */}
-              </div>
-            </div>
-
-            <div className="flex flex-1 overflow-hidden">
-              {/* Left Sidebar: Conversations List (Persistent) */}
-              <div className={`h-full border-r border-border-base w-full md:w-[320px] lg:w-[380px] shrink-0 bg-transparent ${pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages'
-                ? 'hidden md:flex'
-                : 'flex'
-                }`}>
-                <ChatList
-                  onSelect={(id) => navigate(`/dashboard/messages/${id}`)}
-                  selectedId={pathname.split('/').pop()}
-                />
+          <div className="flex flex-col h-full w-full overflow-hidden bg-transparent pt-2 pb-6 px-0 md:px-2">
+            <div className="flex flex-col h-full w-full overflow-hidden bg-bg-card md:rounded-[32px] border border-border-base/50 shadow-2xl relative">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border-base bg-bg-card/50 backdrop-blur-md shrink-0 z-20">
+                <h2 className="text-xl font-black text-gray-900 italic tracking-tight">Messages</h2>
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    {/* Visual flair: Active avatars placeholder */}
+                    <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-primary/20" />
+                    <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-accent/20" />
+                  </div>
+                </div>
               </div>
 
-              {/* Main Area: Chat Window + Profile Sidebar (Dynamic) */}
-              <div className={`flex-1 flex overflow-hidden ${!(pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages')
-                ? 'hidden md:flex'
-                : 'flex'
-                }`}>
-                <Routes>
-                  <Route path=":userId" element={
-                    <MessageThreadWrapper
-                      onViewFullProfile={handleUserSelect}
-                      setShowChatProfile={setShowChatProfile}
-                      showChatProfile={showChatProfile}
-                    />
-                  } />
-                  <Route path="/" element={
-                    <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-transparent">
-                      <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-5">
-                        <MessageSquare className="w-9 h-9 text-gray-300" />
+              <div className="flex flex-1 overflow-hidden relative z-10">
+                {/* Left Sidebar: Conversations List (Persistent) */}
+                <div className={`h-full border-r border-border-base w-full md:w-[320px] lg:w-[380px] shrink-0 bg-transparent ${pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages'
+                  ? 'hidden md:flex'
+                  : 'flex'
+                  }`}>
+                  <ChatList
+                    onSelect={(id) => navigate(`/dashboard/messages/${id}`)}
+                    selectedId={pathname.split('/').pop()}
+                  />
+                </div>
+
+                {/* Main Area: Chat Window + Profile Sidebar (Dynamic) */}
+                <div className={`flex-1 flex overflow-hidden ${!(pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages')
+                  ? 'hidden md:flex'
+                  : 'flex'
+                  }`}>
+                  <Routes>
+                    <Route path=":userId" element={
+                      <MessageThreadWrapper
+                        onViewFullProfile={handleUserSelect}
+                        setShowChatProfile={setShowChatProfile}
+                        showChatProfile={showChatProfile}
+                      />
+                    } />
+                    <Route path="/" element={
+                      <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-gray-50/20">
+                        <div className="w-24 h-24 bg-white rounded-[32px] shadow-2xl shadow-primary/5 flex items-center justify-center mb-6 border border-white/60">
+                          <MessageSquare className="w-10 h-10 text-primary/30" />
+                        </div>
+                        <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight italic">Your Inbox</h3>
+                        <p className="max-w-xs text-[10px] font-black text-gray-400 leading-relaxed uppercase tracking-[0.2em]">
+                          Select a conversation from the left to start a new journey
+                        </p>
                       </div>
-                      <h3 className="text-xl font-medium text-gray-800 mb-2">Select a Conversation</h3>
-                      <p className="max-w-xs text-sm text-gray-400 leading-relaxed">
-                        Choose a chat from the list or start a new one
-                      </p>
-                    </div>
-                  } />
-                </Routes>
+                    } />
+                  </Routes>
+                </div>
               </div>
             </div>
           </div>
@@ -410,7 +416,7 @@ const Dashboard = () => {
       <Toaster position="top-right" reverseOrder={false} />
 
       {/* 2. Main Content Center (Scrollable) */}
-      <main className={`flex-1 relative ${pathname.includes('reels') ? 'overflow-hidden h-full' : 'overflow-y-auto'} md:overflow-hidden flex flex-col bg-transparent z-10 w-full md:max-w-5xl xl:max-w-6xl mx-auto transition-colors duration-300 ${pathname.includes('reels') ? 'pb-0' : 'pb-20'} md:pb-0 no-scrollbar`}>
+      <main className={`flex-1 relative ${pathname.includes('reels') ? 'overflow-hidden h-full' : 'overflow-y-auto'} md:overflow-hidden flex flex-col bg-transparent z-10 w-full ${pathname.includes('messages') ? 'md:max-w-none xl:max-w-none px-0 md:px-4' : 'md:max-w-5xl xl:max-w-6xl mx-auto'} transition-colors duration-300 ${pathname.includes('reels') ? 'pb-0' : 'pb-20'} md:pb-0 no-scrollbar`}>
 
         {/* Mobile Header — Ultra Premium Glass (Now Scrolling) */}
         <div className={`md:hidden relative w-full pt-6 pb-4 px-6 flex items-center justify-between bg-transparent transition-all ${pathname.includes('reels') ? 'hidden' : 'flex'}`}>

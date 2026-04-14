@@ -369,6 +369,14 @@ type Notification struct {
 	CreatedAt         time.Time        `json:"created_at"`
 }
 
+type PasswordReset struct {
+	ID        int64     `json:"id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type Post struct {
 	ID            uuid.UUID      `json:"id"`
 	UserID        uuid.UUID      `json:"user_id"`
@@ -550,8 +558,6 @@ type User struct {
 	WebsiteUrl             sql.NullString  `json:"website_url"`
 	Links                  json.RawMessage `json:"links"`
 	GoogleID               sql.NullString  `json:"google_id"`
-	PasswordResetToken     sql.NullString  `json:"password_reset_token"`
-	PasswordResetExpiresAt sql.NullTime    `json:"password_reset_expires_at"`
 	GhostModeExpiresAt     sql.NullTime    `json:"ghost_mode_expires_at"`
 	Interests              []string        `json:"interests"`
 	TrustScore             int32           `json:"trust_score"`

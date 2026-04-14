@@ -179,26 +179,26 @@ const VideoCard: React.FC<VideoCardProps> = ({
           <div className="absolute left-0 bottom-0 w-full p-6 pt-24 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none">
             <div className="flex flex-col gap-4 pointer-events-auto max-w-[85%]">
               {/* User Info */}
-              <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full border-2 border-primary/50 bg-white/10 p-0.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-full border border-primary/30 bg-white/10 p-0.5">
                   <div className="w-full h-full rounded-full overflow-hidden bg-black/20 flex items-center justify-center">
                     {reel.avatar_url ? (
                       <img src={`${BACKEND}${reel.avatar_url}`} alt={reel.username} className="w-full h-full object-cover" />
                     ) : (
-                      <User className="text-white w-5 h-5" />
+                      <User className="text-white w-4 h-4" />
                     )}
                   </div>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-white font-black text-[15px] shadow-sm tracking-tight">@{reel.username}</span>
+                  <span className="text-white font-bold text-sm shadow-sm tracking-tight leading-none">@{reel.username}</span>
                   {reel.location_name && (
-                    <div className="flex items-center gap-1 text-white/70 text-[10px] font-bold uppercase tracking-wider">
-                      <MapPin className="w-2.5 h-2.5 text-primary" />
+                    <div className="flex items-center gap-1 text-white/70 text-[9px] font-bold uppercase tracking-wider mt-0.5">
+                      <MapPin className="w-2 h-2 text-primary" />
                       <span>{reel.location_name}</span>
                     </div>
                   )}
                 </div>
-                <button className="ml-2 px-6 py-1.5 rounded-full bg-primary text-white text-[11px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20">
+                <button className="ml-2 px-3.5 py-1 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/30 text-[10px] font-black uppercase tracking-widest text-white transition-all">
                   Follow
                 </button>
               </div>

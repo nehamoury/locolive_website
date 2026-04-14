@@ -8,6 +8,8 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import Login from './pages/auth/Login'
 import AdminLogin from './pages/auth/AdminLogin'
 import Signup from './pages/auth/Signup'
+import ForgotPassword from './pages/auth/ForgotPassword'
+import ResetPassword from './pages/auth/ResetPassword'
 import Dashboard from './pages/dashboard/Dashboard'
 import { OfflineBanner } from './components/ui/OfflineBanner'
 import AdminLayout from './pages/admin/AdminLayout'
@@ -68,6 +70,16 @@ function AppContent() {
         <Route 
           path="/signup" 
           element={!user ? <Signup onToggle={() => navigate('/login')} onBack={() => navigate('/login')} /> : <Navigate to="/dashboard/home" replace />} 
+        />
+
+        <Route 
+          path="/forgot-password" 
+          element={!user ? <ForgotPassword onBack={() => navigate('/login')} /> : <Navigate to="/dashboard/home" replace />} 
+        />
+
+        <Route 
+          path="/reset-password" 
+          element={!user ? <ResetPassword /> : <Navigate to="/dashboard/home" replace />} 
         />
 
 

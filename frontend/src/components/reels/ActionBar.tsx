@@ -33,14 +33,15 @@ const ActionBar: React.FC<ActionBarProps> = ({
       className={`flex ${isFloating ? 'flex-col' : 'flex-row'} items-center gap-1.5 group cursor-pointer`}
     >
       <div className={`
-        ${isFloating ? 'w-12 h-12' : 'w-10 h-10'} rounded-full flex items-center justify-center transition-all duration-300
-        ${isFloating ? 'bg-black/20 backdrop-blur-md border border-white/10 text-white' : 'bg-zinc-100 text-zinc-500'}
-        ${active ? `${activeColor} scale-110 shadow-lg` : 'hover:scale-110'}
-        ${isFloating && active ? 'shadow-primary/40' : ''}
+        ${isFloating ? 'w-10 h-10' : 'w-10 h-10'} flex items-center justify-center transition-all duration-300
+        ${active ? `${activeColor} scale-110` : 'text-white hover:scale-110'}
       `}>
-        <Icon className={`${isFloating ? 'w-6 h-6' : 'w-5 h-5'} ${active ? 'fill-current' : ''}`} />
+        <Icon 
+          strokeWidth={2.8} 
+          className={`${isFloating ? 'w-7 h-7' : 'w-5 h-5'} ${active ? 'fill-current' : ''} drop-shadow-md`} 
+        />
       </div>
-      <span className={`text-[11px] font-black ${isFloating ? 'text-white' : 'text-zinc-500'} drop-shadow-sm`}>
+      <span className={`text-[11px] font-bold ${isFloating ? 'text-white' : 'text-zinc-500'} drop-shadow-lg`}>
         {count >= 1000 ? `${(count / 1000).toFixed(1)}k` : count}
       </span>
     </button>

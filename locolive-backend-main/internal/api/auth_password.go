@@ -2,7 +2,6 @@ package api
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -23,10 +22,10 @@ func (server *Server) forgotPassword(ctx *gin.Context) {
 		return
 	}
 
-	_, err := server.store.GetUserByEmail(ctx, sql.NullString{String: req.Email, Valid: true})
+	user, err := server.store.GetUserByEmail(ctx, sql.NullString{String: req.Email, Valid: true})
 	if err != nil {
 		if err == sql.ErrNoRows {
-			// Do not reveal email existence
+			// Do not reveal email existence for security
 			ctx.JSON(http.StatusOK, gin.H{"message": "If this email exists, a reset link has been sent."})
 			return
 		}
@@ -38,20 +37,49 @@ func (server *Server) forgotPassword(ctx *gin.Context) {
 	resetToken := util.RandomString(32)
 	expiresAt := time.Now().Add(15 * time.Minute)
 
-	_, err = server.store.SetPasswordResetToken(ctx, db.SetPasswordResetTokenParams{
-		Email:                  sql.NullString{String: req.Email, Valid: true},
-		PasswordResetToken:     sql.NullString{String: resetToken, Valid: true},
-		PasswordResetExpiresAt: sql.NullTime{Time: expiresAt, Valid: true},
+	// Save to DB
+	_, err = server.store.CreatePasswordReset(ctx, db.CreatePasswordResetParams{
+		UserID:    user.ID,
+		Token:     resetToken,
+		ExpiresAt: expiresAt,
 	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	// LOG TOKEN (For development since no SMTP)
-	fmt.Printf("------------\n[PASSWORD RESET]\nUser: %s\nToken: %s\n------------\n", req.Email, resetToken)
+	// Send Email
+	err = server.mailer.SendResetEmail(req.Email, resetToken)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send email"})
+		return
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "If this email exists, a reset link has been sent."})
+}
+
+type verifyResetTokenRequest struct {
+	Token string `json:"token" binding:"required"`
+}
+
+func (server *Server) verifyResetToken(ctx *gin.Context) {
+	var req verifyResetTokenRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	_, err := server.store.GetPasswordResetByToken(ctx, req.Token)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"message": "token is valid"})
 }
 
 type resetPasswordRequest struct {
@@ -66,21 +94,27 @@ func (server *Server) resetPassword(ctx *gin.Context) {
 		return
 	}
 
-	user, err := server.store.GetUserByResetToken(ctx, sql.NullString{String: req.Token, Valid: true})
+	// Find token
+	reset, err := server.store.GetPasswordResetByToken(ctx, req.Token)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
+	// Hash new password
 	hashedPassword, err := util.HashPassword(req.NewPassword)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	// Update Password
+	// Update user password
 	err = server.store.UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
-		ID:           user.ID,
+		ID:           reset.UserID,
 		PasswordHash: hashedPassword,
 	})
 	if err != nil {
@@ -88,8 +122,11 @@ func (server *Server) resetPassword(ctx *gin.Context) {
 		return
 	}
 
-	// Clear Token
-	server.store.ClearPasswordResetToken(ctx, user.ID)
+	// One-time use: Delete all tokens for this user
+	err = server.store.DeleteUserPasswordResets(ctx, reset.UserID)
+	if err != nil {
+		// Log error but don't fail for user
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "password updated successfully"})
 }

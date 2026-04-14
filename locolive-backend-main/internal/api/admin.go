@@ -461,8 +461,8 @@ func (server *Server) listAdminCrossings(ctx *gin.Context) {
 	}
 
 	crossings, err := server.store.ListAdminCrossings(ctx, db.ListAdminCrossingsParams{
-		Column1: req.PageSize,
-		Column2: (req.PageID - 1) * req.PageSize,
+		Limit:  req.PageSize,
+		Offset: (req.PageID - 1) * req.PageSize,
 	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))

@@ -22,7 +22,6 @@ type Querier interface {
 	BlockUser(ctx context.Context, arg BlockUserParams) (BlockedUser, error)
 	BoostUser(ctx context.Context, arg BoostUserParams) (User, error)
 	CheckGroupMembership(ctx context.Context, arg CheckGroupMembershipParams) (bool, error)
-	ClearPasswordResetToken(ctx context.Context, id uuid.UUID) error
 	CountAdminCrossings(ctx context.Context) (int64, error)
 	CountArchivedStories(ctx context.Context, userID uuid.UUID) (int64, error)
 	CountConnectionRequestsToday(ctx context.Context, requesterID uuid.UUID) (int64, error)
@@ -43,6 +42,7 @@ type Querier interface {
 	CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error)
 	CreateMessageReaction(ctx context.Context, arg CreateMessageReactionParams) (MessageReaction, error)
 	CreateNotification(ctx context.Context, arg CreateNotificationParams) (Notification, error)
+	CreatePasswordReset(ctx context.Context, arg CreatePasswordResetParams) (PasswordReset, error)
 	CreatePost(ctx context.Context, arg CreatePostParams) (CreatePostRow, error)
 	CreatePostComment(ctx context.Context, arg CreatePostCommentParams) (PostComment, error)
 	CreateReel(ctx context.Context, arg CreateReelParams) (CreateReelRow, error)
@@ -69,6 +69,7 @@ type Querier interface {
 	DeleteConversation(ctx context.Context, arg DeleteConversationParams) error
 	DeleteExpiredLocations(ctx context.Context) error
 	DeleteExpiredMessages(ctx context.Context) error
+	DeleteExpiredPasswordResets(ctx context.Context) error
 	DeleteExpiredStories(ctx context.Context) error
 	DeleteHighlight(ctx context.Context, arg DeleteHighlightParams) error
 	DeleteMessage(ctx context.Context, arg DeleteMessageParams) error
@@ -77,6 +78,7 @@ type Querier interface {
 	DeleteOldMessages(ctx context.Context) error
 	// Delete notifications older than 30 days
 	DeleteOldNotifications(ctx context.Context) error
+	DeletePasswordResetByToken(ctx context.Context, token string) error
 	DeletePost(ctx context.Context, arg DeletePostParams) error
 	DeletePostComment(ctx context.Context, arg DeletePostCommentParams) (uuid.UUID, error)
 	DeleteReelComment(ctx context.Context, arg DeleteReelCommentParams) (uuid.UUID, error)
@@ -85,6 +87,7 @@ type Querier interface {
 	DeleteStoryMentions(ctx context.Context, storyID uuid.UUID) error
 	DeleteStoryReaction(ctx context.Context, arg DeleteStoryReactionParams) error
 	DeleteUser(ctx context.Context, id uuid.UUID) error
+	DeleteUserPasswordResets(ctx context.Context, userID uuid.UUID) error
 	// Block Logic
 	FindPotentialCrossings(ctx context.Context, arg FindPotentialCrossingsParams) ([]FindPotentialCrossingsRow, error)
 	GetActiveStoriesByUserID(ctx context.Context, userID uuid.UUID) ([]GetActiveStoriesByUserIDRow, error)
@@ -108,6 +111,7 @@ type Querier interface {
 	GetMessage(ctx context.Context, id uuid.UUID) (Message, error)
 	GetMessageReactions(ctx context.Context, messageID uuid.UUID) ([]GetMessageReactionsRow, error)
 	GetMyProfileViews(ctx context.Context, viewerID uuid.UUID) ([]GetMyProfileViewsRow, error)
+	GetPasswordResetByToken(ctx context.Context, token string) (PasswordReset, error)
 	GetPostComment(ctx context.Context, id uuid.UUID) (PostComment, error)
 	GetPrivacySettings(ctx context.Context, userID uuid.UUID) (PrivacySetting, error)
 	GetProfileViewCount(ctx context.Context, viewedUserID uuid.UUID) (int64, error)
@@ -139,7 +143,6 @@ type Querier interface {
 	GetUserByGoogleID(ctx context.Context, googleID sql.NullString) (User, error)
 	GetUserByID(ctx context.Context, id uuid.UUID) (User, error)
 	GetUserByPhone(ctx context.Context, phone string) (User, error)
-	GetUserByResetToken(ctx context.Context, passwordResetToken sql.NullString) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
 	GetUserEngagementStats(ctx context.Context, userID uuid.UUID) (GetUserEngagementStatsRow, error)
 	GetUserGroups(ctx context.Context, userID uuid.UUID) ([]Group, error)
@@ -198,7 +201,6 @@ type Querier interface {
 	SaveReel(ctx context.Context, arg SaveReelParams) (ReelSafe, error)
 	SearchUsers(ctx context.Context, query string) ([]SearchUsersRow, error)
 	SearchUsersAdmin(ctx context.Context, arg SearchUsersAdminParams) ([]User, error)
-	SetPasswordResetToken(ctx context.Context, arg SetPasswordResetTokenParams) (User, error)
 	// Privacy Features
 	ToggleGhostMode(ctx context.Context, arg ToggleGhostModeParams) (User, error)
 	TrackProfileView(ctx context.Context, arg TrackProfileViewParams) (ProfileView, error)

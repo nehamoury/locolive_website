@@ -238,12 +238,12 @@ FROM crossings c
 JOIN users u1 ON c.user_id_1 = u1.id
 JOIN users u2 ON c.user_id_2 = u2.id
 ORDER BY c.occurred_at DESC
-LIMIT CAST($1 AS int) OFFSET CAST($2 AS int)
+LIMIT $2 OFFSET $1
 `
 
 type ListAdminCrossingsParams struct {
-	Column1 int32 `json:"column_1"`
-	Column2 int32 `json:"column_2"`
+	Offset int32 `json:"offset"`
+	Limit  int32 `json:"limit"`
 }
 
 type ListAdminCrossingsRow struct {
@@ -263,7 +263,7 @@ type ListAdminCrossingsRow struct {
 }
 
 func (q *Queries) ListAdminCrossings(ctx context.Context, arg ListAdminCrossingsParams) ([]ListAdminCrossingsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listAdminCrossings, arg.Column1, arg.Column2)
+	rows, err := q.db.QueryContext(ctx, listAdminCrossings, arg.Offset, arg.Limit)
 	if err != nil {
 		return nil, err
 	}

@@ -206,26 +206,6 @@ SET google_id = $2
 WHERE id = $1
 RETURNING *;
 
--- name: SetPasswordResetToken :one
-UPDATE users
-SET 
-    password_reset_token = $2,
-    password_reset_expires_at = $3
-WHERE email = $1
-RETURNING *;
-
--- name: GetUserByResetToken :one
-SELECT * FROM users
-WHERE password_reset_token = $1 
-AND password_reset_expires_at > now()
-LIMIT 1;
-
--- name: ClearPasswordResetToken :exec
-UPDATE users
-SET 
-    password_reset_token = NULL,
-    password_reset_expires_at = NULL
-WHERE id = $1;
 
 -- name: SearchUsersAdmin :many
 SELECT * FROM users

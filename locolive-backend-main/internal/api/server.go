@@ -17,6 +17,7 @@ import (
 	"privacy-social-backend/internal/service/story"
 	"privacy-social-backend/internal/service/user"
 	"privacy-social-backend/internal/token"
+	"privacy-social-backend/internal/util"
 )
 
 // Server serves HTTP requests for our privacy social service
@@ -34,6 +35,7 @@ type Server struct {
 	admin      admin.Service
 	storage    storage.Service
 	moderation *moderation.Service
+	mailer     util.Mailer
 }
 
 // NewServer creates a new HTTP server and setup routing
@@ -81,6 +83,7 @@ func NewServer(
 		admin:      adminService,
 		storage:    storageService,
 		moderation: modService,
+		mailer:     util.NewSendGridMailer(config.SendGridAPIKey, config.FromEmail, config.FrontendURL),
 	}
 
 	server.setupRouter()
