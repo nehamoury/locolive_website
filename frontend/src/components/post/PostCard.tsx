@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect, type FC } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Heart, MessageSquare, Share2, MapPin, MoreHorizontal, Trash2, Volume2, VolumeX } from 'lucide-react';
 import { motion } from 'framer-motion';
 import api from '../../services/api';
 import { useSound } from '../../context/SoundContext';
 import { nullString } from '../../utils/string';
+import { CommentsModal, ReportModal } from '../ui';
 
 interface PostCardProps {
   post: any;
@@ -26,11 +28,15 @@ import { BACKEND } from '../../utils/config';
 const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageClick }) => {
   const [liked, setLiked] = useState<boolean>(post.liked_by_viewer ?? false);
   const [likeCount, setLikeCount] = useState<number>(post.likes_count ?? 0);
+  const [commentsCount, setCommentsCount] = useState<number>(post.comments_count ?? 0);
   const [showMenu, setShowMenu] = useState(false);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
   const isTextOnly = post.media_type === 'text' || !post.media_url || post.media_url === 'text';
   const isOwner = currentUserID && post.user_id === currentUserID;
   const { isMuted, toggleMute } = useSound();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const navigate = useNavigate();
 
   // Normalize NullString objects from Go backend
   const bodyTextRaw = nullString(post.body_text);
@@ -83,6 +89,25 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
     }
   };
 
+  const handleShare = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `Post by @${post.username}`,
+          text: cleanCaption,
+          url: `${window.location.origin}/posts/${post.id}`,
+        });
+        await api.post(`/posts/${post.id}/share`);
+      } else {
+        await navigator.clipboard.writeText(`${window.location.origin}/posts/${post.id}`);
+        alert('Link copied to clipboard!');
+        await api.post(`/posts/${post.id}/share`);
+      }
+    } catch (err) {
+      console.error('Share failed', err);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -91,8 +116,11 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
     >
       {/* Header */}
       <div className="flex items-center justify-between px-6 md:px-5 pt-5 pb-4 md:pb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-primary to-accent shadow-sm">
+        <div 
+          className="flex items-center gap-3 cursor-pointer group/header"
+          onClick={() => navigate(`/dashboard/user/${post.user_id}`)}
+        >
+          <div className="w-11 h-11 rounded-full p-[2px] bg-gradient-to-tr from-primary to-accent shadow-sm group-hover/header:scale-105 transition-transform duration-300">
             <div className="w-full h-full rounded-full bg-bg-card p-[1.5px]">
               <div className="w-full h-full rounded-full overflow-hidden bg-bg-sidebar flex items-center justify-center">
                 {avatarUrl ? (
@@ -102,15 +130,17 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
                     alt=""
                   />
                 ) : (
-                  <span className="text-primary font-black text-sm">
-                    {post.username?.charAt(0)?.toUpperCase()}
-                  </span>
+                  <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-primary font-black text-sm">
+                      {post.username?.charAt(0)?.toUpperCase()}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>
           </div>
           <div className="flex flex-col">
-            <h4 className="font-black text-text-base text-[14px] leading-none tracking-tight">
+            <h4 className="font-black text-text-base text-[14px] leading-none tracking-tight group-hover/header:text-primary transition-colors">
               {post.full_name || post.username}
             </h4>
             <div className="flex items-center gap-1.5 mt-1 text-[11px] font-bold text-text-muted/60">
@@ -148,10 +178,18 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
                 </button>
               )}
               <button
-                onClick={() => setShowMenu(false)}
+                onClick={() => { setShowMenu(false); handleShare(); }}
                 className="flex items-center gap-2 w-full px-4 py-2.5 text-text-base hover:bg-bg-sidebar text-sm font-medium transition-colors cursor-pointer"
               >
+                <Share2 className="w-4 h-4" />
                 Share
+              </button>
+              <button
+                onClick={() => { setShowMenu(false); setIsReportOpen(true); }}
+                className="flex items-center gap-2 w-full px-4 py-2.5 text-orange-500 hover:bg-orange-500/10 text-sm font-medium transition-colors cursor-pointer"
+              >
+                <MoreHorizontal className="w-4 h-4" />
+                Report
               </button>
             </div>
           )}
@@ -208,7 +246,12 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
       {/* Caption — Now below media like Instagram */}
       {shouldShowCaption && (
         <p className="px-6 md:px-5 pb-3 md:pb-2 text-text-base/90 font-medium text-[14.5px] md:text-[14px] leading-relaxed tracking-tight select-text">
-          <span className="font-black mr-2 text-text-base">{post.username}</span>
+          <span 
+            className="font-black mr-2 text-text-base cursor-pointer hover:text-primary transition-colors"
+            onClick={() => navigate(`/dashboard/user/${post.user_id}`)}
+          >
+            {post.username}
+          </span>
           <span className="whitespace-pre-wrap">{cleanCaption}</span>
         </p>
       )}
@@ -233,16 +276,36 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
             <span className="text-[13px] md:text-[12px] font-black">{likeCount}</span>
           </button>
           
-          <button className="flex items-center gap-2.5 p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer">
+          <button 
+            onClick={() => setIsCommentsOpen(true)}
+            className="flex items-center gap-2.5 p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer"
+          >
             <MessageSquare className="w-5.5 md:w-5 h-5.5 md:h-5 transition-transform group-hover:scale-110 rounded-full" />
-            <span className="text-[13px] md:text-[12px] font-black">{post.comments_count || 0}</span>
+            <span className="text-[13px] md:text-[12px] font-black">{commentsCount}</span>
           </button>
         </div>
 
-        <button className="p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer">
+        <button 
+          onClick={handleShare}
+          className="p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer"
+        >
           <Share2 className="w-5.5 md:w-5 h-5.5 md:h-5 transition-transform group-hover:rotate-12" />
         </button>
       </div>
+
+      <CommentsModal 
+        isOpen={isCommentsOpen} 
+        onClose={() => setIsCommentsOpen(false)} 
+        targetId={post.id} 
+        targetType="post" 
+        onCommentSuccess={() => setCommentsCount(prev => prev + 1)}
+      />
+      <ReportModal 
+        isOpen={isReportOpen} 
+        onClose={() => setIsReportOpen(false)} 
+        targetId={post.id} 
+        targetType="post" 
+      />
     </motion.div>
   );
 };

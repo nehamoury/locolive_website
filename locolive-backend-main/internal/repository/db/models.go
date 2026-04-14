@@ -233,6 +233,16 @@ func (ns NullUserRole) Value() (driver.Value, error) {
 	return string(ns.UserRole), nil
 }
 
+type ActivityLog struct {
+	ID         uuid.UUID             `json:"id"`
+	UserID     uuid.UUID             `json:"user_id"`
+	ActionType string                `json:"action_type"`
+	TargetID   uuid.NullUUID         `json:"target_id"`
+	TargetType sql.NullString        `json:"target_type"`
+	Details    pqtype.NullRawMessage `json:"details"`
+	CreatedAt  time.Time             `json:"created_at"`
+}
+
 type AdminLog struct {
 	ID        uuid.UUID             `json:"id"`
 	AdminID   uuid.UUID             `json:"admin_id"`
@@ -359,6 +369,14 @@ type Notification struct {
 	CreatedAt         time.Time        `json:"created_at"`
 }
 
+type PasswordReset struct {
+	ID        int64     `json:"id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type Post struct {
 	ID            uuid.UUID      `json:"id"`
 	UserID        uuid.UUID      `json:"user_id"`
@@ -373,6 +391,7 @@ type Post struct {
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`
 	BodyText      sql.NullString `json:"body_text"`
+	SharesCount   int32          `json:"shares_count"`
 }
 
 type PostComment struct {
@@ -381,6 +400,7 @@ type PostComment struct {
 	UserID    uuid.UUID `json:"user_id"`
 	Content   string    `json:"content"`
 	CreatedAt time.Time `json:"created_at"`
+	IsFlagged bool      `json:"is_flagged"`
 }
 
 type PostLike struct {
@@ -429,6 +449,7 @@ type ReelComment struct {
 	UserID    uuid.UUID `json:"user_id"`
 	Content   string    `json:"content"`
 	CreatedAt time.Time `json:"created_at"`
+	IsFlagged bool      `json:"is_flagged"`
 }
 
 type ReelLike struct {
@@ -454,6 +475,9 @@ type Report struct {
 	Description   sql.NullString `json:"description"`
 	IsResolved    bool           `json:"is_resolved"`
 	CreatedAt     time.Time      `json:"created_at"`
+	TargetID      uuid.NullUUID  `json:"target_id"`
+	TargetType    sql.NullString `json:"target_type"`
+	PriorityScore int32          `json:"priority_score"`
 }
 
 type Session struct {
@@ -534,8 +558,7 @@ type User struct {
 	WebsiteUrl             sql.NullString  `json:"website_url"`
 	Links                  json.RawMessage `json:"links"`
 	GoogleID               sql.NullString  `json:"google_id"`
-	PasswordResetToken     sql.NullString  `json:"password_reset_token"`
-	PasswordResetExpiresAt sql.NullTime    `json:"password_reset_expires_at"`
 	GhostModeExpiresAt     sql.NullTime    `json:"ghost_mode_expires_at"`
 	Interests              []string        `json:"interests"`
+	TrustScore             int32           `json:"trust_score"`
 }

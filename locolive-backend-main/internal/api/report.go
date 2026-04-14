@@ -2,19 +2,21 @@ package api
 
 import (
 	"database/sql"
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 
 	"privacy-social-backend/internal/repository/db"
 )
 
 type createReportRequest struct {
-	TargetUserID  string `json:"target_user_id"`  // Optional
-	TargetStoryID string `json:"target_story_id"` // Optional
-	Reason        string `json:"reason" binding:"required,oneof=spam abuse inappropriate other"`
-	Description   string `json:"description"`
+	TargetID   string `json:"target_id" binding:"required,uuid"`
+	TargetType string `json:"target_type" binding:"required,oneof=user post reel story"`
+	Reason     string `json:"reason" binding:"required,oneof=spam abuse inappropriate other"`
+	Description string `json:"description"`
 }
 
 func (server *Server) createReport(ctx *gin.Context) {
@@ -25,44 +27,42 @@ func (server *Server) createReport(ctx *gin.Context) {
 	}
 
 	authPayload := getAuthPayload(ctx)
+	targetID, _ := uuid.Parse(req.TargetID)
 
-	var targetUserID uuid.NullUUID
-	if req.TargetUserID != "" {
-		id, err := uuid.Parse(req.TargetUserID)
-		if err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid target_user_id"})
-			return
-		}
-		targetUserID = uuid.NullUUID{UUID: id, Valid: true}
-	}
-
-	var targetStoryID uuid.NullUUID
-	if req.TargetStoryID != "" {
-		id, err := uuid.Parse(req.TargetStoryID)
-		if err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid target_story_id"})
-			return
-		}
-		targetStoryID = uuid.NullUUID{UUID: id, Valid: true}
-	}
-
-	// Validate that at least one target is present
-	if !targetUserID.Valid && !targetStoryID.Valid {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "must target user or story"})
-		return
-	}
+	// Increment priority if already reported
+	_ = server.store.IncrementReportPriority(ctx, uuid.NullUUID{UUID: targetID, Valid: true})
 
 	report, err := server.store.CreateReport(ctx, db.CreateReportParams{
 		ReporterID:    authPayload.UserID,
-		TargetUserID:  targetUserID,
-		TargetStoryID: targetStoryID,
+		TargetID:      uuid.NullUUID{UUID: targetID, Valid: true},
+		TargetType:    sql.NullString{String: req.TargetType, Valid: true},
 		Reason:        db.ReportReason(req.Reason),
 		Description:   sql.NullString{String: req.Description, Valid: req.Description != ""},
+		PriorityScore: 1,
 	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
+
+	// Log activity & Broadcast to Admin
+	details, _ := json.Marshal(map[string]interface{}{
+		"target_id":   req.TargetID,
+		"target_type": req.TargetType,
+		"reason":      req.Reason,
+	})
+	_, _ = server.store.CreateActivityLog(ctx, db.CreateActivityLogParams{
+		UserID:     authPayload.UserID,
+		ActionType: "report_created",
+		TargetID:   uuid.NullUUID{UUID: report.ID, Valid: true},
+		TargetType: sql.NullString{String: "report", Valid: true},
+		Details:    pqtype.NullRawMessage{RawMessage: details, Valid: true},
+	})
+	server.hub.BroadcastActivity("report_created", map[string]interface{}{
+		"report_id":   report.ID,
+		"target_type": req.TargetType,
+		"reason":      req.Reason,
+	})
 
 	ctx.JSON(http.StatusCreated, report)
 }

@@ -111,3 +111,17 @@ UPDATE reels SET shares_count = shares_count + 1 WHERE id = $1;
 
 -- name: GetTotalReelsCountToday :one
 SELECT COUNT(*) FROM reels WHERE created_at >= CURRENT_DATE;
+
+-- name: GetReelComment :one
+SELECT * FROM reel_comments WHERE id = $1 LIMIT 1;
+
+-- name: DeleteReelComment :one
+DELETE FROM reel_comments WHERE id = $1 AND user_id = $2
+RETURNING reel_id;
+
+-- name: AdminDeleteReelComment :one
+DELETE FROM reel_comments WHERE id = $1
+RETURNING reel_id;
+
+-- name: DecrementReelComments :exec
+UPDATE reels SET comments_count = GREATEST(0, comments_count - 1) WHERE id = $1;

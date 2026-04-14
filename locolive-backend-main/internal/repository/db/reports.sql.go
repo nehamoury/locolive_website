@@ -16,30 +16,33 @@ import (
 const createReport = `-- name: CreateReport :one
 INSERT INTO reports (
   reporter_id,
-  target_user_id,
-  target_story_id,
+  target_id,
+  target_type,
   reason,
-  description
+  description,
+  priority_score
 ) VALUES (
-  $1, $2, $3, $4, $5
-) RETURNING id, reporter_id, target_user_id, target_story_id, reason, description, is_resolved, created_at
+  $1, $2, $3, $4, $5, $6
+) RETURNING id, reporter_id, target_user_id, target_story_id, reason, description, is_resolved, created_at, target_id, target_type, priority_score
 `
 
 type CreateReportParams struct {
 	ReporterID    uuid.UUID      `json:"reporter_id"`
-	TargetUserID  uuid.NullUUID  `json:"target_user_id"`
-	TargetStoryID uuid.NullUUID  `json:"target_story_id"`
+	TargetID      uuid.NullUUID  `json:"target_id"`
+	TargetType    sql.NullString `json:"target_type"`
 	Reason        ReportReason   `json:"reason"`
 	Description   sql.NullString `json:"description"`
+	PriorityScore int32          `json:"priority_score"`
 }
 
 func (q *Queries) CreateReport(ctx context.Context, arg CreateReportParams) (Report, error) {
 	row := q.db.QueryRowContext(ctx, createReport,
 		arg.ReporterID,
-		arg.TargetUserID,
-		arg.TargetStoryID,
+		arg.TargetID,
+		arg.TargetType,
 		arg.Reason,
 		arg.Description,
+		arg.PriorityScore,
 	)
 	var i Report
 	err := row.Scan(
@@ -51,19 +54,34 @@ func (q *Queries) CreateReport(ctx context.Context, arg CreateReportParams) (Rep
 		&i.Description,
 		&i.IsResolved,
 		&i.CreatedAt,
+		&i.TargetID,
+		&i.TargetType,
+		&i.PriorityScore,
 	)
 	return i, err
 }
 
+const incrementReportPriority = `-- name: IncrementReportPriority :exec
+UPDATE reports
+SET priority_score = priority_score + 1
+WHERE target_id = $1 AND is_resolved = false
+`
+
+func (q *Queries) IncrementReportPriority(ctx context.Context, targetID uuid.NullUUID) error {
+	_, err := q.db.ExecContext(ctx, incrementReportPriority, targetID)
+	return err
+}
+
 const listReports = `-- name: ListReports :many
-SELECT r.id, r.reporter_id, r.target_user_id, r.target_story_id, r.reason, r.description, r.is_resolved, r.created_at, 
+SELECT r.id, r.reporter_id, r.target_user_id, r.target_story_id, r.reason, r.description, r.is_resolved, r.created_at, r.target_id, r.target_type, r.priority_score, 
   u1.username as reporter_username,
-  u2.username as target_username
+  u1.avatar_url as reporter_avatar,
+  COALESCE(u2.username, 'deleted') as target_username
 FROM reports r
 LEFT JOIN users u1 ON r.reporter_id = u1.id
-LEFT JOIN users u2 ON r.target_user_id = u2.id
+LEFT JOIN users u2 ON r.target_id = u2.id AND r.target_type = 'user'
 WHERE is_resolved = $1
-ORDER BY r.created_at DESC
+ORDER BY r.priority_score DESC, r.created_at DESC
 LIMIT $2 OFFSET $3
 `
 
@@ -82,8 +100,12 @@ type ListReportsRow struct {
 	Description      sql.NullString `json:"description"`
 	IsResolved       bool           `json:"is_resolved"`
 	CreatedAt        time.Time      `json:"created_at"`
+	TargetID         uuid.NullUUID  `json:"target_id"`
+	TargetType       sql.NullString `json:"target_type"`
+	PriorityScore    int32          `json:"priority_score"`
 	ReporterUsername sql.NullString `json:"reporter_username"`
-	TargetUsername   sql.NullString `json:"target_username"`
+	ReporterAvatar   sql.NullString `json:"reporter_avatar"`
+	TargetUsername   string         `json:"target_username"`
 }
 
 // Admin: List all reports
@@ -105,7 +127,11 @@ func (q *Queries) ListReports(ctx context.Context, arg ListReportsParams) ([]Lis
 			&i.Description,
 			&i.IsResolved,
 			&i.CreatedAt,
+			&i.TargetID,
+			&i.TargetType,
+			&i.PriorityScore,
 			&i.ReporterUsername,
+			&i.ReporterAvatar,
 			&i.TargetUsername,
 		); err != nil {
 			return nil, err
@@ -125,7 +151,7 @@ const resolveReport = `-- name: ResolveReport :one
 UPDATE reports
 SET is_resolved = true
 WHERE id = $1
-RETURNING id, reporter_id, target_user_id, target_story_id, reason, description, is_resolved, created_at
+RETURNING id, reporter_id, target_user_id, target_story_id, reason, description, is_resolved, created_at, target_id, target_type, priority_score
 `
 
 // Admin: Resolve report
@@ -141,6 +167,9 @@ func (q *Queries) ResolveReport(ctx context.Context, id uuid.UUID) (Report, erro
 		&i.Description,
 		&i.IsResolved,
 		&i.CreatedAt,
+		&i.TargetID,
+		&i.TargetType,
+		&i.PriorityScore,
 	)
 	return i, err
 }

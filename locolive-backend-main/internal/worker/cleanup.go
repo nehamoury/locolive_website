@@ -72,4 +72,12 @@ func (worker *CleanupWorker) cleanup() {
 	} else {
 		log.Info().Msg("Old notifications deleted")
 	}
+
+	// Cleanup expired password resets
+	err = worker.store.DeleteExpiredPasswordResets(ctx)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to delete expired password resets")
+	} else {
+		log.Info().Msg("Expired password resets deleted")
+	}
 }

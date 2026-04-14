@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate, BrowserRouter as Router } from 'react-router-dom'
+import { Routes, Route, Navigate, BrowserRouter as Router, useNavigate } from 'react-router-dom'
 import { ThemeProvider } from './context/ThemeContext'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { SoundProvider } from './context/SoundContext'
@@ -8,6 +8,8 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import Login from './pages/auth/Login'
 import AdminLogin from './pages/auth/AdminLogin'
 import Signup from './pages/auth/Signup'
+import ForgotPassword from './pages/auth/ForgotPassword'
+import ResetPassword from './pages/auth/ResetPassword'
 import Dashboard from './pages/dashboard/Dashboard'
 import { OfflineBanner } from './components/ui/OfflineBanner'
 import AdminLayout from './pages/admin/AdminLayout'
@@ -21,6 +23,7 @@ import Notifications from './pages/admin/Notifications'
 import Settings from './pages/admin/Settings'
 import Admins from './pages/admin/Admins'
 import ActivityPage from './pages/admin/Activity'
+import Comments from './pages/admin/Comments'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,6 +37,8 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+
 
   if (loading) {
     return (
@@ -53,8 +58,10 @@ function AppContent() {
         {/* Public Routes */}
         <Route 
           path="/login" 
-          element={!user ? <Login onToggle={() => {}} /> : <Navigate to="/dashboard/home" replace />} 
+          element={!user ? <Login onToggle={() => navigate('/signup')} onBack={() => navigate('/')} /> : <Navigate to="/dashboard/home" replace />} 
         />
+
+
         <Route 
           path="/admin/login" 
           element={!isAdmin ? <AdminLogin /> : <Navigate to="/admin" replace />} 
@@ -62,8 +69,20 @@ function AppContent() {
 
         <Route 
           path="/signup" 
-          element={!user ? <Signup onToggle={() => {}} /> : <Navigate to="/dashboard/home" replace />} 
+          element={!user ? <Signup onToggle={() => navigate('/login')} onBack={() => navigate('/login')} /> : <Navigate to="/dashboard/home" replace />} 
         />
+
+        <Route 
+          path="/forgot-password" 
+          element={!user ? <ForgotPassword onBack={() => navigate('/login')} /> : <Navigate to="/dashboard/home" replace />} 
+        />
+
+        <Route 
+          path="/reset-password" 
+          element={!user ? <ResetPassword /> : <Navigate to="/dashboard/home" replace />} 
+        />
+
+
 
         {/* Protected Dashboard Route (Layout) */}
         <Route 
@@ -96,6 +115,7 @@ function AppContent() {
           <Route path="settings" element={<Settings />} />
           <Route path="admins" element={<Admins />} />
           <Route path="activity" element={<ActivityPage />} />
+          <Route path="comments" element={<Comments />} />
         </Route>
 
         {/* Catch-all Redirect */}

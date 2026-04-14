@@ -13,6 +13,18 @@ import (
 	"github.com/google/uuid"
 )
 
+const adminDeleteReelComment = `-- name: AdminDeleteReelComment :one
+DELETE FROM reel_comments WHERE id = $1
+RETURNING reel_id
+`
+
+func (q *Queries) AdminDeleteReelComment(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, adminDeleteReelComment, id)
+	var reel_id uuid.UUID
+	err := row.Scan(&reel_id)
+	return reel_id, err
+}
+
 const createReel = `-- name: CreateReel :one
 INSERT INTO reels (
     user_id, video_url, caption, is_ai_generated, location_name, geohash, geom
@@ -85,7 +97,7 @@ func (q *Queries) CreateReel(ctx context.Context, arg CreateReelParams) (CreateR
 const createReelComment = `-- name: CreateReelComment :one
 INSERT INTO reel_comments (reel_id, user_id, content)
 VALUES ($1, $2, $3)
-RETURNING id, reel_id, user_id, content, created_at
+RETURNING id, reel_id, user_id, content, created_at, is_flagged
 `
 
 type CreateReelCommentParams struct {
@@ -103,8 +115,18 @@ func (q *Queries) CreateReelComment(ctx context.Context, arg CreateReelCommentPa
 		&i.UserID,
 		&i.Content,
 		&i.CreatedAt,
+		&i.IsFlagged,
 	)
 	return i, err
+}
+
+const decrementReelComments = `-- name: DecrementReelComments :exec
+UPDATE reels SET comments_count = GREATEST(0, comments_count - 1) WHERE id = $1
+`
+
+func (q *Queries) DecrementReelComments(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, decrementReelComments, id)
+	return err
 }
 
 const decrementReelLikes = `-- name: DecrementReelLikes :exec
@@ -123,6 +145,23 @@ UPDATE reels SET saves_count = saves_count - 1 WHERE id = $1
 func (q *Queries) DecrementReelSaves(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, decrementReelSaves, id)
 	return err
+}
+
+const deleteReelComment = `-- name: DeleteReelComment :one
+DELETE FROM reel_comments WHERE id = $1 AND user_id = $2
+RETURNING reel_id
+`
+
+type DeleteReelCommentParams struct {
+	ID     uuid.UUID `json:"id"`
+	UserID uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) DeleteReelComment(ctx context.Context, arg DeleteReelCommentParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, deleteReelComment, arg.ID, arg.UserID)
+	var reel_id uuid.UUID
+	err := row.Scan(&reel_id)
+	return reel_id, err
 }
 
 const getReel = `-- name: GetReel :one
@@ -169,6 +208,24 @@ func (q *Queries) GetReel(ctx context.Context, id uuid.UUID) (GetReelRow, error)
 		&i.SavesCount,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getReelComment = `-- name: GetReelComment :one
+SELECT id, reel_id, user_id, content, created_at, is_flagged FROM reel_comments WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetReelComment(ctx context.Context, id uuid.UUID) (ReelComment, error) {
+	row := q.db.QueryRowContext(ctx, getReelComment, id)
+	var i ReelComment
+	err := row.Scan(
+		&i.ID,
+		&i.ReelID,
+		&i.UserID,
+		&i.Content,
+		&i.CreatedAt,
+		&i.IsFlagged,
 	)
 	return i, err
 }
@@ -346,7 +403,7 @@ func (q *Queries) ListNearbyReels(ctx context.Context, arg ListNearbyReelsParams
 
 const listReelComments = `-- name: ListReelComments :many
 SELECT 
-    rc.id, rc.reel_id, rc.user_id, rc.content, rc.created_at,
+    rc.id, rc.reel_id, rc.user_id, rc.content, rc.created_at, rc.is_flagged,
     u.username,
     u.avatar_url
 FROM reel_comments rc
@@ -361,6 +418,7 @@ type ListReelCommentsRow struct {
 	UserID    uuid.UUID      `json:"user_id"`
 	Content   string         `json:"content"`
 	CreatedAt time.Time      `json:"created_at"`
+	IsFlagged bool           `json:"is_flagged"`
 	Username  string         `json:"username"`
 	AvatarUrl sql.NullString `json:"avatar_url"`
 }
@@ -380,6 +438,7 @@ func (q *Queries) ListReelComments(ctx context.Context, reelID uuid.UUID) ([]Lis
 			&i.UserID,
 			&i.Content,
 			&i.CreatedAt,
+			&i.IsFlagged,
 			&i.Username,
 			&i.AvatarUrl,
 		); err != nil {

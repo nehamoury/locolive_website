@@ -136,6 +136,11 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                                 <MapPin className="w-3.5 h-3.5" />
                                 <span>Locolive Member</span>
                             </div>
+                            <span className="w-1.5 h-1.5 bg-gray-200 rounded-full shrink-0" />
+                            <div className="flex items-center gap-1.5 font-bold text-gray-400 border border-gray-100 px-2 py-0.5 rounded-full text-[9px]">
+                                <span className="opacity-50">ID:</span>
+                                <span>{userId}</span>
+                            </div>
                         </div>
                         <p className="text-[14px] leading-relaxed text-gray-500 max-w-xl font-medium border-l-4 border-gray-100 pl-6 py-1 italic">
                             {profile.bio || "Hi! I'm using Locolive to discover amazing moments and cross paths with interesting people nearby. Let's connect!"}

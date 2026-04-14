@@ -21,6 +21,9 @@ type Config struct {
 	R2SecretKey          string        `mapstructure:"R2_SECRET_KEY"`
 	R2BucketName         string        `mapstructure:"R2_BUCKET_NAME"`
 	ExpoRedirectURL      string        `mapstructure:"EXPO_REDIRECT_URL"`
+	SendGridAPIKey       string        `mapstructure:"SENDGRID_API_KEY"`
+	FromEmail            string        `mapstructure:"FROM_EMAIL"`
+	FrontendURL          string        `mapstructure:"FRONTEND_URL"`
 }
 
 func LoadConfig(path string) (config Config, err error) {

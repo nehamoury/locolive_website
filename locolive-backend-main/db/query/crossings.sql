@@ -89,4 +89,4 @@ FROM crossings c
 JOIN users u1 ON c.user_id_1 = u1.id
 JOIN users u2 ON c.user_id_2 = u2.id
 ORDER BY c.occurred_at DESC
-LIMIT CAST($1 AS int) OFFSET CAST($2 AS int);
+LIMIT sqlc.arg('limit') OFFSET sqlc.arg('offset');

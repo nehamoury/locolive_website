@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, MapPin, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '../../components/ui/button';
@@ -17,6 +18,7 @@ const Login: React.FC<LoginProps> = ({ onToggle, onBack }) => {
   const [error, setError] = useState('');
   const [formData, setFormData] = useState({ email: '', password: '' });
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,7 +104,13 @@ const Login: React.FC<LoginProps> = ({ onToggle, onBack }) => {
           <div className="space-y-2">
             <div className="flex justify-between items-center ml-1">
               <label className="text-[10px] font-bold text-text-muted uppercase tracking-[0.2em]">Password</label>
-              <button type="button" className="text-[10px] font-bold text-text-muted uppercase tracking-widest hover:text-primary transition-colors">Forgot password?</button>
+              <button 
+                type="button" 
+                onClick={() => navigate('/forgot-password')}
+                className="text-[10px] font-bold text-text-muted uppercase tracking-widest hover:text-primary transition-colors cursor-pointer"
+              >
+                Forgot password?
+              </button>
             </div>
             <div className="relative">
               <Input

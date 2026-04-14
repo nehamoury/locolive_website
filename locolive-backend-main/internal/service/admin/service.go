@@ -37,6 +37,9 @@ type Service interface {
 	ResolveReport(ctx context.Context, reportID string) (db.Report, error)
 	DeleteStory(ctx context.Context, storyID string) error
 	ListAllStories(ctx context.Context, pageID, pageSize int32) ([]db.ListAllStoriesRow, error)
+	ListActivityLogs(ctx context.Context, limit, offset int32) ([]db.ListActivityLogsRow, error)
+	ListAllComments(ctx context.Context, limit, offset int32) ([]db.ListAllCommentsRow, error)
+	GetTrustScore(ctx context.Context, userID uuid.UUID) (int32, error)
 }
 
 type ServiceImpl struct {
@@ -176,4 +179,22 @@ func (s *ServiceImpl) ListAllStories(ctx context.Context, pageID, pageSize int32
 		Limit:  pageSize,
 		Offset: (pageID - 1) * pageSize,
 	})
+}
+
+func (s *ServiceImpl) ListActivityLogs(ctx context.Context, limit, offset int32) ([]db.ListActivityLogsRow, error) {
+	return s.store.ListActivityLogs(ctx, db.ListActivityLogsParams{
+		Limit:  limit,
+		Offset: offset,
+	})
+}
+
+func (s *ServiceImpl) ListAllComments(ctx context.Context, limit, offset int32) ([]db.ListAllCommentsRow, error) {
+	return s.store.ListAllComments(ctx, db.ListAllCommentsParams{
+		Limit:  limit,
+		Offset: offset,
+	})
+}
+
+func (s *ServiceImpl) GetTrustScore(ctx context.Context, userID uuid.UUID) (int32, error) {
+	return s.store.GetUserTrustScore(ctx, userID)
 }

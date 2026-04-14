@@ -4,9 +4,10 @@ INSERT INTO users (
   email,
   password_hash,
   username,
-  full_name
+  full_name,
+  is_ghost_mode
 ) VALUES (
-  $1, $2, $3, $4, $5
+  $1, $2, $3, $4, $5, $6
 ) RETURNING *;
 
 -- name: GetUserByPhone :one
@@ -205,26 +206,6 @@ SET google_id = $2
 WHERE id = $1
 RETURNING *;
 
--- name: SetPasswordResetToken :one
-UPDATE users
-SET 
-    password_reset_token = $2,
-    password_reset_expires_at = $3
-WHERE email = $1
-RETURNING *;
-
--- name: GetUserByResetToken :one
-SELECT * FROM users
-WHERE password_reset_token = $1 
-AND password_reset_expires_at > now()
-LIMIT 1;
-
--- name: ClearPasswordResetToken :exec
-UPDATE users
-SET 
-    password_reset_token = NULL,
-    password_reset_expires_at = NULL
-WHERE id = $1;
 
 -- name: SearchUsersAdmin :many
 SELECT * FROM users
@@ -256,3 +237,9 @@ UPDATE sessions SET is_blocked = true WHERE user_id = $1;
 
 -- name: UpdateUserRole :one
 UPDATE users SET role = sqlc.arg(role)::user_role WHERE id = $1 RETURNING *;
+
+-- Admin: List all admin/moderator users
+-- name: ListAdminUsers :many
+SELECT * FROM users
+WHERE role IN ('admin', 'moderator')
+ORDER BY created_at DESC;
