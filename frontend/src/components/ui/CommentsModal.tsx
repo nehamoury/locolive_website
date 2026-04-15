@@ -5,6 +5,19 @@ import api from '../../services/api';
 import { BACKEND } from '../../utils/config';
 import { useAuth } from '../../context/AuthContext';
 
+// Helper function to format relative time
+const formatRelativeTime = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return 'Just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  return date.toLocaleDateString();
+};
+
 interface Comment {
   id: string;
   username: string;
@@ -22,11 +35,11 @@ interface CommentsModalProps {
   variant?: 'modal' | 'sidebar';
 }
 
-export const CommentsModal: React.FC<CommentsModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  targetId, 
-  targetType, 
+export const CommentsModal: React.FC<CommentsModalProps> = ({
+  isOpen,
+  onClose,
+  targetId,
+  targetType,
   onCommentSuccess,
   variant = 'modal'
 }) => {
@@ -35,8 +48,18 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  
+  const [, forceUpdate] = useState({});
+
   const isSidebar = variant === 'sidebar';
+
+  // Force re-render every minute to update timestamps
+  useEffect(() => {
+    const interval = setInterval(() => {
+      forceUpdate({});
+    }, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -124,19 +147,19 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
             </div>
 
             {/* Comments List */}
-            <div 
+            <div
               ref={scrollRef}
-              className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide"
+              className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide"
             >
               {comments.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
+                <div className="flex flex-col items-center justify-center h-full text-center opacity-40">
                   <MessageCircle className="w-12 h-12 mb-2" />
                   <p className="text-sm font-bold">No comments yet. Be the first!</p>
                 </div>
               ) : (
                 comments.map((comment) => (
-                  <div key={comment.id} className="flex gap-4">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                  <div key={comment.id} className="flex gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex-shrink-0 overflow-hidden flex items-center justify-center">
                       {comment.avatar_url ? (
                         <img src={`${BACKEND}${comment.avatar_url}`} className="w-full h-full object-cover" alt="" />
                       ) : (
@@ -146,7 +169,7 @@ export const CommentsModal: React.FC<CommentsModalProps> = ({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-black text-xs text-text-base">@{comment.username}</span>
-                        <span className="text-[10px] text-text-muted">Just now</span>
+                        <span className="text-[10px] text-text-muted">{formatRelativeTime(comment.created_at)}</span>
                       </div>
                       <p className="text-sm text-text-base/90 leading-relaxed">{comment.content}</p>
                     </div>

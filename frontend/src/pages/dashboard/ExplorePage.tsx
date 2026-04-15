@@ -18,12 +18,13 @@ import MapPage from './MapPage';
 
 interface ExplorePageProps {
   onUserSelect?: (userId: string) => void;
+  onStoryClick?: (stories: any[], index: number) => void;
   userPosition: [number, number] | null;
 }
 
 export type ExploreTab = 'all' | 'nearby' | 'crossings' | 'casting' | 'stories' | 'heatmap';
 
-const ExplorePage = ({ onUserSelect, userPosition }: ExplorePageProps) => {
+const ExplorePage = ({ onUserSelect, onStoryClick, userPosition }: ExplorePageProps) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTabState] = useState<ExploreTab>((searchParams.get('tab') as ExploreTab) || 'all');
   const [viewMode, setViewMode] = useState<'feed' | 'map'>('feed');
@@ -152,6 +153,7 @@ const ExplorePage = ({ onUserSelect, userPosition }: ExplorePageProps) => {
               >
                 <MapPage 
                   onUserSelect={onUserSelect} 
+                  onStorySelect={onStoryClick}
                   userPosition={userPosition} 
                   // In map view, we might want to override some filters based on activeTab
                 />

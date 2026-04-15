@@ -18,10 +18,10 @@ var (
 		Limit:  500,
 	}
 
-	// Auth endpoints: 60 requests per 1 minute
+	// Auth endpoints: 500 requests per 1 minute (increased for development)
 	authRate = limiter.Rate{
 		Period: 1 * time.Minute,
-		Limit:  60,
+		Limit:  500,
 	}
 
 	// Story creation: 50 per hour
@@ -65,9 +65,9 @@ func (server *Server) createRateLimiter(rate limiter.Rate) gin.HandlerFunc {
 	middleware := mgin.NewMiddleware(instance)
 
 	return func(ctx *gin.Context) {
-		// Bypass for localhost / load tests
+		// Bypass for localhost / load tests / development mode
 		ip := ctx.ClientIP()
-		if ip == "::1" || ip == "127.0.0.1" {
+		if gin.Mode() != gin.ReleaseMode || ip == "::1" || ip == "127.0.0.1" || (len(ip) >= 4 && ip[:4] == "172.") {
 			ctx.Next()
 			return
 		}

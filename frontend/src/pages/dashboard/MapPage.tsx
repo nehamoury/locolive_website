@@ -148,13 +148,14 @@ const FlyToUser = ({ position }: { position: [number, number] | null }) => {
 
 interface MapPageProps {
   onUserSelect?: (userId: string) => void;
+  onStorySelect?: (stories: any[], index: number) => void;
   onConnect?: (userId: string) => void;
   userPosition?: [number, number] | null;
 }
 
 const NEARBY_POLL_INTERVAL = 30000; // Fallback polling every 30s
 
-const MapPage = ({ onUserSelect, onConnect, userPosition: externalPosition }: MapPageProps) => {
+const MapPage = ({ onUserSelect, onStorySelect, onConnect, userPosition: externalPosition }: MapPageProps) => {
     const { } = useAuth();
     const [clusters, setClusters] = useState<any[]>([]);
     const [userPosition, setUserPosition] = useState<[number, number] | null>(externalPosition || null);
@@ -547,6 +548,7 @@ const MapPage = ({ onUserSelect, onConnect, userPosition: externalPosition }: Ma
                         onClose={() => setSelectedUser(null)}
                         onConnect={handleConnect}
                         onProfileOpen={onUserSelect!}
+                        onStoryOpen={(stories) => onStorySelect?.(stories, 0)}
                     />
                 )}
             </AnimatePresence>

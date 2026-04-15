@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, MessageCircle, Share2, Bookmark, MoreVertical, Volume2, VolumeX, Sparkles } from 'lucide-react';
 import api from '../../services/api';
@@ -29,6 +30,7 @@ interface ReelItemProps {
 }
 
 const ReelItem = ({ reel, isActive, onToggleComments }: ReelItemProps) => {
+  const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const bgVideoRef = useRef<HTMLVideoElement>(null);
   const [liked, setLiked] = useState(reel.is_liked);
@@ -37,6 +39,7 @@ const ReelItem = ({ reel, isActive, onToggleComments }: ReelItemProps) => {
   const [muted, setMuted] = useState(false);
   const [showHeartAnim, setShowHeartAnim] = useState(false);
   const [showFullCaption, setShowFullCaption] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   useEffect(() => {
     if (isActive) {
@@ -105,6 +108,24 @@ const ReelItem = ({ reel, isActive, onToggleComments }: ReelItemProps) => {
       // Future logic for ReportModal could go here
       window.alert('Thank you for your report. Our team will review it.');
     }
+  };
+
+  const handleFollow = async () => {
+    try {
+      if (isFollowing) {
+        await api.delete(`/connections/${reel.user_id}`);
+        setIsFollowing(false);
+      } else {
+        await api.post('/connections/request', { target_user_id: reel.user_id });
+        setIsFollowing(true);
+      }
+    } catch (err) {
+      console.error('Follow/unfollow failed:', err);
+    }
+  };
+
+  const handleProfileClick = () => {
+    navigate(`/dashboard/user/${reel.user_id}`);
   };
 
   return (
@@ -230,7 +251,7 @@ const ReelItem = ({ reel, isActive, onToggleComments }: ReelItemProps) => {
       <div className="absolute bottom-10 left-4 right-16 z-20 flex flex-col gap-2.5">
         
         {/* Identity & Follow Layer */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={handleProfileClick}>
           <div className="relative">
             <div className="w-9 h-9 rounded-full p-0.5 bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600">
               <div className="w-full h-full rounded-full border border-black overflow-hidden bg-gray-900">
@@ -251,9 +272,13 @@ const ReelItem = ({ reel, isActive, onToggleComments }: ReelItemProps) => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleFollow();
+              }}
               className="text-[12px] font-bold text-white hover:text-white/80 transition-all drop-shadow-md"
             >
-              Follow
+              {isFollowing ? 'Unfollow' : 'Follow'}
             </motion.button>
           </div>
         </div>

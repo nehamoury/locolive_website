@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { X, Heart, ExternalLink, MapPin, Zap } from 'lucide-react';
+import { X, Heart, ExternalLink, Zap, PlayCircle } from 'lucide-react';
 import { BACKEND } from '../../utils/config';
 
 interface UserPreviewCardProps {
@@ -9,9 +9,10 @@ interface UserPreviewCardProps {
   onClose: () => void;
   onConnect: (userId: string) => void;
   onProfileOpen: (userId: string) => void;
+  onStoryOpen?: (stories: any[]) => void;
 }
 
-export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnection, onClose, onConnect, onProfileOpen }) => {
+export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnection, onClose, onConnect, onProfileOpen, onStoryOpen }) => {
   if (!user) return null;
 
   const userData = user.stories?.[0] || user;
@@ -19,7 +20,6 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
     ? (userData.avatar_url.startsWith('http') ? userData.avatar_url : `${BACKEND}${userData.avatar_url}`) 
     : null;
     
-  const distance = userData.distance ? `${Number(userData.distance).toFixed(1)} km away` : 'Nearby';
 
   return (
     <motion.div
@@ -42,7 +42,10 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
         </button>
 
         <div className="flex flex-col items-center text-center relative z-10">
-          <div className="relative group px-1 pt-1 pb-1">
+          <div 
+            className="relative group px-1 pt-1 pb-1 cursor-pointer"
+            onClick={() => user.stories?.length > 0 && onStoryOpen?.(user.stories)}
+          >
             <div className="absolute inset-0 bg-gradient-to-tr from-primary to-accent rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity" />
             <div className="w-24 h-24 rounded-full p-1 bg-gradient-to-tr from-primary to-accent mb-5 relative">
               <div className="w-full h-full rounded-full bg-bg-card overflow-hidden flex items-center justify-center border-4 border-bg-card shadow-xl">
@@ -55,6 +58,11 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
               
               {/* Online Indicator Badge */}
               <div className="absolute bottom-1 right-1 w-6 h-6 bg-green-500 border-4 border-bg-card rounded-full shadow-lg" />
+              
+              {/* Story Pulse Effect */}
+              {user.stories?.length > 0 && (
+                <div className="absolute -inset-1 border-2 border-primary rounded-full animate-ping opacity-40" />
+              )}
             </div>
           </div>
 
@@ -63,9 +71,12 @@ export const UserPreviewCard: React.FC<UserPreviewCardProps> = ({ user, isConnec
             <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
           </div>
 
-          <div className="flex items-center gap-1.5 text-[10px] font-black text-text-muted uppercase tracking-widest mb-8">
-            <MapPin className="w-3 h-3 text-primary" />
-            {distance} · {user.isUserOnly ? 'Just Now' : `${user.count} Stories`}
+          <div 
+            onClick={() => user.stories?.length > 0 && onStoryOpen?.(user.stories)}
+            className="flex items-center gap-1.5 text-[10px] font-black text-white px-3 py-1 bg-primary rounded-full uppercase tracking-widest mb-8 cursor-pointer hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20"
+          >
+            <PlayCircle className="w-3.5 h-3.5" />
+            {user.isUserOnly ? 'Live Moment' : `${user.count} Stories`}
           </div>
           
           <div className="flex gap-4 w-full">

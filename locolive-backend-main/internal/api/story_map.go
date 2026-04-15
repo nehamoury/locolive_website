@@ -66,12 +66,12 @@ func (server *Server) getStoriesMap(ctx *gin.Context) {
 		return
 	}
 
-	// Cluster stories by geohash (5 chars = ~2.4km precision)
+	// Cluster stories by geohash (7 chars = ~152m precision)
 	clusters := make(map[string][]db.GetStoriesWithinRadiusRow)
 	for _, story := range stories {
 		hash := story.Geohash
-		if len(hash) > 5 {
-			hash = hash[:5]
+		if len(hash) > 7 {
+			hash = hash[:7]
 		}
 		clusters[hash] = append(clusters[hash], story)
 	}
@@ -96,13 +96,10 @@ func (server *Server) getStoriesMap(ctx *gin.Context) {
 			Count:     len(clusterStories),
 		}
 
-		// If cluster has 3 or fewer stories, include them
-		// Otherwise just show count for privacy
-		if len(clusterStories) <= 3 {
-			cluster.Stories = make([]StoryResponse, len(clusterStories))
-			for i, story := range clusterStories {
-				cluster.Stories[i] = toStoryResponse(story)
-			}
+		// Return all stories in the cluster
+		cluster.Stories = make([]StoryResponse, len(clusterStories))
+		for i, story := range clusterStories {
+			cluster.Stories[i] = toStoryResponse(story)
 		}
 
 		response = append(response, cluster)

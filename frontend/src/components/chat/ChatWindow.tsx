@@ -159,7 +159,7 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
                        </span>
                     </div>
 
-                    <div className={`flex gap-3 max-w-[80%] ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                    <div className={`flex gap-3 w-full ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
                       {/* Avatar */}
                       {!isMe && (
                         <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 shrink-0 mt-auto mb-1">
@@ -176,8 +176,8 @@ const ChatWindow = ({ receiverId, onBack, onToggleProfile }: ChatWindowProps) =>
                         <div className={`
                           px-5 py-3 text-[13.5px] font-medium leading-relaxed shadow-sm
                           ${isMe
-                            ? 'bg-brand-gradient text-white rounded-[22px] rounded-br-[4px]'
-                            : 'bg-white text-gray-800 border border-gray-100 rounded-[22px] rounded-bl-[4px]'}
+                            ? 'bg-brand-gradient text-white'
+                            : 'bg-white text-gray-800 border border-gray-100'}
                         `}>
                           {msg.content}
                         </div>

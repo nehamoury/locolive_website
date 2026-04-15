@@ -1,10 +1,10 @@
 import { type FC, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    Settings, 
-    LogOut, 
-    Share2, 
-    Ghost, 
+import {
+    Settings,
+    LogOut,
+    Share2,
+    Ghost,
     LayoutGrid,
     Navigation,
     AlertTriangle,
@@ -13,7 +13,7 @@ import {
     History,
     Camera
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { toast } from 'react-hot-toast';
@@ -70,6 +70,8 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
     const { logout: contextLogout } = useAuth();
     const logout = onLogout || contextLogout;
     const navigate = useNavigate();
+    const { id: urlUserId } = useParams();
+    const { user } = useAuth();
     const [profile, setProfile] = useState<ProfileData | null>(null);
     const [visitors, setVisitors] = useState<Visitor[]>([]);
     const [posts, setPosts] = useState<any[]>([]);
@@ -81,17 +83,30 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
     const [showPanicConfirm, setShowPanicConfirm] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
+    // Use URL user ID if provided, otherwise use current user's ID
+    const userId = urlUserId || user?.id;
+
+    // Update URL if no user ID is provided
+    useEffect(() => {
+        if (!urlUserId && user?.id) {
+            navigate(`/dashboard/profile/${user.id}`, { replace: true });
+        }
+    }, [urlUserId, user?.id, navigate]);
+
     useEffect(() => {
         fetchProfile();
         fetchVisitors();
         fetchMyPosts();
         fetchHighlights();
         fetchConnections();
-    }, []);
+    }, [userId]);
 
     const fetchProfile = async () => {
+        if (!userId) return;
         try {
-            const { data } = await api.get('/profile/me');
+            // If it's the current user, use /profile/me, otherwise use /users/:id
+            const endpoint = userId === user?.id ? '/profile/me' : `/users/${userId}`;
+            const { data } = await api.get(endpoint);
             setProfile(data);
         } catch (error) {
             toast.error('Failed to load profile');
@@ -251,7 +266,7 @@ export const Profile: FC<ProfileProps> = ({ onLogout }) => {
                                     <Ghost className={cn("w-4 h-4", profile?.is_ghost_mode && "animate-pulse")} />
                                     Ghost Mode
                                 </button>
-                                <button 
+                                <button
                                     onClick={() => navigate('/dashboard/settings')}
                                     className="p-3 rounded-full bg-white dark:bg-white/5 border border-white/40 dark:border-white/10 text-slate-500 shadow-sm"
                                 >

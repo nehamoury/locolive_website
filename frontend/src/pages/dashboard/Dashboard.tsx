@@ -326,10 +326,22 @@ const Dashboard = () => {
             unreadMessagesCount={unreadMessagesCount}
           />
         } />
-        <Route path="profile" element={<Profile onLogout={logout} />} />
-        <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate('/dashboard/profile')} />} />
+        <Route path="profile/:id?" element={<Profile onLogout={logout} />} />
+        <Route path="manage-highlights" element={<ManageHighlights onBack={() => navigate(`/dashboard/profile/${user?.id}`)} />} />
         <Route path="notifications" element={<NotificationsView onUserSelect={handleUserSelect} />} />
-        <Route path="explore" element={<ExplorePage onUserSelect={handleUserSelect} userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} />} />
+        <Route 
+          path="explore" 
+          element={
+            <ExplorePage 
+              onUserSelect={handleUserSelect} 
+              onStoryClick={(userStories, index) => {
+                setViewingStories(userStories);
+                setViewingStoryIndex(index);
+              }}
+              userPosition={currentGeoPos ? [currentGeoPos.lat, currentGeoPos.lng] : null} 
+            />
+          } 
+        />
         <Route path="connections" element={
           <ConnectionsView
             initialTab={activeConnectionTab}
@@ -337,7 +349,7 @@ const Dashboard = () => {
             onMessage={handleStartMessage}
           />
         } />
-        <Route path="settings" element={<SettingsView onBack={() => navigate('/dashboard/profile')} />} />
+        <Route path="settings" element={<SettingsView onBack={() => navigate(`/dashboard/profile/${user?.id}`)} />} />
         <Route path="search" element={<SearchView onUserSelect={handleUserSelect} />} />
         <Route path="user/:id" element={<MemberProfileWrapper onMessage={handleStartMessage} />} />
         <Route path="crossings" element={<Navigate to="/dashboard/explore?tab=crossings" replace />} />
@@ -411,7 +423,7 @@ const Dashboard = () => {
     <div className="h-screen w-full bg-bg-base text-text-base font-poppins flex overflow-hidden p-0 md:p-4 md:gap-4 transition-colors duration-300">
 
       {/* 1. Left Sidebar - Desktop Only */}
-      <div className="hidden md:flex flex-col h-full bg-bg-sidebar md:rounded-[28px] shadow-xl relative flex-shrink-0 border border-border-base transition-all duration-300 overflow-hidden">
+      <div className="hidden md:flex flex-col h-full bg-bg-sidebar md:rounded-[28px] shadow-xl relative flex-shrink-0 border border-border-base transition-all duration-300 overflow-hidden z-[110]">
         <Sidebar
           user={user}
           logout={logout}
@@ -549,7 +561,7 @@ const Dashboard = () => {
               </div>
 
               <MobileNavItem icon={<Video className="w-5 h-5" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
-              <MobileNavItem icon={<User className="w-5 h-5" />} active={pathname.includes('profile')} onClick={() => navigate('/dashboard/profile')} />
+              <MobileNavItem icon={<User className="w-5 h-5" />} active={pathname.includes('profile')} onClick={() => navigate(`/dashboard/profile/${user?.id}`)} />
             </div>
           </nav>
         )}
@@ -558,7 +570,7 @@ const Dashboard = () => {
 
       {/* Right Sidebar — collapsible */}
       <div
-        className={`hidden lg:flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-transparent md:rounded-[24px] ${showRightSidebar && isSidebarVisible ? 'w-80 opacity-100 px-0' : 'w-0 opacity-0 px-0 invisible'
+        className={`hidden lg:flex flex-col overflow-hidden transition-all duration-300 ease-in-out bg-transparent md:rounded-[24px] relative z-[110] ${showRightSidebar && isSidebarVisible ? 'w-80 opacity-100 px-0' : 'w-0 opacity-0 px-0 invisible'
           }`}
       >
         <div className="h-full bg-bg-sidebar border border-border-base md:rounded-[24px] overflow-hidden transition-colors duration-300">

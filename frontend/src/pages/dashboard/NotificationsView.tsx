@@ -174,7 +174,16 @@ const NotificationsView: FC<NotificationsViewProps> = ({ onUserSelect }) => {
     const fetchNotifications = async () => {
       try {
         const res = await api.get('/notifications');
-        setNotifications(res.data || []);
+        const data = res.data || [];
+        // Deduplicate notifications by message content (keep most recent)
+        const seenMessages = new Map<string, Notification>();
+        for (const notif of data) {
+          const key = `${notif.type}_${notif.message}`;
+          if (!seenMessages.has(key)) {
+            seenMessages.set(key, notif);
+          }
+        }
+        setNotifications(Array.from(seenMessages.values()));
       } catch (err) {
         console.error('Failed to fetch notifications:', err);
       } finally {

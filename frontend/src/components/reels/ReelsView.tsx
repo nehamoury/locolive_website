@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Camera, Compass, Loader2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Camera, Compass, Loader2, ChevronUp, ChevronDown, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../services/api';
 import ReelItem from './ReelItem';
@@ -108,7 +108,15 @@ const ReelsView = ({ onCreateReel }: ReelsViewProps) => {
             <div className="flex items-center">
               <span className="text-xs font-black tracking-widest uppercase text-white/90">Reels</span>
             </div>
-            <div className="w-10 flex justify-end">
+            <div className="w-10 flex justify-end gap-2">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setIsCommentsOpen(!isCommentsOpen)}
+                className="text-white hover:text-primary transition-colors"
+              >
+                <MessageCircle className="w-6 h-6 drop-shadow-md" />
+              </motion.button>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}

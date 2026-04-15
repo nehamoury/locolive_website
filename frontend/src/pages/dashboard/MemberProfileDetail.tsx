@@ -64,8 +64,8 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
         <div className="h-full flex flex-col bg-white overflow-hidden font-poppins">
             {/* Header / Hero */}
             <div className="h-[280px] shrink-0 relative bg-gray-50">
-                {profile.cover_url ? (
-                    <img src={`${BACKEND}${profile.cover_url}`} className="w-full h-full object-cover" alt="" />
+                {profile.banner_url ? (
+                    <img src={profile.banner_url.startsWith('http') ? profile.banner_url : `${BACKEND}${profile.banner_url}`} className="w-full h-full object-cover" alt="" />
                 ) : (
                     <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100" />
                 )}
@@ -97,7 +97,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                             <div className="w-36 h-36 rounded-[40px] p-1 bg-gradient-to-tr from-pink-500 to-purple-500 shadow-2xl shadow-pink-500/20">
                                 <div className="w-full h-full rounded-[38px] bg-white p-1 overflow-hidden">
                                     {profile.avatar_url ? (
-                                        <img src={`${BACKEND}${profile.avatar_url}`} className="w-full h-full rounded-[32px] object-cover" alt="" />
+                                        <img src={profile.avatar_url.startsWith('http') ? profile.avatar_url : `${BACKEND}${profile.avatar_url}`} className="w-full h-full rounded-[32px] object-cover" alt="" />
                                     ) : (
                                         <div className="w-full h-full rounded-[32px] bg-gray-50 flex items-center justify-center text-4xl font-black text-gray-300 italic">
                                             {profile.username?.charAt(0).toUpperCase()}
@@ -225,7 +225,7 @@ const MemberProfileDetail: FC<MemberProfileDetailProps> = ({ userId, onBack, onM
                                                 `}
                                             >
                                                 <img 
-                                                    src={`${BACKEND}${post.media_url}`} 
+                                                    src={post.media_url.startsWith('http') ? post.media_url : `${BACKEND}${post.media_url}`} 
                                                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
                                                     alt="" 
                                                 />

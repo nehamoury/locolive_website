@@ -41,6 +41,9 @@ type postResponse struct {
 	CommentsCount int32     `json:"comments_count"`
 	SharesCount   int32     `json:"shares_count"`
 	CreatedAt     time.Time `json:"created_at"`
+	Username      string    `json:"username,omitempty"`
+	FullName      string    `json:"full_name,omitempty"`
+	AvatarUrl     string    `json:"avatar_url,omitempty"`
 }
 
 type postCommentResponse struct {
@@ -82,22 +85,28 @@ func toPostResponseFromList(p db.ListPostsByUserIDRow) postResponse {
 		CommentsCount: p.CommentsCount,
 		SharesCount:   p.SharesCount,
 		CreatedAt:     p.CreatedAt,
+		Username:      p.Username,
+		FullName:      p.FullName,
+		AvatarUrl:     p.AvatarUrl.String,
 	}
 }
 
 func toPostResponseFromConnections(p db.ListConnectionsPostsRow) postResponse {
-    return postResponse{
-        ID:            p.ID,
-        UserID:        p.UserID,
-        MediaUrl:      p.MediaUrl,
-        MediaType:     p.MediaType,
-        Caption:       p.Caption.String,
-        LocationName:  p.LocationName.String,
-        LikesCount:    p.LikesCount,
-        CommentsCount: p.CommentsCount,
-        SharesCount:   p.SharesCount,
-        CreatedAt:     p.CreatedAt,
-    }
+	return postResponse{
+		ID:            p.ID,
+		UserID:        p.UserID,
+		MediaUrl:      p.MediaUrl,
+		MediaType:     p.MediaType,
+		Caption:       p.Caption.String,
+		LocationName:  p.LocationName.String,
+		LikesCount:    p.LikesCount,
+		CommentsCount: p.CommentsCount,
+		SharesCount:   p.SharesCount,
+		CreatedAt:     p.CreatedAt,
+		Username:      p.Username,
+		FullName:      p.FullName,
+		AvatarUrl:     p.AvatarUrl.String,
+	}
 }
 
 // ─── Handlers ────────────────────────────────────────────────────────────────
