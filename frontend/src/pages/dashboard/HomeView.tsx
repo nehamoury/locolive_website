@@ -23,9 +23,13 @@ const HomeView: FC<HomeViewProps> = ({ stories, user, loading, onCreateStory, on
   const fetchPosts = async () => {
     setLoadingPosts(true);
     try {
+      console.log('[HomeView] Fetching posts from /posts/feed...');
       const res = await api.get('/posts/feed');
-      setPosts(res.data?.posts || []);
-    } catch {
+      const postsData = res.data?.posts || [];
+      console.log(`[HomeView] Fetched ${postsData.length} posts:`, postsData);
+      setPosts(postsData);
+    } catch (err: any) {
+      console.error('[HomeView] Failed to fetch posts:', err.response?.data || err.message);
       setPosts([]);
     } finally {
       setLoadingPosts(false);

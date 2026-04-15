@@ -173,8 +173,8 @@ func (server *Server) getNearbyUsers(ctx *gin.Context) {
 	// Fetch from Redis via Service
 	matches, err := server.location.GetNearbyUsers(ctx, authPayload.UserID, req.Latitude, req.Longitude, req.Radius)
 	if err != nil {
-		log.Error().Err(err).Str("user_id", userIDStr).Msg("[GetNearbyUsers] Redis query failed")
-		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		log.Error().Err(err).Str("user_id", userIDStr).Float64("lat", req.Latitude).Float64("lng", req.Longitude).Msg("[GetNearbyUsers] Failed to get nearby users")
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch nearby users", "details": err.Error()})
 		return
 	}
 
@@ -189,13 +189,17 @@ func (server *Server) getNearbyUsers(ctx *gin.Context) {
 		if seen[match.Name] {
 			continue
 		}
-		
+
 		targetID, err := uuid.Parse(match.Name)
 		if err != nil {
 			continue
 		}
 		user, err := server.store.GetUserByID(ctx, targetID)
-		if err != nil || user.IsGhostMode {
+		if err != nil {
+			log.Debug().Str("target_id", targetID.String()).Err(err).Msg("[GetNearbyUsers] Failed to fetch user, skipping")
+			continue
+		}
+		if user.IsGhostMode {
 			continue
 		}
 

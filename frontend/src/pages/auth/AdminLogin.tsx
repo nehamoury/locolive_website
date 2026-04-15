@@ -10,7 +10,7 @@ const AdminLogin: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ email: 'admin@locolive.com', password: 'password123' });
   const { login } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -4,6 +4,20 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-ui': ['framer-motion', 'lucide-react'],
+          'vendor-map': ['leaflet', 'react-leaflet', '@react-leaflet/core'],
+          'vendor-query': ['@tanstack/react-query'],
+          'vendor-utils': ['axios', 'zustand', 'react-hot-toast']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 600
+  },
   plugins: [
     react(),
     tailwindcss(),

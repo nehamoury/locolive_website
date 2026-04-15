@@ -229,18 +229,18 @@ const PostCard: FC<PostCardProps> = ({ post, currentUserID, onDelete, onImageCli
             onClick={handleLike}
             className={`flex items-center gap-2.5 p-2 rounded-2xl transition-all group cursor-pointer ${liked ? 'bg-primary/10 text-primary' : 'hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base'}`}
           >
-            <Heart className={`w-5.5 md:w-5 h-5.5 md:h-5 transition-transform group-hover:scale-110 group-active:scale-90 ${liked ? 'fill-primary' : ''}`} />
+            <Heart className={`w-5 md:w-5 h-5 md:h-5 transition-transform group-hover:scale-110 group-active:scale-90 ${liked ? 'fill-primary' : ''}`} />
             <span className="text-[13px] md:text-[12px] font-black">{likeCount}</span>
           </button>
           
           <button className="flex items-center gap-2.5 p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer">
-            <MessageSquare className="w-5.5 md:w-5 h-5.5 md:h-5 transition-transform group-hover:scale-110 rounded-full" />
+            <MessageSquare className="w-5 md:w-5 h-5 md:h-5 transition-transform group-hover:scale-110 rounded-full" />
             <span className="text-[13px] md:text-[12px] font-black">{post.comments_count || 0}</span>
           </button>
         </div>
 
         <button className="p-2 rounded-2xl hover:bg-bg-sidebar text-text-muted/60 hover:text-text-base transition-all group cursor-pointer">
-          <Share2 className="w-5.5 md:w-5 h-5.5 md:h-5 transition-transform group-hover:rotate-12" />
+          <Share2 className="w-5 md:w-5 h-5 md:h-5 transition-transform group-hover:rotate-12" />
         </button>
       </div>
     </motion.div>

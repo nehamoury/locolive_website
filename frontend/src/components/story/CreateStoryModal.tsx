@@ -51,9 +51,15 @@ const CreateStoryModal = ({ isOpen, onClose, onSuccess }: CreateStoryModalProps)
     setError('');
 
     try {
-      const position: any = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
-      }).catch(() => ({ coords: { latitude: 28.6139, longitude: 77.2090 } }));
+      let position: any;
+      try {
+        position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 });
+        });
+      } catch {
+        // Fallback to default location (Delhi) if geolocation fails
+        position = { coords: { latitude: 28.6139, longitude: 77.2090 } };
+      }
 
       let mediaUrl = '';
       let mediaType = 'text';

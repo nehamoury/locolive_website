@@ -266,6 +266,25 @@ func (s *RedisLocationService) detectLeftRadius(ctx context.Context, userID uuid
 
 // GetNearbyUsers fetches filtered users within a radius using GEOSEARCH
 func (s *RedisLocationService) GetNearbyUsers(ctx context.Context, userID uuid.UUID, lat, lng float64, radiusKm float64) ([]redis.GeoLocation, error) {
+	// Validate service dependencies
+	if s.redis == nil {
+		return nil, fmt.Errorf("redis client is nil")
+	}
+
+	// Validate input parameters
+	if radiusKm <= 0 {
+		radiusKm = 5.0 // Default to 5km if invalid
+	}
+	if lat < -90 || lat > 90 || lng < -180 || lng > 180 {
+		return nil, fmt.Errorf("invalid coordinates: lat=%f, lng=%f", lat, lng)
+	}
+
+	// Check Redis connectivity before query
+	if err := s.redis.Ping(ctx).Err(); err != nil {
+		log.Error().Err(err).Msg("[GetNearby] Redis ping failed")
+		return nil, fmt.Errorf("redis connection failed: %w", err)
+	}
+
 	matches, err := s.redis.GeoSearchLocation(ctx, userLocationsKey, &redis.GeoSearchLocationQuery{
 		GeoSearchQuery: redis.GeoSearchQuery{
 			Longitude:  lng,
@@ -279,6 +298,7 @@ func (s *RedisLocationService) GetNearbyUsers(ctx context.Context, userID uuid.U
 		WithCoord: true,
 	}).Result()
 	if err != nil {
+		log.Error().Err(err).Float64("radius_km", radiusKm).Float64("lat", lat).Float64("lng", lng).Msg("[GetNearby] Redis GEOSEARCH failed")
 		return nil, fmt.Errorf("failed to search nearby users: %w", err)
 	}
 
@@ -301,7 +321,11 @@ func (s *RedisLocationService) GetNearbyUsers(ctx context.Context, userID uuid.U
 		}
 
 		valid, err := s.validateCrossingPrivacy(ctx, userID, targetID)
-		if err != nil || !valid {
+		if err != nil {
+			log.Debug().Str("target_id", targetID.String()).Err(err).Msg("[GetNearby] Privacy check failed, skipping")
+			continue
+		}
+		if !valid {
 			continue
 		}
 
@@ -425,28 +449,57 @@ func (s *RedisLocationService) validateCrossingPrivacy(ctx context.Context, u1, 
 		BlockerID: u1,
 		BlockedID: u2,
 	})
-	if err != nil || blocked {
-		return false, err
+	if err != nil {
+		log.Error().Err(err).Str("u1", u1.String()).Str("u2", u2.String()).Msg("[Privacy] block check failed")
+		return false, fmt.Errorf("block check failed: %w", err)
+	}
+	if blocked {
+		log.Debug().Str("u1", u1.String()).Str("u2", u2.String()).Msg("[Privacy] u1 blocked u2")
+		return false, nil
 	}
 
 	blockedReverse, err := s.store.IsUserBlocked(ctx, db.IsUserBlockedParams{
 		BlockerID: u2,
 		BlockedID: u1,
 	})
-	if err != nil || blockedReverse {
-		return false, err
+	if err != nil {
+		log.Error().Err(err).Str("u1", u1.String()).Str("u2", u2.String()).Msg("[Privacy] block check reverse failed")
+		return false, fmt.Errorf("block check reverse failed: %w", err)
+	}
+	if blockedReverse {
+		log.Debug().Str("u1", u1.String()).Str("u2", u2.String()).Msg("[Privacy] u2 blocked u1")
+		return false, nil
 	}
 
 	user1, err := s.store.GetUserByID(ctx, u1)
-	if err != nil || user1.IsGhostMode || user1.IsShadowBanned {
-		return false, err
+	if err != nil {
+		log.Error().Err(err).Str("u1", u1.String()).Msg("[Privacy] get user1 failed")
+		return false, fmt.Errorf("get user1 failed: %w", err)
+	}
+	if user1.IsGhostMode {
+		log.Debug().Str("u1", u1.String()).Msg("[Privacy] u1 is in ghost mode")
+		return false, nil
+	}
+	if user1.IsShadowBanned {
+		log.Debug().Str("u1", u1.String()).Msg("[Privacy] u1 is shadowbanned")
+		return false, nil
 	}
 
 	user2, err := s.store.GetUserByID(ctx, u2)
-	if err != nil || user2.IsGhostMode || user2.IsShadowBanned {
-		return false, err
+	if err != nil {
+		log.Error().Err(err).Str("u2", u2.String()).Msg("[Privacy] get user2 failed")
+		return false, fmt.Errorf("get user2 failed: %w", err)
+	}
+	if user2.IsGhostMode {
+		log.Debug().Str("u2", u2.String()).Msg("[Privacy] u2 is in ghost mode")
+		return false, nil
+	}
+	if user2.IsShadowBanned {
+		log.Debug().Str("u2", u2.String()).Msg("[Privacy] u2 is shadowbanned")
+		return false, nil
 	}
 
+	log.Debug().Str("u1", u1.String()).Str("u2", u2.String()).Msg("[Privacy] passed")
 	return true, nil
 }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldAlert, Home, Map as MapIcon, User, MessageSquare, Plus, Bell, Sun, Moon, Users, Search, Video, MoreVertical } from 'lucide-react';
+import { ShieldAlert, Home, Map as MapIcon, User, MessageSquare, Plus, Bell, Sun, Moon, Users, Search, Video, MoreVertical, MapPin } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import api from '../../services/api';
@@ -98,7 +98,7 @@ const Dashboard = () => {
   const setActiveTab = (tab: string) => navigate(`/dashboard/${tab}`);
 
   // Real-time & Location Hooks
-  const { position: currentGeoPos } = useGeolocation(true);
+  const { position: currentGeoPos, permissionState: geoPermission } = useGeolocation(true);
   const {
     unreadCount: totalUnreadCount,
     unreadMessagesCount,
@@ -163,6 +163,8 @@ const Dashboard = () => {
       const coords = currentGeoPos;
       const requestOptions = coords ? { params: { latitude: coords.lat, longitude: coords.lng } } : undefined;
 
+      console.log('[Dashboard] Fetching stories...', coords ? `with coords: ${coords.lat}, ${coords.lng}` : 'without coords');
+
       const promises: any[] = [
         api.get('/stories/connections').catch(() => ({ data: [] })),
         api.get('/stories/me').catch(() => ({ data: [] }))
@@ -180,6 +182,13 @@ const Dashboard = () => {
       const connStories = connResponse.data || [];
       const myStories = meResponse.data || [];
 
+      console.log('[Dashboard] API responses:', {
+        mapStories: mapStories.length,
+        connStories: connStories.length,
+        myStories: myStories.length,
+        feedData: feedResponse.data
+      });
+
       const allStories = [...mapStories, ...connStories, ...myStories];
       const uniqueMap = new Map();
       allStories.forEach(s => {
@@ -190,9 +199,10 @@ const Dashboard = () => {
       const uniqueStories = Array.from(uniqueMap.values());
       uniqueStories.sort((a, b) => new Date(Object(b).created_at).getTime() - new Date(Object(a).created_at).getTime());
 
+      console.log(`[Dashboard] Total unique stories: ${uniqueStories.length}`);
       setStories(uniqueStories);
     } catch (err: any) {
-      console.error('Failed to fetch stories:', err.response?.data || err.message);
+      console.error('[Dashboard] Failed to fetch stories:', err.response?.data || err.message);
       setStories([]);
       if (err.response?.status === 401) {
         logout();
@@ -433,7 +443,7 @@ const Dashboard = () => {
             className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#fff5f7]/60 dark:bg-pink-500/10 backdrop-blur-xl border border-pink-200/30 dark:border-white/10 shadow-sm active:scale-95 transition-all text-primary"
             aria-label="Create Post"
           >
-            <Plus className="w-5.5 h-5.5 stroke-[2.5]" />
+            <Plus className="w-5 h-5 stroke-[2.5]" />
           </button>
 
           <div
@@ -480,7 +490,7 @@ const Dashboard = () => {
                       onClick={() => { navigate('/dashboard/connections'); setIsMenuOpen(false); }}
                       className="w-44 h-11 px-3 bg-brand-gradient rounded-xl flex items-center gap-3 shadow-lg shadow-primary/20 active:scale-95 transition-all text-white"
                     >
-                      <Users className="w-5.5 h-5.5" />
+                      <Users className="w-5 h-5" />
                       <span className="text-[13px] font-bold tracking-wide">Connections</span>
                     </button>
 
@@ -515,6 +525,22 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* Location Permission Warning Banner */}
+        {geoPermission === 'denied' && (
+          <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-center gap-2 text-sm">
+            <MapPin className="w-4 h-4 text-amber-600" />
+            <span className="text-amber-800">
+              Location access denied. Enable it in your browser settings to see nearby content.
+            </span>
+            <button
+              onClick={() => window.open('https://support.google.com/chrome/answer/142065', '_blank')}
+              className="text-amber-700 underline hover:text-amber-900 font-medium ml-2"
+            >
+              Learn how
+            </button>
+          </div>
+        )}
+
         {/* Dynamic Route View */}
         <div className="flex-1 overflow-visible md:overflow-hidden relative">
           {renderRoutes()}
@@ -523,8 +549,8 @@ const Dashboard = () => {
         {/* Mobile Bottom Navigation — Solid White Anchored Bar */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around bg-white dark:bg-bg-sidebar z-[60] safe-area-bottom border-t border-border-base/50">
           <div className="flex-1 flex items-center justify-around p-1.5 h-16 pointer-events-auto">
-            <MobileNavItem icon={<Home className="w-5.5 h-5.5" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
-            <MobileNavItem icon={<MapIcon className="w-5.5 h-5.5" />} active={pathname.includes('explore')} onClick={() => navigate('/dashboard/explore')} />
+            <MobileNavItem icon={<Home className="w-5 h-5" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
+            <MobileNavItem icon={<MapIcon className="w-5 h-5" />} active={pathname.includes('explore')} onClick={() => navigate('/dashboard/explore')} />
 
             <div className="relative -top-4 mx-1">
               <button
@@ -533,7 +559,7 @@ const Dashboard = () => {
                 className="relative w-12 h-12 bg-brand-gradient rounded-[20px] flex items-center justify-center shadow-xl shadow-primary/30 active:scale-90 transition-all text-white border-2 border-white/80 backdrop-blur-xl"
               >
                 <div className="absolute inset-0 rounded-[20px] bg-white/5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] pointer-events-none" />
-                <MessageSquare className="w-5.5 h-5.5 stroke-[2.5]" />
+                <MessageSquare className="w-5 h-5 stroke-[2.5]" />
                 {unreadMessagesCount > 0 && (
                   <span className="absolute -top-1 -right-1 min-w-[18px] h-4.5 px-1 bg-red-500 text-white text-[9px] font-black rounded-full border-2 border-white flex items-center justify-center shadow-md">
                     {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
@@ -542,8 +568,8 @@ const Dashboard = () => {
               </button>
             </div>
 
-            <MobileNavItem icon={<Video className="w-5.5 h-5.5" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
-            <MobileNavItem icon={<User className="w-5.5 h-5.5" />} active={pathname.includes('profile')} onClick={() => navigate('/dashboard/profile')} />
+            <MobileNavItem icon={<Video className="w-5 h-5" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
+            <MobileNavItem icon={<User className="w-5 h-5" />} active={pathname.includes('profile')} onClick={() => navigate('/dashboard/profile')} />
           </div>
         </nav>
       </main>
