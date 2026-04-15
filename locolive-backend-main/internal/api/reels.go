@@ -203,7 +203,6 @@ func toReelCommentResponse(c db.ReelComment) reelCommentResponse {
 		UserID:    c.UserID,
 		Content:   c.Content,
 		CreatedAt: c.CreatedAt,
-		Username:  "", // Populated in handler if needed
 	}
 }
 
@@ -268,18 +267,7 @@ func (server *Server) createReel(ctx *gin.Context) {
 		}
 	}
 
-	rsp := toReelResponseFromCreate(reel)
-
-	// Populate user details
-	user, err := server.store.GetUserByID(ctx, reel.UserID)
-	if err == nil {
-		rsp.Username = user.Username
-		if user.AvatarUrl.Valid {
-			rsp.AvatarURL = &user.AvatarUrl.String
-		}
-	}
-
-	ctx.JSON(http.StatusCreated, rsp)
+	ctx.JSON(http.StatusCreated, toReelResponseFromCreate(reel))
 }
 
 // getReelsFeed returns a paginated feed of reels.

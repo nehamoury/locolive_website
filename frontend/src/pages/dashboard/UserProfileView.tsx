@@ -65,15 +65,10 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
 
   const handleFollow = async () => {
     try {
-      if (profile.connected) {
-        await api.delete(`/connections/${userId}`);
-        setProfile((prev: any) => ({ ...prev, connected: false }));
-      } else {
-        await api.post('/connections/request', { target_user_id: userId });
-        setProfile((prev: any) => ({ ...prev, requested: true }));
-      }
+      await api.post('/connections/request', { target_user_id: userId });
+      setProfile((prev: any) => ({ ...prev, requested: true }));
     } catch (err) {
-      console.error('Follow/unfollow failed:', err);
+      console.error('Follow request failed:', err);
     }
   };
 
@@ -146,19 +141,17 @@ const UserProfileView: FC<UserProfileViewProps> = ({ userId, onBack, onMessage }
             </div>
 
             <div className="flex gap-2 pb-2">
-              <button
+              <button 
                 onClick={handleFollow}
                 disabled={profile.requested}
                 className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 cursor-pointer
-                  ${profile.requested
-                    ? 'bg-bg-sidebar text-text-muted cursor-not-allowed'
-                    : profile.connected
-                    ? 'bg-red-500 text-white shadow-red-500/20'
+                  ${profile.requested 
+                    ? 'bg-bg-sidebar text-text-muted cursor-not-allowed' 
                     : 'bg-text-base text-bg-base shadow-black/10'}`}
               >
-                {profile.requested ? 'Requested' : profile.connected ? 'Unfollow' : 'Follow'}
+                {profile.requested ? 'Requested' : 'Follow'}
               </button>
-              <button
+              <button 
                 onClick={() => onMessage(userId)}
                 className="p-2.5 bg-primary/10 text-primary rounded-2xl border border-primary/20 hover:bg-primary/20 transition-all"
               >

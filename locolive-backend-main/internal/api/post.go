@@ -44,6 +44,7 @@ type postResponse struct {
 	Username      string    `json:"username,omitempty"`
 	FullName      string    `json:"full_name,omitempty"`
 	AvatarUrl     string    `json:"avatar_url,omitempty"`
+	LikedByViewer bool      `json:"liked_by_viewer"`
 }
 
 type postCommentResponse struct {
@@ -88,6 +89,7 @@ func toPostResponseFromList(p db.ListPostsByUserIDRow) postResponse {
 		Username:      p.Username,
 		FullName:      p.FullName,
 		AvatarUrl:     p.AvatarUrl.String,
+		LikedByViewer: p.LikedByViewer,
 	}
 }
 
@@ -106,6 +108,7 @@ func toPostResponseFromConnections(p db.ListConnectionsPostsRow) postResponse {
 		Username:      p.Username,
 		FullName:      p.FullName,
 		AvatarUrl:     p.AvatarUrl.String,
+		LikedByViewer: p.LikedByViewer,
 	}
 }
 

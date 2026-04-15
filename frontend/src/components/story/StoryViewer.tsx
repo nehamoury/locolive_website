@@ -217,7 +217,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
             {isVideo ? (
               <video
                 ref={videoRef}
-                src={story.media_url.startsWith('http') ? story.media_url : `${BACKEND}${story.media_url}`}
+                src={`${BACKEND}${story.media_url}`}
                 className="w-full h-full object-cover"
                 autoPlay
                 loop
@@ -226,7 +226,7 @@ const StoryViewer = ({ stories, initialIndex, onClose, currentUser, currentUserI
               />
             ) : (
               <img
-                src={story.media_url.startsWith('http') ? story.media_url : `${BACKEND}${story.media_url}`}
+                src={`${BACKEND}${story.media_url}`}
                 alt="Story"
                 className="w-full h-full object-cover"
               />

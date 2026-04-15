@@ -66,18 +66,7 @@ func (server *Server) createStory(ctx *gin.Context) {
 		return
 	}
 
-	rsp := toStoryResponseFromCreate(*result)
-
-	// Populate user details for immediate UI update
-	user, err := server.store.GetUserByID(ctx, result.UserID)
-	if err == nil {
-		rsp.Username = user.Username
-		if user.AvatarUrl.Valid {
-			rsp.AvatarURL = &user.AvatarUrl.String
-		}
-	}
-
-	ctx.JSON(http.StatusCreated, rsp)
+	ctx.JSON(http.StatusCreated, toStoryResponseFromCreate(*result))
 }
 
 type getFeedRequest struct {
