@@ -24,15 +24,20 @@ export function Reports() {
   const resolveMutation = useResolveReport();
   const banMutation = useBanUser();
 
-  const reports = data?.items || [];
+  const reports = (data?.items || []).filter(Boolean);
   const total = data?.total || 0;
 
   const filteredReports = reports.filter(report => {
-    // Only apply client-side search if needed, backend handles pagination
+    // Backend returns flat fields: reporter_username, target_username
+    const reporterUsername = String(report.reporter_username || report.reporter?.username || 'Unknown');
+    const targetUsername = String(report.target_username || report.reported?.username || 'Unknown');
+    const reason = String(report.reason || '');
+    const searchLower = searchQuery.toLowerCase();
+    
     const matchesSearch = 
-      report.reporter.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.reported.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      report.reason.toLowerCase().includes(searchQuery.toLowerCase());
+      reporterUsername.toLowerCase().includes(searchLower) ||
+      targetUsername.toLowerCase().includes(searchLower) ||
+      reason.toLowerCase().includes(searchLower);
     return matchesSearch;
   });
 
@@ -124,14 +129,21 @@ export function Reports() {
               </tr>
             </thead>
             <tbody>
-              {filteredReports.map((report) => (
+              {filteredReports.map((report) => {
+                const reporterUsername = report.reporter_username || report.reporter?.username || 'Unknown';
+                const targetUsername = report.target_username || report.reported?.username || 'Unknown';
+                const targetId = report.target_id || report.reported?.id || '';
+                const status = report.is_resolved ? 'resolved' : 'pending';
+                const createdAt = report.created_at || report.createdAt || new Date().toISOString();
+                
+                return (
                 <tr key={report.id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
                         <User className="w-4 h-4 text-gray-500" />
                       </div>
-                      <span className="font-medium text-gray-900">{report.reporter.username}</span>
+                      <span className="font-medium text-gray-900">{reporterUsername}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -139,28 +151,35 @@ export function Reports() {
                       <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
                         <Flag className="w-4 h-4 text-red-500" />
                       </div>
-                      <span className="font-medium text-gray-900">{report.reported.username}</span>
+                      <span className="font-medium text-gray-900">{targetUsername}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium uppercase">
-                      {report.type}
-                    </span>
+                    <div className="flex items-center gap-2">
+                       <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                         {report.target_type || 'user'}
+                       </span>
+                       {report.priority_score > 1 && (
+                         <span className="px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-[10px] font-bold">
+                           {report.priority_score}X
+                         </span>
+                       )}
+                    </div>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-[200px]" title={report.reason}>{report.reason}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600 truncate max-w-[200px]" title={report.reason || ''}>{report.reason || ''}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      report.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                      report.status === 'resolved' ? 'bg-green-100 text-green-700' :
+                      status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                      status === 'resolved' ? 'bg-green-100 text-green-700' :
                       'bg-gray-100 text-gray-700'
                     }`}>
-                      {report.status}
+                      {status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-500">{formatTime(report.createdAt)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-500">{formatTime(createdAt)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      {report.status === 'pending' && (
+                      {status === 'pending' && (
                         <>
                           <button
                             onClick={() => handleResolve(report.id)}
@@ -171,7 +190,7 @@ export function Reports() {
                             <Check className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleBan(report.id, report.reported.id)}
+                            onClick={() => handleBan(report.id, targetId)}
                             disabled={banMutation.isPending || resolveMutation.isPending}
                             className="p-1.5 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors disabled:opacity-50"
                             title="Ban User & Resolve"
@@ -191,7 +210,8 @@ export function Reports() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         )}

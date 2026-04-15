@@ -2,11 +2,15 @@ package api
 
 import (
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 
 	"privacy-social-backend/internal/repository/db"
 	"privacy-social-backend/internal/token"
@@ -23,6 +27,77 @@ type createPostRequest struct {
 	Latitude     float64 `json:"latitude"`
 	Longitude    float64 `json:"longitude"`
 	HasLocation  bool    `json:"has_location"`
+}
+
+type postResponse struct {
+	ID            uuid.UUID `json:"id"`
+	UserID        uuid.UUID `json:"user_id"`
+	MediaUrl      string    `json:"media_url"`
+	MediaType     string    `json:"media_type"`
+	Caption       string    `json:"caption"`
+	BodyText      string    `json:"body_text"`
+	LocationName  string    `json:"location_name"`
+	LikesCount    int32     `json:"likes_count"`
+	CommentsCount int32     `json:"comments_count"`
+	SharesCount   int32     `json:"shares_count"`
+	CreatedAt     time.Time `json:"created_at"`
+}
+
+type postCommentResponse struct {
+	ID        uuid.UUID `json:"id"`
+	PostID    uuid.UUID `json:"post_id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+	Username  string    `json:"username,omitempty"`
+	FullName  string    `json:"full_name,omitempty"`
+	AvatarUrl string    `json:"avatar_url,omitempty"`
+}
+
+func toPostResponse(p db.CreatePostRow) postResponse {
+	return postResponse{
+		ID:            p.ID,
+		UserID:        p.UserID,
+		MediaUrl:      p.MediaUrl,
+		MediaType:     p.MediaType,
+		Caption:       p.Caption.String,
+		BodyText:      p.BodyText.String,
+		LocationName:  p.LocationName.String,
+		LikesCount:    p.LikesCount,
+		CommentsCount: p.CommentsCount,
+		SharesCount:   p.SharesCount,
+		CreatedAt:     p.CreatedAt,
+	}
+}
+
+func toPostResponseFromList(p db.ListPostsByUserIDRow) postResponse {
+	return postResponse{
+		ID:            p.ID,
+		UserID:        p.UserID,
+		MediaUrl:      p.MediaUrl,
+		MediaType:     p.MediaType,
+		Caption:       p.Caption.String,
+		LocationName:  p.LocationName.String,
+		LikesCount:    p.LikesCount,
+		CommentsCount: p.CommentsCount,
+		SharesCount:   p.SharesCount,
+		CreatedAt:     p.CreatedAt,
+	}
+}
+
+func toPostResponseFromConnections(p db.ListConnectionsPostsRow) postResponse {
+    return postResponse{
+        ID:            p.ID,
+        UserID:        p.UserID,
+        MediaUrl:      p.MediaUrl,
+        MediaType:     p.MediaType,
+        Caption:       p.Caption.String,
+        LocationName:  p.LocationName.String,
+        LikesCount:    p.LikesCount,
+        CommentsCount: p.CommentsCount,
+        SharesCount:   p.SharesCount,
+        CreatedAt:     p.CreatedAt,
+    }
 }
 
 // ─── Handlers ────────────────────────────────────────────────────────────────
@@ -54,7 +129,7 @@ func (server *Server) createPost(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, post)
+	ctx.JSON(http.StatusCreated, toPostResponse(post))
 }
 
 // getUserPosts returns a grid of permanent posts for a user profile.
@@ -87,7 +162,12 @@ func (server *Server) getUserPosts(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"posts": posts, "page": page, "page_size": pageSize})
+	rsp := make([]postResponse, len(posts))
+	for i, p := range posts {
+		rsp[i] = toPostResponseFromList(p)
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"posts": rsp, "page": page, "page_size": pageSize})
 }
 
 // getMyPosts returns the authenticated user's own posts.
@@ -114,7 +194,12 @@ func (server *Server) getMyPosts(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"posts": posts, "page": page, "page_size": pageSize})
+	rsp := make([]postResponse, len(posts))
+	for i, p := range posts {
+		rsp[i] = toPostResponseFromList(p)
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"posts": rsp, "page": page, "page_size": pageSize})
 }
 
 // getConnectionsFeed returns posts from connections (following feed).
@@ -140,7 +225,12 @@ func (server *Server) getConnectionsFeed(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"posts": posts, "page": page, "page_size": pageSize})
+	rsp := make([]postResponse, len(posts))
+	for i, p := range posts {
+		rsp[i] = toPostResponseFromConnections(p)
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"posts": rsp, "page": page, "page_size": pageSize})
 }
 
 // deletePost lets a user delete their own post.
@@ -185,6 +275,21 @@ func (server *Server) likePost(ctx *gin.Context) {
 	}
 
 	_ = server.store.IncrementPostLikes(ctx, postID)
+
+	// Log activity & Broadcast to Admin
+	details, _ := json.Marshal(map[string]interface{}{"post_id": postID})
+	_, _ = server.store.CreateActivityLog(ctx, db.CreateActivityLogParams{
+		UserID:     authPayload.UserID,
+		ActionType: "post_liked",
+		TargetID:   uuid.NullUUID{UUID: postID, Valid: true},
+		TargetType: sql.NullString{String: "post", Valid: true},
+		Details:    pqtype.NullRawMessage{RawMessage: details, Valid: true},
+	})
+	server.hub.BroadcastActivity("post_liked", map[string]interface{}{
+		"user_id": authPayload.UserID,
+		"post_id": postID,
+	})
+
 	ctx.JSON(http.StatusOK, gin.H{"message": "liked"})
 }
 
@@ -210,6 +315,39 @@ func (server *Server) unlikePost(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "unliked"})
 }
 
+// sharePost increments the share counter and broadcasts activity.
+func (server *Server) sharePost(ctx *gin.Context) {
+	postID, err := uuid.Parse(ctx.Param("id"))
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, errorResponse(err))
+		return
+	}
+
+	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
+
+	err = server.store.IncrementPostShares(ctx, postID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// Log activity & Broadcast to Admin
+	details, _ := json.Marshal(map[string]interface{}{"post_id": postID})
+	_, _ = server.store.CreateActivityLog(ctx, db.CreateActivityLogParams{
+		UserID:     authPayload.UserID,
+		ActionType: "post_shared",
+		TargetID:   uuid.NullUUID{UUID: postID, Valid: true},
+		TargetType: sql.NullString{String: "post", Valid: true},
+		Details:    pqtype.NullRawMessage{RawMessage: details, Valid: true},
+	})
+	server.hub.BroadcastActivity("post_shared", map[string]interface{}{
+		"user_id": authPayload.UserID,
+		"post_id": postID,
+	})
+
+	ctx.JSON(http.StatusOK, gin.H{"success": true})
+}
+
 // addPostComment adds a comment to a post.
 func (server *Server) addPostComment(ctx *gin.Context) {
 	postID, err := uuid.Parse(ctx.Param("id"))
@@ -228,17 +366,45 @@ func (server *Server) addPostComment(ctx *gin.Context) {
 
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
+	isFlagged := server.moderation.FilterContent(req.Content)
+
 	comment, err := server.store.CreatePostComment(ctx, db.CreatePostCommentParams{
-		PostID:  postID,
-		UserID:  authPayload.UserID,
-		Content: req.Content,
+		PostID:    postID,
+		UserID:    authPayload.UserID,
+		Content:   req.Content,
+		IsFlagged: isFlagged,
 	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, comment)
+	_ = server.store.IncrementPostComments(ctx, postID)
+
+
+	// Log activity & Broadcast to Admin
+	details, _ := json.Marshal(map[string]interface{}{"post_id": postID, "content": req.Content, "is_flagged": isFlagged})
+	_, _ = server.store.CreateActivityLog(ctx, db.CreateActivityLogParams{
+		UserID:     authPayload.UserID,
+		ActionType: "comment_created",
+		TargetID:   uuid.NullUUID{UUID: comment.ID, Valid: true},
+		TargetType: sql.NullString{String: "comment", Valid: true},
+		Details:    pqtype.NullRawMessage{RawMessage: details, Valid: true},
+	})
+	server.hub.BroadcastActivity("comment_created", map[string]interface{}{
+		"user_id":    authPayload.UserID,
+		"post_id":    postID,
+		"content":    req.Content,
+		"is_flagged": isFlagged,
+	})
+
+	ctx.JSON(http.StatusCreated, postCommentResponse{
+		ID:        comment.ID,
+		PostID:    comment.PostID,
+		UserID:    comment.UserID,
+		Content:   comment.Content,
+		CreatedAt: comment.CreatedAt,
+	})
 }
 
 // listPostComments returns comments for a post.
@@ -255,7 +421,21 @@ func (server *Server) listPostComments(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, comments)
+	rsp := make([]postCommentResponse, len(comments))
+	for i, c := range comments {
+		rsp[i] = postCommentResponse{
+			ID:        c.ID,
+			PostID:    c.PostID,
+			UserID:    c.UserID,
+			Content:   c.Content,
+			CreatedAt: c.CreatedAt,
+			Username:  c.Username,
+			FullName:  c.FullName,
+			AvatarUrl: c.AvatarUrl.String,
+		}
+	}
+
+	ctx.JSON(http.StatusOK, rsp)
 }
 
 // deletePostComment deletes a comment the user owns.
@@ -268,13 +448,20 @@ func (server *Server) deletePostComment(ctx *gin.Context) {
 
 	authPayload := ctx.MustGet(authorizationPayloadKey).(*token.Payload)
 
-	if err := server.store.DeletePostComment(ctx, db.DeletePostCommentParams{
+	postID, err := server.store.DeletePostComment(ctx, db.DeletePostCommentParams{
 		ID:     commentID,
 		UserID: authPayload.UserID,
-	}); err != nil {
+	})
+	if err != nil {
+		if err == sql.ErrNoRows {
+			ctx.JSON(http.StatusNotFound, errorResponse(fmt.Errorf("comment not found or unauthorized")))
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
+	_ = server.store.DecrementPostComments(ctx, postID)
 	ctx.JSON(http.StatusOK, gin.H{"message": "comment deleted"})
 }
+

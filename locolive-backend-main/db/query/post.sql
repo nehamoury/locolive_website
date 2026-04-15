@@ -14,7 +14,8 @@ RETURNING *,
 
 -- name: ListPostsByUserID :many
 SELECT p.id, p.user_id, p.media_url, p.media_type, p.caption, p.location_name,
-       p.likes_count, p.comments_count, p.created_at, p.updated_at,
+       p.likes_count, p.comments_count, p.shares_count, p.created_at, p.updated_at,
+
        u.username, u.full_name, u.avatar_url,
        CASE WHEN p.geom IS NOT NULL THEN ST_Y(p.geom::geometry) ELSE NULL END as lat_out,
        CASE WHEN p.geom IS NOT NULL THEN ST_X(p.geom::geometry) ELSE NULL END as lng_out,
@@ -28,7 +29,8 @@ LIMIT sqlc.arg(lim) OFFSET sqlc.arg(off);
 -- name: ListConnectionsPosts :many
 -- Get posts from connections AND own posts
 SELECT p.id, p.user_id, p.media_url, p.media_type, p.caption, p.location_name,
-       p.likes_count, p.comments_count, p.created_at, p.updated_at,
+       p.likes_count, p.comments_count, p.shares_count, p.created_at, p.updated_at,
+
        u.username, u.full_name, u.avatar_url,
        CASE WHEN p.geom IS NOT NULL THEN ST_Y(p.geom::geometry) ELSE NULL END as lat_out,
        CASE WHEN p.geom IS NOT NULL THEN ST_X(p.geom::geometry) ELSE NULL END as lng_out,
@@ -64,9 +66,12 @@ UPDATE posts SET likes_count = likes_count + 1 WHERE id = sqlc.arg(id);
 -- name: DecrementPostLikes :exec
 UPDATE posts SET likes_count = GREATEST(0, likes_count - 1) WHERE id = sqlc.arg(id);
 
+-- name: IncrementPostShares :exec
+UPDATE posts SET shares_count = shares_count + 1 WHERE id = sqlc.arg(id);
+
 -- name: CreatePostComment :one
-INSERT INTO post_comments (post_id, user_id, content)
-VALUES (sqlc.arg(post_id), sqlc.arg(user_id), sqlc.arg(content))
+INSERT INTO post_comments (post_id, user_id, content, is_flagged)
+VALUES (sqlc.arg(post_id), sqlc.arg(user_id), sqlc.arg(content), sqlc.arg(is_flagged))
 RETURNING *;
 
 -- name: ListPostComments :many
@@ -78,5 +83,22 @@ WHERE pc.post_id = sqlc.arg(post_id)
 ORDER BY pc.created_at ASC
 LIMIT 20;
 
--- name: DeletePostComment :exec
-DELETE FROM post_comments WHERE id = sqlc.arg(id) AND user_id = sqlc.arg(user_id);
+-- name: DeletePostComment :one
+DELETE FROM post_comments WHERE id = sqlc.arg(id) AND user_id = sqlc.arg(user_id)
+RETURNING post_id;
+
+
+-- name: AdminDeletePostComment :one
+DELETE FROM post_comments WHERE id = sqlc.arg(id)
+RETURNING post_id;
+
+
+-- name: GetPostComment :one
+SELECT * FROM post_comments WHERE id = sqlc.arg(id) LIMIT 1;
+
+-- name: IncrementPostComments :exec
+UPDATE posts SET comments_count = comments_count + 1 WHERE id = sqlc.arg(id);
+
+-- name: DecrementPostComments :exec
+UPDATE posts SET comments_count = GREATEST(0, comments_count - 1) WHERE id = sqlc.arg(id);
+

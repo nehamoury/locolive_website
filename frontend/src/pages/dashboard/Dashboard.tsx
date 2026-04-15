@@ -102,7 +102,6 @@ const Dashboard = () => {
   const {
     unreadCount: totalUnreadCount,
     unreadMessagesCount,
-    pendingRequestsCount,
     notificationPermission,
     requestPermission
   } = useNotifications();
@@ -347,64 +346,57 @@ const Dashboard = () => {
         <Route path="reels" element={<ReelsView onCreateReel={() => setIsCreateReelModalOpen(true)} />} />
 
         <Route path="messages/*" element={
-          <div className="flex flex-col h-full w-full overflow-hidden bg-transparent">
-            <div className="flex items-center justify-between px-6 py-3.5 border-b border-border-base bg-transparent shrink-0">
-              <h2 className="text-xl font-black text-gray-900 italic tracking-tight">Messages</h2>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => navigate('/dashboard/connections')}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-200 text-xs font-bold text-gray-500 hover:bg-gray-50 transition-all cursor-pointer"
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${pendingRequestsCount > 0 ? 'bg-pink-500 animate-pulse' : 'bg-gray-300'}`} />
-                  {pendingRequestsCount > 0 ? `${pendingRequestsCount} pending requests` : '0 pending requests'}
-                </button>
-                <button
-                  onClick={() => navigate('/dashboard/messages')}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 text-white text-xs font-bold shadow-md shadow-pink-200 hover:scale-105 active:scale-95 transition-all"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  New Chat
-                </button>
-              </div>
-            </div>
-
-            <div className="flex flex-1 overflow-hidden">
-              {/* Left Sidebar: Conversations List (Persistent) */}
-              <div className={`h-full border-r border-border-base w-full md:w-[320px] lg:w-[380px] shrink-0 bg-transparent ${pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages'
-                ? 'hidden md:flex'
-                : 'flex'
-                }`}>
-                <ChatList
-                  onSelect={(id) => navigate(`/dashboard/messages/${id}`)}
-                  selectedId={pathname.split('/').pop()}
-                />
+          <div className="flex flex-col h-full w-full overflow-hidden bg-transparent pt-2 pb-6 px-0 md:px-2">
+            <div className="flex flex-col h-full w-full overflow-hidden bg-bg-card md:rounded-[32px] border border-border-base/50 shadow-2xl relative">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border-base bg-bg-card/50 backdrop-blur-md shrink-0 z-20">
+                <h2 className="text-xl font-black text-gray-900 italic tracking-tight">Messages</h2>
+                <div className="flex items-center gap-2">
+                  <div className="flex -space-x-2">
+                    {/* Visual flair: Active avatars placeholder */}
+                    <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-primary/20" />
+                    <div className="w-8 h-8 rounded-full border-2 border-bg-card bg-accent/20" />
+                  </div>
+                </div>
               </div>
 
-              {/* Main Area: Chat Window + Profile Sidebar (Dynamic) */}
-              <div className={`flex-1 flex overflow-hidden ${!(pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages')
-                ? 'hidden md:flex'
-                : 'flex'
-                }`}>
-                <Routes>
-                  <Route path=":userId" element={
-                    <MessageThreadWrapper
-                      onViewFullProfile={handleUserSelect}
-                      setShowChatProfile={setShowChatProfile}
-                      showChatProfile={showChatProfile}
-                    />
-                  } />
-                  <Route path="/" element={
-                    <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-transparent">
-                      <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-5">
-                        <MessageSquare className="w-9 h-9 text-gray-300" />
+              <div className="flex flex-1 overflow-hidden relative z-10">
+                {/* Left Sidebar: Conversations List (Persistent) */}
+                <div className={`h-full border-r border-border-base w-full md:w-[320px] lg:w-[380px] shrink-0 bg-transparent ${pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages'
+                  ? 'hidden md:flex'
+                  : 'flex'
+                  }`}>
+                  <ChatList
+                    onSelect={(id) => navigate(`/dashboard/messages/${id}`)}
+                    selectedId={pathname.split('/').pop()}
+                  />
+                </div>
+
+                {/* Main Area: Chat Window + Profile Sidebar (Dynamic) */}
+                <div className={`flex-1 flex overflow-hidden ${!(pathname.includes('/dashboard/messages/') && pathname.split('/').pop() !== 'messages')
+                  ? 'hidden md:flex'
+                  : 'flex'
+                  }`}>
+                  <Routes>
+                    <Route path=":userId" element={
+                      <MessageThreadWrapper
+                        onViewFullProfile={handleUserSelect}
+                        setShowChatProfile={setShowChatProfile}
+                        showChatProfile={showChatProfile}
+                      />
+                    } />
+                    <Route path="/" element={
+                      <div className="hidden md:flex flex-1 flex-col items-center justify-center p-8 text-center bg-gray-50/20">
+                        <div className="w-24 h-24 bg-white rounded-[32px] shadow-2xl shadow-primary/5 flex items-center justify-center mb-6 border border-white/60">
+                          <MessageSquare className="w-10 h-10 text-primary/30" />
+                        </div>
+                        <h3 className="text-2xl font-black text-gray-900 mb-2 tracking-tight italic">Your Inbox</h3>
+                        <p className="max-w-xs text-[10px] font-black text-gray-400 leading-relaxed uppercase tracking-[0.2em]">
+                          Select a conversation from the left to start a new journey
+                        </p>
                       </div>
-                      <h3 className="text-xl font-medium text-gray-800 mb-2">Select a Conversation</h3>
-                      <p className="max-w-xs text-sm text-gray-400 leading-relaxed">
-                        Choose a chat from the list or start a new one
-                      </p>
-                    </div>
-                  } />
-                </Routes>
+                    } />
+                  </Routes>
+                </div>
               </div>
             </div>
           </div>
@@ -416,10 +408,10 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-slate-50/50 text-text-base font-poppins flex overflow-hidden p-0 md:p-3 md:gap-3 transition-colors duration-300">
+    <div className="h-screen w-full bg-bg-base text-text-base font-poppins flex overflow-hidden p-0 md:p-4 md:gap-4 transition-colors duration-300">
 
-      {/* 1. Left Sidebar */}
-      <div className="hidden md:flex flex-col h-full bg-bg-sidebar md:rounded-[24px] shadow-sm relative flex-shrink-0 border border-border-base transition-all duration-300 overflow-hidden">
+      {/* 1. Left Sidebar - Desktop Only */}
+      <div className="hidden md:flex flex-col h-full bg-bg-sidebar md:rounded-[28px] shadow-xl relative flex-shrink-0 border border-border-base transition-all duration-300 overflow-hidden">
         <Sidebar
           user={user}
           logout={logout}
@@ -434,28 +426,20 @@ const Dashboard = () => {
       <Toaster position="top-right" reverseOrder={false} />
 
       {/* 2. Main Content Center (Scrollable) */}
-      <main className={`flex-1 relative ${pathname.includes('reels') ? 'overflow-hidden h-full' : 'overflow-y-auto'} md:overflow-hidden flex flex-col bg-transparent z-10 w-full md:w-auto transition-colors duration-300 ${pathname.includes('reels') ? 'pb-0' : 'pb-20'} md:pb-0 no-scrollbar`}>
+      <main className={`flex-1 relative ${pathname.includes('reels') ? 'overflow-hidden h-full' : 'overflow-y-auto'} md:overflow-hidden flex flex-col bg-transparent z-10 w-full ${pathname.includes('messages') ? 'md:max-w-none xl:max-w-none px-0 md:px-4' : 'md:max-w-5xl xl:max-w-6xl mx-auto'} transition-colors duration-300 ${pathname.includes('reels') ? 'pb-0' : 'pb-20'} md:pb-0 no-scrollbar`}>
 
-        {/* Mobile Header — Premium Glass Redesign */}
-        <div className={`md:hidden pt-4 pb-2 px-4 flex items-center justify-between bg-transparent transition-all z-50 ${pathname.includes('reels') ? 'hidden' : 'flex'}`}>
-          <button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-[#fff5f7]/60 dark:bg-pink-500/10 backdrop-blur-xl border border-pink-200/30 dark:border-white/10 shadow-sm active:scale-95 transition-all text-primary"
-            aria-label="Create Post"
-          >
-            <Plus className="w-5 h-5 stroke-[2.5]" />
-          </button>
-
+        {/* Mobile Header — Ultra Premium Glass (Now Scrolling) */}
+        <div className={`md:hidden relative w-full pt-6 pb-4 px-6 flex items-center justify-between bg-transparent transition-all ${pathname.includes('reels') ? 'hidden' : 'flex'}`}>
           <div
-            className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center active:scale-95 transition-all cursor-pointer"
+            className="flex items-center gap-2 active:scale-95 transition-all cursor-pointer"
             onClick={() => navigate('/dashboard/home')}
           >
-            <span
-              className="text-2xl font-black italic tracking-tighter bg-brand-gradient text-transparent drop-shadow-md"
-              style={{ WebkitBackgroundClip: 'text', backgroundClip: 'text' }}
-            >
-              Locolive
-            </span>
+            <div className="w-8 h-8 rounded-xl bg-brand-gradient flex items-center justify-center shadow-lg shadow-primary/30">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 21C16 17 20 13.4183 20 9C20 4.58172 16.4183 1 12 1C7.58172 1 4 4.58172 4 9C4 13.4183 8 17 12 21Z" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <span className="text-xl font-black italic tracking-tighter text-primary">Locolive</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -546,32 +530,29 @@ const Dashboard = () => {
           {renderRoutes()}
         </div>
 
-        {/* Mobile Bottom Navigation — Solid White Anchored Bar */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around bg-white dark:bg-bg-sidebar z-[60] safe-area-bottom border-t border-border-base/50">
-          <div className="flex-1 flex items-center justify-around p-1.5 h-16 pointer-events-auto">
-            <MobileNavItem icon={<Home className="w-5 h-5" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
-            <MobileNavItem icon={<MapIcon className="w-5 h-5" />} active={pathname.includes('explore')} onClick={() => navigate('/dashboard/explore')} />
+        {/* Mobile Bottom Navigation — Full Width Bar (Hidden on Reels for Immersion) */}
+        {!pathname.includes('reels') && (
+          <nav className="md:hidden fixed bottom-0 left-0 right-0 flex items-center justify-around bg-bg-sidebar z-[100] safe-area-bottom border-t border-border-base transition-all duration-300">
+            <div className="flex-1 flex items-center justify-around h-16 pointer-events-auto px-4">
+              <MobileNavItem icon={<Home className="w-5 h-5" />} active={pathname.includes('home')} onClick={() => navigate('/dashboard/home')} />
+              <MobileNavItem icon={<MapIcon className="w-5 h-5" />} active={pathname.includes('explore')} onClick={() => navigate('/dashboard/explore')} />
 
-            <div className="relative -top-4 mx-1">
-              <button
-                onClick={() => navigate('/dashboard/messages')}
-                aria-label="View messages"
-                className="relative w-12 h-12 bg-brand-gradient rounded-[20px] flex items-center justify-center shadow-xl shadow-primary/30 active:scale-90 transition-all text-white border-2 border-white/80 backdrop-blur-xl"
-              >
-                <div className="absolute inset-0 rounded-[20px] bg-white/5 shadow-[inset_0_1px_2px_rgba(255,255,255,0.4)] pointer-events-none" />
-                <MessageSquare className="w-5 h-5 stroke-[2.5]" />
-                {unreadMessagesCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-4.5 px-1 bg-red-500 text-white text-[9px] font-black rounded-full border-2 border-white flex items-center justify-center shadow-md">
-                    {unreadMessagesCount > 99 ? '99+' : unreadMessagesCount}
-                  </span>
-                )}
-              </button>
+              <div className="relative mx-1 h-full flex items-center">
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="w-12 h-12 bg-brand-gradient rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30 text-white"
+                >
+                  <Plus className="w-6 h-6 stroke-[3]" />
+                </motion.button>
+              </div>
+
+              <MobileNavItem icon={<Video className="w-5 h-5" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
+              <MobileNavItem icon={<User className="w-5 h-5" />} active={pathname.includes('profile')} onClick={() => navigate('/dashboard/profile')} />
             </div>
-
-            <MobileNavItem icon={<Video className="w-5 h-5" />} active={pathname.includes('reels')} onClick={() => navigate('/dashboard/reels')} />
-            <MobileNavItem icon={<User className="w-5 h-5" />} active={pathname.includes('profile')} onClick={() => navigate('/dashboard/profile')} />
-          </div>
-        </nav>
+          </nav>
+        )}
       </main>
 
 

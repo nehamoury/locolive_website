@@ -48,13 +48,23 @@ export interface AdminReel {
 
 export interface AdminReport {
   id: string;
-  reporter: AdminUser;
-  reported: AdminUser;
-  type: 'user' | 'story' | 'reel' | 'post';
-  contentId: string;
+  // Flat structure from backend
+  reporter_id?: string;
+  reporter_username?: string;
+  reporter_avatar?: string;
+  target_id?: string;
+  target_username?: string;
+  // Nested structure (alternative)
+  reporter?: AdminUser;
+  reported?: AdminUser;
+  type?: 'user' | 'story' | 'reel' | 'post';
+  target_type: 'user' | 'post' | 'reel' | 'story';
   reason: string;
-  status: 'pending' | 'resolved' | 'ignored';
-  createdAt: string;
+  is_resolved?: boolean;
+  status?: 'pending' | 'resolved' | 'ignored';
+  priority_score: number;
+  created_at?: string;
+  createdAt?: string;
 }
 
 export interface AdminNotification {
@@ -87,7 +97,15 @@ export interface DailyStats {
 }
 
 export interface LiveActivity {
-  type: 'user_created' | 'crossing_detected' | 'reel_uploaded' | 'user_online';
+  type: 
+    | 'user_created' 
+    | 'crossing_detected' 
+    | 'reel_uploaded' 
+    | 'user_online'
+    | 'comment_created'
+    | 'post_liked'
+    | 'reel_liked'
+    | 'report_created';
   payload: any;
   timestamp: string;
 }

@@ -1,22 +1,31 @@
-import { UserPlus, MapPin, Film, Wifi } from 'lucide-react';
+import { UserPlus, MapPin, Film, Wifi, AlertTriangle, Activity, MessageSquare } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type { LiveActivity } from '../../types/admin';
 
 interface LiveActivityProps {
   activities: LiveActivity[];
 }
 
-const iconMap = {
+const iconMap: Record<string, LucideIcon> = {
   user_created: UserPlus,
   crossing_detected: MapPin,
   reel_uploaded: Film,
   user_online: Wifi,
+  report_created: AlertTriangle,
+  post_liked: Activity,
+  reel_liked: Activity,
+  comment_created: MessageSquare,
 };
 
-const colorMap = {
+const colorMap: Record<string, string> = {
   user_created: 'bg-green-500',
   crossing_detected: 'bg-orange-500',
   reel_uploaded: 'bg-purple-500',
   user_online: 'bg-blue-500',
+  report_created: 'bg-red-500',
+  post_liked: 'bg-pink-500',
+  reel_liked: 'bg-pink-500',
+  comment_created: 'bg-indigo-500',
 };
 
 function getActivityDescription(activity: LiveActivity) {

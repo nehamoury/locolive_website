@@ -1,37 +1,56 @@
 import { useState } from 'react';
-import { Save, RotateCcw, MapPin, Film, Route, CheckCircle } from 'lucide-react';
-import type { AppSettings } from '../../types/admin';
-
-const defaultSettings: AppSettings = {
-  discoveryRadius: 5,
-  crossingDistance: 50,
-  locationUpdateInterval: 30,
-  reelsEnabled: true,
-  crossingsEnabled: true,
-};
+import { Save, RotateCcw, MapPin, Film, Route, Loader2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import adminApi, { type AppSettings } from '../../services/adminApi';
+import { toast } from 'react-hot-toast';
 
 export function Settings() {
-  const [settings, setSettings] = useState<AppSettings>(defaultSettings);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const queryClient = useQueryClient();
+  
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ['admin', 'settings'],
+    queryFn: () => adminApi.getSettings(),
+  });
+
+  const [localSettings, setLocalSettings] = useState<AppSettings | null>(null);
+
+  const saveMutation = useMutation({
+    mutationFn: (newSettings: Partial<AppSettings>) => adminApi.updateSettings(newSettings),
+    onSuccess: () => {
+      toast.success('Settings saved successfully!');
+      queryClient.invalidateQueries({ queryKey: ['admin', 'settings'] });
+    },
+    onError: () => {
+      toast.error('Failed to save settings');
+    },
+  });
+
+  const currentSettings = localSettings || settings;
 
   const handleChange = (key: keyof AppSettings, value: number | boolean) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
-    setSaved(false);
+    if (!localSettings && settings) {
+      setLocalSettings({ ...settings });
+    }
+    setLocalSettings(prev => prev ? { ...prev, [key]: value } : null);
   };
 
-  const handleSave = async () => {
-    setIsSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setIsSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  const handleSave = () => {
+    if (localSettings) {
+      saveMutation.mutate(localSettings);
+    }
   };
 
   const handleReset = () => {
-    setSettings(defaultSettings);
-    setSaved(false);
+    setLocalSettings(null);
   };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 text-[#FF006E] animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -47,18 +66,13 @@ export function Settings() {
           </button>
           <button
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={!localSettings || saveMutation.isPending}
             className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FF006E] to-[#833AB4] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {isSaving ? (
+            {saveMutation.isPending ? (
               <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Saving...
-              </>
-            ) : saved ? (
-              <>
-                <CheckCircle className="w-4 h-4" />
-                Saved!
               </>
             ) : (
               <>
@@ -78,7 +92,7 @@ export function Settings() {
             Location Settings
           </h2>
           
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-1.5 block">Discovery Radius (km)</label>
               <div className="flex items-center gap-3">
@@ -86,11 +100,11 @@ export function Settings() {
                   type="range"
                   min="1"
                   max="50"
-                  value={settings.discoveryRadius}
-                  onChange={(e) => handleChange('discoveryRadius', parseInt(e.target.value))}
+                  value={currentSettings?.discovery_radius || 5}
+                  onChange={(e) => handleChange('discovery_radius', parseInt(e.target.value))}
                   className="flex-1 accent-[#FF006E]"
                 />
-                <span className="w-12 text-center font-medium text-gray-900">{settings.discoveryRadius}km</span>
+                <span className="w-12 text-center font-medium text-gray-900">{currentSettings?.discovery_radius || 5}km</span>
               </div>
             </div>
 
@@ -101,11 +115,11 @@ export function Settings() {
                   type="range"
                   min="10"
                   max="200"
-                  value={settings.crossingDistance}
-                  onChange={(e) => handleChange('crossingDistance', parseInt(e.target.value))}
+                  value={currentSettings?.crossing_distance || 50}
+                  onChange={(e) => handleChange('crossing_distance', parseInt(e.target.value))}
                   className="flex-1 accent-[#FF006E]"
                 />
-                <span className="w-12 text-center font-medium text-gray-900">{settings.crossingDistance}m</span>
+                <span className="w-12 text-center font-medium text-gray-900">{currentSettings?.crossing_distance || 50}m</span>
               </div>
             </div>
 
@@ -116,11 +130,11 @@ export function Settings() {
                   type="range"
                   min="10"
                   max="120"
-                  value={settings.locationUpdateInterval}
-                  onChange={(e) => handleChange('locationUpdateInterval', parseInt(e.target.value))}
+                  value={currentSettings?.location_update_seconds || 30}
+                  onChange={(e) => handleChange('location_update_seconds', parseInt(e.target.value))}
                   className="flex-1 accent-[#FF006E]"
                 />
-                <span className="w-12 text-center font-medium text-gray-900">{settings.locationUpdateInterval}s</span>
+                <span className="w-12 text-center font-medium text-gray-900">{currentSettings?.location_update_seconds || 30}s</span>
               </div>
             </div>
           </div>
@@ -142,13 +156,13 @@ export function Settings() {
                 </div>
               </div>
               <button
-                onClick={() => handleChange('reelsEnabled', !settings.reelsEnabled)}
+                onClick={() => handleChange('reels_enabled', !currentSettings?.reels_enabled)}
                 className={`w-12 h-6 rounded-full transition-colors ${
-                  settings.reelsEnabled ? 'bg-[#FF006E]' : 'bg-gray-300'
+                  currentSettings?.reels_enabled ? 'bg-[#FF006E]' : 'bg-gray-300'
                 }`}
               >
                 <span className={`block w-6 h-6 bg-white rounded-full shadow transform transition-transform ${
-                  settings.reelsEnabled ? 'translate-x-6' : 'translate-x-0'
+                  currentSettings?.reels_enabled ? 'translate-x-6' : 'translate-x-0'
                 }`} />
               </button>
             </div>
@@ -164,13 +178,13 @@ export function Settings() {
                 </div>
               </div>
               <button
-                onClick={() => handleChange('crossingsEnabled', !settings.crossingsEnabled)}
+                onClick={() => handleChange('crossings_enabled', !currentSettings?.crossings_enabled)}
                 className={`w-12 h-6 rounded-full transition-colors ${
-                  settings.crossingsEnabled ? 'bg-[#FF006E]' : 'bg-gray-300'
+                  currentSettings?.crossings_enabled ? 'bg-[#FF006E]' : 'bg-gray-300'
                 }`}
               >
                 <span className={`block w-6 h-6 bg-white rounded-full shadow transform transition-transform ${
-                  settings.crossingsEnabled ? 'translate-x-6' : 'translate-x-0'
+                  currentSettings?.crossings_enabled ? 'translate-x-6' : 'translate-x-0'
                 }`} />
               </button>
             </div>
@@ -184,11 +198,11 @@ export function Settings() {
           <div className="space-y-3">
             <div className="flex justify-between py-2 border-b border-gray-100">
               <span className="text-gray-500">Version</span>
-              <span className="font-medium text-gray-900">v1.0.0</span>
+              <span className="font-medium text-gray-900">{currentSettings?.version || '1.0.0'}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-gray-100">
               <span className="text-gray-500">Build</span>
-              <span className="font-medium text-gray-900">2024.01.15</span>
+              <span className="font-medium text-gray-900">{currentSettings?.build_date || '2024.01.15'}</span>
             </div>
             <div className="flex justify-between py-2 border-b border-gray-100">
               <span className="text-gray-500">API Version</span>
@@ -196,7 +210,7 @@ export function Settings() {
             </div>
             <div className="flex justify-between py-2">
               <span className="text-gray-500">Environment</span>
-              <span className="font-medium text-green-600">Production</span>
+              <span className="font-medium text-green-600 capitalize">{currentSettings?.environment || 'production'}</span>
             </div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import api from '../../services/api';
 import type { ExploreTab } from '../../pages/dashboard/ExplorePage';
 import CastingGrid from '../casting/CastingGrid';
 import { ExploreAllFeed } from './feeds/ExploreAllFeed';
@@ -73,8 +74,22 @@ export const ExploreFeed: React.FC<ExploreFeedProps> = ({
           <CastingGrid 
             users={data.suggestedUsers}
             loading={data.loading.suggested}
-            onMatch={(id) => console.log('Match', id)}
-            onPass={(id) => console.log('Pass', id)}
+onMatch={async (id) => {
+              try {
+                await api.post(`/connections/match/${id}`);
+                console.log('Match sent for', id);
+              } catch (err) {
+                console.error('Match failed:', err);
+              }
+            }}
+            onPass={async (id) => {
+              try {
+                await api.post(`/connections/pass/${id}`);
+                console.log('Pass sent for', id);
+              } catch (err) {
+                console.error('Pass failed:', err);
+              }
+            }}
             onViewProfile={onUserSelect || (() => {})}
           />
         );

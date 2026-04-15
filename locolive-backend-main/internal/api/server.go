@@ -13,9 +13,11 @@ import (
 	"privacy-social-backend/internal/service/location"
 	"privacy-social-backend/internal/service/safety"
 	"privacy-social-backend/internal/service/storage"
+	"privacy-social-backend/internal/service/moderation"
 	"privacy-social-backend/internal/service/story"
 	"privacy-social-backend/internal/service/user"
 	"privacy-social-backend/internal/token"
+	"privacy-social-backend/internal/util"
 )
 
 // Server serves HTTP requests for our privacy social service
@@ -32,6 +34,8 @@ type Server struct {
 	user       user.Service
 	admin      admin.Service
 	storage    storage.Service
+	moderation *moderation.Service
+	mailer     util.Mailer
 }
 
 // NewServer creates a new HTTP server and setup routing
@@ -63,6 +67,8 @@ func NewServer(
 		RefreshTokenDuration: config.RefreshTokenDuration,
 	})
 	adminService := admin.NewService(store, rdb)
+	modService := moderation.NewService(store)
+
 
 	server := &Server{
 		config:     config,
@@ -76,6 +82,8 @@ func NewServer(
 		user:       userService,
 		admin:      adminService,
 		storage:    storageService,
+		moderation: modService,
+		mailer:     util.NewSendGridMailer(config.SendGridAPIKey, config.FromEmail, config.FrontendURL),
 	}
 
 	server.setupRouter()

@@ -109,7 +109,9 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
         username: form.username.toLowerCase().replace(/\s+/g, ''),
         full_name: form.full_name,
         phone: uniquePhone,
+        is_ghost_mode: form.ghostMode,
       };
+
       const response = await api.post('/users', payload);
       const { access_token, user } = response.data;
       if (access_token && user) {
@@ -236,7 +238,7 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                 Continue <ArrowRight className="w-4 h-4" />
               </button>
 
-              <p className="text-center text-xs text-black/40 pt-1">
+              <p className="text-center text-xs text-text-muted/40 pt-1">
                 Already have an account?{' '}
                 <button type="button" onClick={onToggle} className="text-primary font-bold hover:text-accent transition-colors">
                   Sign in
@@ -258,12 +260,14 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
               className="space-y-5"
             >
               <div>
-                <h2 className="text-2xl font-black text-black">Set up your profile</h2>
-                <p className="text-sm text-black/60 mt-1">How should others see you?</p>
+                <h2 className="text-2xl font-black text-text-base">Set up your profile</h2>
+                <p className="text-sm text-text-muted mt-1">How should others see you?</p>
               </div>
 
+
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Username</label>
+                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">Username</label>
+
                 <div className="relative">
                   <AtSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -272,13 +276,15 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                     value={form.username}
                     onChange={(e) => set('username', e.target.value)}
                     placeholder="yourhandle"
-                    className="w-full h-12 glass-input border border-primary/10 rounded-xl pl-11 pr-4 text-black text-sm placeholder:text-black/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-4 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
                   />
+
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Display Name</label>
+                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">Display Name</label>
+
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -287,13 +293,15 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                     value={form.full_name}
                     onChange={(e) => set('full_name', e.target.value)}
                     placeholder="Your Name"
-                    className="w-full h-12 glass-input border border-primary/10 rounded-xl pl-11 pr-4 text-black text-sm placeholder:text-black/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-4 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
                   />
+
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Phone Number <span className="text-black/30 normal-case font-normal">(optional)</span></label>
+                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">Phone Number <span className="text-text-muted/30 normal-case font-normal">(optional)</span></label>
+
                 <div className="relative">
                   <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -302,18 +310,21 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                     onChange={(e) => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
                     placeholder="10-digit mobile number"
                     maxLength={10}
-                    className="w-full h-12 glass-input border border-primary/10 rounded-xl pl-11 pr-4 text-black text-sm placeholder:text-black/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
+                    className="w-full h-12 glass-input border border-border-base rounded-xl pl-11 pr-4 text-text-base text-sm placeholder:text-text-muted/30 focus:outline-none focus:border-primary/50 transition-all shadow-sm"
                   />
+
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-black/40 uppercase tracking-widest">Profile Photo</label>
+                <label className="text-[10px] font-bold text-text-muted/40 uppercase tracking-widest">Profile Photo</label>
+
                 <div className="flex items-center gap-4">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-black opacity-60 hover:bg-primary/20 transition-all overflow-hidden"
+                    className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-text-base opacity-60 hover:bg-primary/20 transition-all overflow-hidden"
+
                   >
                     {avatarPreview
                       ? <img src={avatarPreview} alt="avatar" className="w-full h-full object-cover" />
@@ -323,7 +334,8 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 text-sm font-semibold text-black bg-primary/5 border border-primary/10 rounded-xl hover:bg-primary/10 transition-all"
+                    className="px-4 py-2 text-sm font-semibold text-text-base bg-primary/5 border border-primary/10 rounded-xl hover:bg-primary/10 transition-all"
+
                   >
                     Upload Photo
                   </button>
@@ -335,13 +347,15 @@ const Signup: React.FC<SignupProps> = ({ onToggle, onBack }) => {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="h-12 w-12 flex items-center justify-center bg-primary/5 border border-primary/10 rounded-xl text-black/40 hover:text-black hover:bg-primary/10 transition-all"
+                  className="h-12 w-12 flex items-center justify-center bg-primary/5 border border-primary/10 rounded-xl text-text-muted/40 hover:text-text-base hover:bg-primary/10 transition-all"
                 >
+
                   <ArrowLeft className="w-4 h-4" />
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-black font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 transition-all text-sm"
+                  className="flex-1 h-12 flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-accent text-white font-bold rounded-xl shadow-lg shadow-primary/25 hover:opacity-95 active:scale-95 transition-all text-sm"
+
                 >
                   Continue <ArrowRight className="w-4 h-4" />
                 </button>

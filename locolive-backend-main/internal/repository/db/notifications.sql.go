@@ -11,6 +11,19 @@ import (
 	"github.com/google/uuid"
 )
 
+const countNotificationsAdmin = `-- name: CountNotificationsAdmin :one
+SELECT COUNT(*) FROM notifications
+WHERE type = 'system_announcement'
+`
+
+// Admin: Count notifications
+func (q *Queries) CountNotificationsAdmin(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countNotificationsAdmin)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countUnreadNotifications = `-- name: CountUnreadNotifications :one
 SELECT COUNT(*) FROM notifications
 WHERE user_id = $1 AND is_read = false
@@ -99,6 +112,53 @@ type ListNotificationsParams struct {
 
 func (q *Queries) ListNotifications(ctx context.Context, arg ListNotificationsParams) ([]Notification, error) {
 	rows, err := q.db.QueryContext(ctx, listNotifications, arg.UserID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Notification
+	for rows.Next() {
+		var i Notification
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Type,
+			&i.Title,
+			&i.Message,
+			&i.RelatedUserID,
+			&i.RelatedStoryID,
+			&i.RelatedCrossingID,
+			&i.IsRead,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listNotificationsAdmin = `-- name: ListNotificationsAdmin :many
+SELECT id, user_id, type, title, message, related_user_id, related_story_id, related_crossing_id, is_read, created_at FROM notifications
+WHERE type = 'system_announcement'
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type ListNotificationsAdminParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+// Admin: List all notifications (for admin panel)
+func (q *Queries) ListNotificationsAdmin(ctx context.Context, arg ListNotificationsAdminParams) ([]Notification, error) {
+	rows, err := q.db.QueryContext(ctx, listNotificationsAdmin, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

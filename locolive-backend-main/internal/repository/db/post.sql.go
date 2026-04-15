@@ -13,6 +13,18 @@ import (
 	"github.com/google/uuid"
 )
 
+const adminDeletePostComment = `-- name: AdminDeletePostComment :one
+DELETE FROM post_comments WHERE id = $1
+RETURNING post_id
+`
+
+func (q *Queries) AdminDeletePostComment(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, adminDeletePostComment, id)
+	var post_id uuid.UUID
+	err := row.Scan(&post_id)
+	return post_id, err
+}
+
 const createPost = `-- name: CreatePost :one
 INSERT INTO posts (user_id, media_url, media_type, caption, body_text, location_name, geohash, geom)
 VALUES (
@@ -23,7 +35,7 @@ VALUES (
          THEN ST_SetSRID(ST_MakePoint($9::float8, $10::float8), 4326)
          ELSE NULL END
 )
-RETURNING id, user_id, media_url, media_type, caption, location_name, geohash, geom, likes_count, comments_count, created_at, updated_at, body_text,
+RETURNING id, user_id, media_url, media_type, caption, location_name, geohash, geom, likes_count, comments_count, created_at, updated_at, body_text, shares_count,
     CASE WHEN geom IS NOT NULL THEN ST_Y(geom::geometry) ELSE NULL END as lat_out,
     CASE WHEN geom IS NOT NULL THEN ST_X(geom::geometry) ELSE NULL END as lng_out
 `
@@ -55,6 +67,7 @@ type CreatePostRow struct {
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`
 	BodyText      sql.NullString `json:"body_text"`
+	SharesCount   int32          `json:"shares_count"`
 	LatOut        interface{}    `json:"lat_out"`
 	LngOut        interface{}    `json:"lng_out"`
 }
@@ -87,6 +100,7 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (CreateP
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.BodyText,
+		&i.SharesCount,
 		&i.LatOut,
 		&i.LngOut,
 	)
@@ -94,19 +108,25 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (CreateP
 }
 
 const createPostComment = `-- name: CreatePostComment :one
-INSERT INTO post_comments (post_id, user_id, content)
-VALUES ($1, $2, $3)
-RETURNING id, post_id, user_id, content, created_at
+INSERT INTO post_comments (post_id, user_id, content, is_flagged)
+VALUES ($1, $2, $3, $4)
+RETURNING id, post_id, user_id, content, created_at, is_flagged
 `
 
 type CreatePostCommentParams struct {
-	PostID  uuid.UUID `json:"post_id"`
-	UserID  uuid.UUID `json:"user_id"`
-	Content string    `json:"content"`
+	PostID    uuid.UUID `json:"post_id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Content   string    `json:"content"`
+	IsFlagged bool      `json:"is_flagged"`
 }
 
 func (q *Queries) CreatePostComment(ctx context.Context, arg CreatePostCommentParams) (PostComment, error) {
-	row := q.db.QueryRowContext(ctx, createPostComment, arg.PostID, arg.UserID, arg.Content)
+	row := q.db.QueryRowContext(ctx, createPostComment,
+		arg.PostID,
+		arg.UserID,
+		arg.Content,
+		arg.IsFlagged,
+	)
 	var i PostComment
 	err := row.Scan(
 		&i.ID,
@@ -114,8 +134,18 @@ func (q *Queries) CreatePostComment(ctx context.Context, arg CreatePostCommentPa
 		&i.UserID,
 		&i.Content,
 		&i.CreatedAt,
+		&i.IsFlagged,
 	)
 	return i, err
+}
+
+const decrementPostComments = `-- name: DecrementPostComments :exec
+UPDATE posts SET comments_count = GREATEST(0, comments_count - 1) WHERE id = $1
+`
+
+func (q *Queries) DecrementPostComments(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, decrementPostComments, id)
+	return err
 }
 
 const decrementPostLikes = `-- name: DecrementPostLikes :exec
@@ -141,8 +171,9 @@ func (q *Queries) DeletePost(ctx context.Context, arg DeletePostParams) error {
 	return err
 }
 
-const deletePostComment = `-- name: DeletePostComment :exec
+const deletePostComment = `-- name: DeletePostComment :one
 DELETE FROM post_comments WHERE id = $1 AND user_id = $2
+RETURNING post_id
 `
 
 type DeletePostCommentParams struct {
@@ -150,8 +181,37 @@ type DeletePostCommentParams struct {
 	UserID uuid.UUID `json:"user_id"`
 }
 
-func (q *Queries) DeletePostComment(ctx context.Context, arg DeletePostCommentParams) error {
-	_, err := q.db.ExecContext(ctx, deletePostComment, arg.ID, arg.UserID)
+func (q *Queries) DeletePostComment(ctx context.Context, arg DeletePostCommentParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, deletePostComment, arg.ID, arg.UserID)
+	var post_id uuid.UUID
+	err := row.Scan(&post_id)
+	return post_id, err
+}
+
+const getPostComment = `-- name: GetPostComment :one
+SELECT id, post_id, user_id, content, created_at, is_flagged FROM post_comments WHERE id = $1 LIMIT 1
+`
+
+func (q *Queries) GetPostComment(ctx context.Context, id uuid.UUID) (PostComment, error) {
+	row := q.db.QueryRowContext(ctx, getPostComment, id)
+	var i PostComment
+	err := row.Scan(
+		&i.ID,
+		&i.PostID,
+		&i.UserID,
+		&i.Content,
+		&i.CreatedAt,
+		&i.IsFlagged,
+	)
+	return i, err
+}
+
+const incrementPostComments = `-- name: IncrementPostComments :exec
+UPDATE posts SET comments_count = comments_count + 1 WHERE id = $1
+`
+
+func (q *Queries) IncrementPostComments(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, incrementPostComments, id)
 	return err
 }
 
@@ -161,6 +221,15 @@ UPDATE posts SET likes_count = likes_count + 1 WHERE id = $1
 
 func (q *Queries) IncrementPostLikes(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, incrementPostLikes, id)
+	return err
+}
+
+const incrementPostShares = `-- name: IncrementPostShares :exec
+UPDATE posts SET shares_count = shares_count + 1 WHERE id = $1
+`
+
+func (q *Queries) IncrementPostShares(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, incrementPostShares, id)
 	return err
 }
 
@@ -189,7 +258,8 @@ func (q *Queries) LikePost(ctx context.Context, arg LikePostParams) (PostLike, e
 
 const listConnectionsPosts = `-- name: ListConnectionsPosts :many
 SELECT p.id, p.user_id, p.media_url, p.media_type, p.caption, p.location_name,
-       p.likes_count, p.comments_count, p.created_at, p.updated_at,
+       p.likes_count, p.comments_count, p.shares_count, p.created_at, p.updated_at,
+
        u.username, u.full_name, u.avatar_url,
        CASE WHEN p.geom IS NOT NULL THEN ST_Y(p.geom::geometry) ELSE NULL END as lat_out,
        CASE WHEN p.geom IS NOT NULL THEN ST_X(p.geom::geometry) ELSE NULL END as lng_out,
@@ -224,6 +294,7 @@ type ListConnectionsPostsRow struct {
 	LocationName  sql.NullString `json:"location_name"`
 	LikesCount    int32          `json:"likes_count"`
 	CommentsCount int32          `json:"comments_count"`
+	SharesCount   int32          `json:"shares_count"`
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`
 	Username      string         `json:"username"`
@@ -253,6 +324,7 @@ func (q *Queries) ListConnectionsPosts(ctx context.Context, arg ListConnectionsP
 			&i.LocationName,
 			&i.LikesCount,
 			&i.CommentsCount,
+			&i.SharesCount,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Username,
@@ -330,7 +402,8 @@ func (q *Queries) ListPostComments(ctx context.Context, postID uuid.UUID) ([]Lis
 
 const listPostsByUserID = `-- name: ListPostsByUserID :many
 SELECT p.id, p.user_id, p.media_url, p.media_type, p.caption, p.location_name,
-       p.likes_count, p.comments_count, p.created_at, p.updated_at,
+       p.likes_count, p.comments_count, p.shares_count, p.created_at, p.updated_at,
+
        u.username, u.full_name, u.avatar_url,
        CASE WHEN p.geom IS NOT NULL THEN ST_Y(p.geom::geometry) ELSE NULL END as lat_out,
        CASE WHEN p.geom IS NOT NULL THEN ST_X(p.geom::geometry) ELSE NULL END as lng_out,
@@ -358,6 +431,7 @@ type ListPostsByUserIDRow struct {
 	LocationName  sql.NullString `json:"location_name"`
 	LikesCount    int32          `json:"likes_count"`
 	CommentsCount int32          `json:"comments_count"`
+	SharesCount   int32          `json:"shares_count"`
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`
 	Username      string         `json:"username"`
@@ -391,6 +465,7 @@ func (q *Queries) ListPostsByUserID(ctx context.Context, arg ListPostsByUserIDPa
 			&i.LocationName,
 			&i.LikesCount,
 			&i.CommentsCount,
+			&i.SharesCount,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.Username,

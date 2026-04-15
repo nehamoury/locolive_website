@@ -11,6 +11,7 @@ import {
   Shield,
   Activity,
   Zap,
+  MessageSquare,
 } from 'lucide-react';
 
 const navItems = [
@@ -20,6 +21,7 @@ const navItems = [
   { to: '/admin/crossings', icon: Route, label: 'Crossings' },
   { to: '/admin/reels', icon: Film, label: 'Reels & Content' },
   { to: '/admin/reports', icon: Flag, label: 'Reports' },
+  { to: '/admin/comments', icon: MessageSquare, label: 'Comments & Moderation' },
   { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
   { to: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
