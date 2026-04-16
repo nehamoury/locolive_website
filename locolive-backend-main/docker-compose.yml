@@ -6,8 +6,10 @@ services:
       dockerfile: Dockerfile
     container_name: locolive-api
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "8080:8080"
     environment:
@@ -16,6 +18,8 @@ services:
       - SERVER_ADDRESS=0.0.0.0:8080
       - REDIS_ADDRESS=redis://redis:6379
       - JWT_SECRET=super-secret-key-change-in-production
+    volumes:
+      - ./uploads:/app/uploads
     networks:
       - locolive-net
     restart: on-failure
@@ -31,6 +35,11 @@ services:
       - POSTGRES_DB=privacy_social
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d privacy_social"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - locolive-net
 
@@ -39,6 +48,11 @@ services:
     container_name: locolive-redis
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - locolive-net
 

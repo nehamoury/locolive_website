@@ -18,6 +18,8 @@ import (
 	"privacy-social-backend/internal/service/user"
 	"privacy-social-backend/internal/token"
 	"privacy-social-backend/internal/util"
+
+	"github.com/rs/zerolog/log"
 )
 
 // Server serves HTTP requests for our privacy social service
@@ -49,10 +51,21 @@ func NewServer(
 		return nil, fmt.Errorf("cannot create token maker: %w", err)
 	}
 
-	opt, err := redis.ParseURL(config.RedisAddress)
-	if err != nil {
-		// Fallback for simple address
-		opt = &redis.Options{Addr: config.RedisAddress}
+	var opt *redis.Options
+	if config.RedisAddress != "" {
+		var parseErr error
+		opt, parseErr = redis.ParseURL(config.RedisAddress)
+		if parseErr != nil {
+			log.Warn().Err(parseErr).Str("address", config.RedisAddress).Msg("Failed to parse Redis URL, attempting simple address")
+			opt = &redis.Options{
+				Addr: config.RedisAddress,
+			}
+		}
+	} else {
+		log.Warn().Msg("REDIS_ADDRESS is empty, defaulting to localhost:6379 (may fail in Docker)")
+		opt = &redis.Options{
+			Addr: "localhost:6379",
+		}
 	}
 
 	rdb := redis.NewClient(opt)

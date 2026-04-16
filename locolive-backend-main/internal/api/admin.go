@@ -507,14 +507,24 @@ func (server *Server) listAdminCrossings(ctx *gin.Context) {
 		}
 
 		// Add dummy distance, or 0 since we mock it
+		// Safe coordinate parsing
+		lat, _ := c.Lat.(float64)
+		if c.Lat == nil {
+			lat = 0.0
+		}
+		lng, _ := c.Lng.(float64)
+		if c.Lng == nil {
+			lng = 0.0
+		}
+
 		responses[i] = adminCrossingResponse{
 			ID:    c.ID.String(),
 			UserA: userA,
 			UserB: userB,
 			Time:  c.OccurredAt,
 			Location: map[string]float64{
-				"lat": c.Lat.(float64),
-				"lng": c.Lng.(float64),
+				"lat": lat,
+				"lng": lng,
 			},
 			Distance: 0,
 		}
